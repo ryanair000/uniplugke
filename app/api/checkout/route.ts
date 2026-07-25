@@ -4,6 +4,8 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/sup
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type CheckoutPayload = { phone?: unknown; planIds?: unknown };
+
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer.user || !viewer.profile || viewer.profile.status !== "active") {
@@ -13,9 +15,10 @@ export async function POST(request: Request) {
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
   if (!paystackSecret) return NextResponse.json({ error: "Payment provider is not configured" }, { status: 503 });
 
-  const body = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({})) as CheckoutPayload;
   const phone = String(body.phone || "").replace(/[^+\d]/g, "").slice(0, 20);
-  const planIds = [...new Set(Array.isArray(body.planIds) ? body.planIds.map(String) : [])]
+  const submittedPlanIds: string[] = Array.isArray(body.planIds) ? body.planIds.map((value) => String(value)) : [];
+  const planIds = [...new Set<string>(submittedPlanIds)]
     .filter((id) => uuidPattern.test(id))
     .slice(0, 20);
   if (phone.replace(/\D/g, "").length < 9 || !planIds.length) {
