@@ -47,29 +47,38 @@ function readStoredCart(): CartItem[] {
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children, enabled }: { children: ReactNode; enabled: boolean }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setItems(readStoredCart());
+      if (enabled) {
+        setItems(readStoredCart());
+      } else {
+        localStorage.removeItem("uniplug-member-cart");
+        setItems([]);
+      }
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("uniplug-member-cart", JSON.stringify(items));
-  }, [hydrated, items]);
+    if (hydrated && enabled) localStorage.setItem("uniplug-member-cart", JSON.stringify(items));
+  }, [enabled, hydrated, items]);
 
   const add = useCallback((item: CartItem) => {
+    if (!enabled) return;
     setItems((current) => current.some((entry) => entry.planId === item.planId) ? current : [...current, item]);
-  }, []);
+  }, [enabled]);
   const remove = useCallback((planId: string) => {
     setItems((current) => current.filter((item) => item.planId !== planId));
   }, []);
-  const clear = useCallback(() => setItems([]), []);
+  const clear = useCallback(() => {
+    localStorage.removeItem("uniplug-member-cart");
+    setItems([]);
+  }, []);
   const value = useMemo(() => ({ items, add, remove, clear }), [items, add, remove, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
