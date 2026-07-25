@@ -22,8 +22,8 @@ export default async function SettingsPage({
         <p>Manage the identity, contact preferences, and private password connected to your UniPlug membership.</p>
       </div>
 
-      {query.success ? <p className="form-success page-notice">{decodeURIComponent(query.success)}</p> : null}
-      {query.error ? <p className="form-error page-notice">{decodeURIComponent(query.error)}</p> : null}
+      {query.success ? <p className="form-success page-notice">{query.success}</p> : null}
+      {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
 
       <div className="settings-grid">
         <section className="panel">
