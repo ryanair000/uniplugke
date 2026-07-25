@@ -78,13 +78,13 @@ export default async function SubscriptionDetailPage({
   const pendingCancel = actionRequests.some((request) => request.request_type === "cancel" && request.status === "pending");
   const canPause = ["active", "past_due"].includes(subscription.status) && !pendingPause;
   const canCancel = ["pending_activation", "active", "past_due", "paused"].includes(subscription.status) && !pendingCancel;
-  const canRenew = Boolean(plan && service && plan.availability_status !== "unavailable" && !["cancelled"].includes(subscription.status));
+  const canRenew = Boolean(plan && service && plan.availability_status !== "unavailable" && ["active", "past_due", "paused", "expired"].includes(subscription.status));
 
   return (
     <section className="section shell page-top">
       <Link className="back-link" href="/dashboard">← Back to My UniPlug</Link>
       {query.success === "request_submitted" ? <p className="form-success page-notice">Your request was submitted for review.</p> : null}
-      {query.error ? <p className="form-error page-notice">{decodeURIComponent(query.error)}</p> : null}
+      {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
 
       <div className="subscription-detail-hero">
         <div className="service-logo detail-service-logo" style={{ background: service?.accent_color || "#6957ff" }}>{service?.logo_text || "UP"}</div>
@@ -126,13 +126,8 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Renewal</p>
             <h2>{plan?.plan_name || "Member plan"}</h2>
             {plan ? <div className="plan-price">{formatKes(Number(plan.price_kes))}<span>/ {plan.billing_cycle}</span></div> : null}
-            <p>Your renewal amount is verified again from the private database before payment.</p>
-            {plan && service ? (
-              <RenewPlanButton
-                disabled={!canRenew}
-                item={{ planId: plan.id, serviceSlug: service.slug, serviceName: service.name, planName: plan.plan_name, priceKes: Number(plan.price_kes), billingCycle: plan.billing_cycle }}
-              />
-            ) : null}
+            <p>A renewal creates a dedicated order and extends this subscription after payment and activation.</p>
+            {plan && service ? <RenewPlanButton subscriptionId={subscription.id} disabled={!canRenew} /> : null}
             {!canRenew ? <small>This plan is not currently available for renewal.</small> : null}
           </section>
 
