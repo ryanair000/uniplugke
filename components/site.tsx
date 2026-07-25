@@ -17,7 +17,7 @@ export async function SiteHeader() {
         <Brand />
         <nav className="desktop-nav"><Link href="/services">Services</Link><Link href="/#how-it-works">How it works</Link><Link href="/#support">Support</Link></nav>
         <div className="header-actions">
-          {isMember ? <>{isAdmin && <Link href="/admin">Operations</Link>}<Link href="/dashboard">Dashboard</Link><CartLink /><SignOutButton /></> : <Link className="button button-dark small" href="/login">Member sign in</Link>}
+          {isMember ? <>{isAdmin && <Link href="/admin">Operations</Link>}<Link href="/dashboard">My UniPlug</Link><Link href="/settings">Settings</Link><CartLink /><SignOutButton /></> : <Link className="button button-dark small" href="/login">Member sign in</Link>}
         </div>
       </div>
     </header>
