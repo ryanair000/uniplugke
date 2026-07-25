@@ -61,7 +61,7 @@ export function PaymentStatus({ reference }: { reference: string | null }) {
     fetch(`/api/payments/verify?reference=${encodeURIComponent(reference)}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => ({ ok: response.ok, body: await response.json() }))
       .then(({ ok, body }) => {
-        if (ok && body.paid) { clear(); setState("paid"); setMessage("Payment confirmed. Your service will appear in the dashboard as activation begins."); }
+        if (ok && body.paid) { clear(); setState("paid"); setMessage("Payment confirmed. Your order is now waiting for service activation or renewal processing."); }
         else { setState("failed"); setMessage(body.error || "Payment could not be confirmed."); }
       })
       .catch((error) => { if (error.name !== "AbortError") { setState("failed"); setMessage("Payment verification failed. Please contact support if you were charged."); } });
