@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export function LoginForm() {
+export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -17,10 +16,14 @@ export function LoginForm() {
     setBusy(true);
     setMessage("");
     try {
-      const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      router.replace(searchParams.get("next") || "/dashboard");
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password, next: nextPath })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Sign-in failed");
+      router.replace(body.next || "/dashboard");
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign-in failed");
@@ -31,11 +34,18 @@ export function LoginForm() {
   return (
     <form className="auth-form" onSubmit={submit}>
       <label>
-        Email
-        <input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
+        Username or email
+        <input
+          type="text"
+          autoComplete="username"
+          required
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
+          placeholder="your.username or name@example.com"
+        />
       </label>
       <label>
-        Password
+        Private password
         <input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
       </label>
       {message && <p className="form-error" role="alert">{message}</p>}
