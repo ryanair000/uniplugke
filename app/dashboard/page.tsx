@@ -64,7 +64,7 @@ export default async function DashboardPage() {
   const requests = (requestsResult.data || []) as Array<{ id: string; status: string; request_type: string; created_at: string }>;
   const events = (eventsResult.data || []) as Array<{ id: string; event_type: string; title: string; detail: string | null; entity_type: string | null; entity_id: string | null; created_at: string }>;
   const nextRenewal = subscriptions
-    .filter((item) => item.current_period_end && new Date(item.current_period_end).getTime() >= Date.now())
+    .filter((item) => Boolean(item.current_period_end))
     .sort((a, b) => new Date(a.current_period_end!).getTime() - new Date(b.current_period_end!).getTime())[0];
 
   return (
