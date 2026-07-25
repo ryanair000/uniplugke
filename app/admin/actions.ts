@@ -1,0 +1,99 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+const categories = new Set(["streaming", "music", "creative", "ai", "productivity", "cloud", "security", "gaming", "learning"]);
+
+function slug(value: FormDataEntryValue | null) {
+  return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function lines(value: FormDataEntryValue | null) {
+  return String(value || "").split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 30);
+}
+
+function refreshCatalog() {
+  revalidatePath("/");
+  revalidatePath("/services");
+  revalidatePath("/admin");
+}
+
+export async function createCatalogService(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const name = String(formData.get("name") || "").trim().slice(0, 100);
+  const serviceSlug = slug(formData.get("slug") || name);
+  const category = String(formData.get("category") || "productivity");
+  const accentColor = String(formData.get("accentColor") || "#6957ff");
+  if (!name || !serviceSlug) throw new Error("Name and slug are required");
+  if (!categories.has(category)) throw new Error("Choose a valid category");
+  if (!/^#[0-9a-f]{6}$/i.test(accentColor)) throw new Error("Choose a valid accent color");
+
+  const { error } = await supabase.from("uniplug_catalog_services").insert({
+    name,
+    slug: serviceSlug,
+    category_slug: category,
+    short_description: String(formData.get("shortDescription") || "").trim().slice(0, 240),
+    description: String(formData.get("description") || "").trim().slice(0, 4000),
+    logo_text: String(formData.get("logoText") || "UP").trim().slice(0, 3),
+    accent_color: accentColor,
+    features: lines(formData.get("features")),
+    supported_devices: lines(formData.get("supportedDevices")),
+    setup_requirements: lines(formData.get("setupRequirements")),
+    fulfillment_label: String(formData.get("fulfillmentLabel") || "Managed access").trim().slice(0, 100),
+    activation_window: String(formData.get("activationWindow") || "Activation details available after sign-in").trim().slice(0, 300),
+    replacement_summary: String(formData.get("replacementSummary") || "Eligible issues can be reported from the dashboard.").trim().slice(0, 500),
+    availability_status: String(formData.get("availabilityStatus") || "available"),
+    is_featured: formData.get("isFeatured") === "on",
+    is_active: true
+  });
+  if (error) throw new Error(error.message);
+  refreshCatalog();
+}
+
+export async function createMemberPlan(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+
+  const price = Number(formData.get("priceKes"));
+  const compareAtRaw = String(formData.get("compareAtKes") || "").trim();
+  const compareAt = compareAtRaw ? Number(compareAtRaw) : null;
+  const planName = String(formData.get("planName") || "").trim().slice(0, 100);
+  const planCode = slug(formData.get("planCode") || planName);
+  const serviceId = String(formData.get("serviceId") || "");
+  if (!serviceId || !planName || !planCode) throw new Error("Service, plan name, and plan code are required");
+  if (!Number.isFinite(price) || price < 1) throw new Error("A valid price is required");
+  if (compareAt !== null && (!Number.isFinite(compareAt) || compareAt < price)) throw new Error("Compare-at price must be at least the member price");
+
+  const { error } = await supabase.from("uniplug_member_plans").insert({
+    service_id: serviceId,
+    plan_name: planName,
+    plan_code: planCode,
+    price_kes: price,
+    compare_at_kes: compareAt,
+    billing_cycle: String(formData.get("billingCycle") || "monthly"),
+    plan_features: lines(formData.get("planFeatures")),
+    purchase_limit: Math.min(20, Math.max(1, Number(formData.get("purchaseLimit") || 1))),
+    availability_status: String(formData.get("availabilityStatus") || "available"),
+    is_active: true
+  });
+  if (error) throw new Error(error.message);
+  refreshCatalog();
+}
+
+export async function activateMemberOrder(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const orderId = String(formData.get("orderId") || "");
+  if (!orderId) throw new Error("Order ID is required");
+  const { error } = await supabase.rpc("uniplug_activate_member_order", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
