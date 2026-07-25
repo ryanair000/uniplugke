@@ -13,11 +13,23 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 - Supabase migration that separates public catalog content from private plan pricing.
 - Admin forms for catalog services and member plans.
 
+## Phase 2 included
+
+- Responsive My UniPlug member navigation and dashboard.
+- Order history, receipts, payment status, and fulfilment progress.
+- Subscription detail pages and request history.
+- Secure renewal orders that extend an existing subscription.
+- Member profile, username, phone, communication preferences, and password settings.
+- Admin member directory and controlled status changes.
+- Reviewed pause and cancellation requests.
+- Member activity events for orders, payments, subscriptions, requests, and account changes.
+- Automated tests for guest-pricing, cart privacy, route protection, and renewal boundaries.
+
 ## Local setup
 
 1. Copy `.env.example` to `.env.local`.
 2. Add Supabase and Paystack credentials.
-3. Apply `supabase/migrations/20260725190000_phase1_catalog_private_pricing.sql`.
+3. Apply the Phase 1 migration, followed by the Phase 2 migrations in filename order.
 4. Run `npm install`.
 5. Run `npm run dev`.
 
@@ -31,6 +43,6 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 
 ## Security boundary
 
-Guest-facing code reads only `uniplug_catalog_services`. Prices live in `uniplug_member_plans`, whose RLS policy requires an active UniPlug profile. Checkout ignores browser totals and creates orders using server-side database prices.
+Guest-facing code reads only `uniplug_catalog_services`. Prices live in `uniplug_member_plans`, whose RLS policy requires an active UniPlug profile. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
 
-See `docs/PHASE_1.md` for deployment and cutover steps.
+See `docs/PHASE_1.md` for the initial cutover and `docs/PHASE_2.md` for member-operations validation.
