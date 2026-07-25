@@ -38,19 +38,25 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+function readStoredCart(): CartItem[] {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem("uniplug-member-cart") || "[]");
+    return Array.isArray(stored) ? stored as CartItem[] : [];
+  } catch {
+    return [];
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("uniplug-member-cart") || "[]");
-      setItems(Array.isArray(stored) ? stored : []);
-    } catch {
-      setItems([]);
-    } finally {
+    const frame = window.requestAnimationFrame(() => {
+      setItems(readStoredCart());
       setHydrated(true);
-    }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
