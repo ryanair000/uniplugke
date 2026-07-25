@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   quality:
+    name: Lint, type-check, privacy test, and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -21,13 +22,19 @@ jobs:
       PAYSTACK_SECRET_KEY: sk_test_placeholder
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm install
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npm run typecheck
+      - name: Verify guest catalog contains no pricing
+        run: npm test
+      - name: Production build
+        run: npm run build
