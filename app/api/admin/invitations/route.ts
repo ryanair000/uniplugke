@@ -52,14 +52,19 @@ export async function POST(request: Request) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop";
   const redirectTo = `${siteUrl}/auth/callback?next=/set-password`;
-  const linkType = existingUserId ? "recovery" : "invite";
-  const { data: generated, error: linkError } = await admin.auth.admin.generateLink({
-    type: linkType,
-    email,
-    options: linkType === "invite"
-      ? { redirectTo, data: { display_name: displayName, uniplug_username: username } }
-      : { redirectTo }
-  });
+  const linkType: "invite" | "recovery" = existingUserId ? "recovery" : "invite";
+  const linkResult = linkType === "invite"
+    ? await admin.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: { redirectTo, data: { display_name: displayName, uniplug_username: username } }
+      })
+    : await admin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo }
+      });
+  const { data: generated, error: linkError } = linkResult;
 
   if (linkError || !generated.user) {
     return NextResponse.json({ error: linkError?.message || "The invitation link could not be created." }, { status: 400 });
