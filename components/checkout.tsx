@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/catalog";
 
@@ -33,7 +34,7 @@ export function CheckoutClient({ email }: { email: string }) {
     }
   }
 
-  if (!items.length) return <div className="empty-state"><h2>Your cart is empty</h2><p>Add a member plan from a service detail page.</p><a className="button button-dark" href="/services">Browse services</a></div>;
+  if (!items.length) return <div className="empty-state"><h2>Your cart is empty</h2><p>Add a member plan from a service detail page.</p><Link className="button button-dark" href="/services">Browse services</Link></div>;
 
   return (
     <div className="checkout-grid">
@@ -51,11 +52,11 @@ export function CheckoutClient({ email }: { email: string }) {
 
 export function PaymentStatus({ reference }: { reference: string | null }) {
   const { clear } = useCart();
-  const [state, setState] = useState<"checking" | "paid" | "failed">("checking");
-  const [message, setMessage] = useState("Confirming your payment…");
+  const [state, setState] = useState<"checking" | "paid" | "failed">(reference ? "checking" : "failed");
+  const [message, setMessage] = useState(reference ? "Confirming your payment…" : "The payment reference is missing.");
 
   useEffect(() => {
-    if (!reference) { setState("failed"); setMessage("The payment reference is missing."); return; }
+    if (!reference) return;
     const controller = new AbortController();
     fetch(`/api/payments/verify?reference=${encodeURIComponent(reference)}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => ({ ok: response.ok, body: await response.json() }))
@@ -67,5 +68,5 @@ export function PaymentStatus({ reference }: { reference: string | null }) {
     return () => controller.abort();
   }, [reference, clear]);
 
-  return <div className={`payment-status ${state}`}><div className="status-icon">{state === "checking" ? "…" : state === "paid" ? "✓" : "!"}</div><h1>{state === "checking" ? "Confirming payment" : state === "paid" ? "You’re plugged in" : "Payment not confirmed"}</h1><p>{message}</p><a className="button button-dark" href={state === "paid" ? "/dashboard" : "/services"}>{state === "paid" ? "Open dashboard" : "Back to services"}</a></div>;
+  return <div className={`payment-status ${state}`}><div className="status-icon">{state === "checking" ? "…" : state === "paid" ? "✓" : "!"}</div><h1>{state === "checking" ? "Confirming payment" : state === "paid" ? "You’re plugged in" : "Payment not confirmed"}</h1><p>{message}</p><Link className="button button-dark" href={state === "paid" ? "/dashboard" : "/services"}>{state === "paid" ? "Open dashboard" : "Back to services"}</Link></div>;
 }
