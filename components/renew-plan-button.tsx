@@ -1,25 +1,6 @@
-"use client";
+import Link from "next/link";
 
-import { useRouter } from "next/navigation";
-import { useCart } from "@/components/catalog";
-import type { CartItem } from "@/lib/types";
-
-export function RenewPlanButton({ item, disabled = false }: { item: CartItem; disabled?: boolean }) {
-  const router = useRouter();
-  const { add, items } = useCart();
-  const added = items.some((entry) => entry.planId === item.planId);
-
-  return (
-    <button
-      type="button"
-      className="button button-dark"
-      disabled={disabled}
-      onClick={() => {
-        if (!added) add(item);
-        router.push("/checkout");
-      }}
-    >
-      {added ? "Continue renewal checkout" : "Renew this plan"}
-    </button>
-  );
+export function RenewPlanButton({ subscriptionId, disabled = false }: { subscriptionId: string; disabled?: boolean }) {
+  if (disabled) return <button type="button" className="button button-dark" disabled>Renewal unavailable</button>;
+  return <Link className="button button-dark" href={`/dashboard/subscriptions/${subscriptionId}/renew`}>Renew this plan</Link>;
 }
