@@ -1,6 +1,5 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/catalog";
 
@@ -16,6 +15,7 @@ export function CheckoutClient({ email }: { email: string }) {
   const displayedTotal = items.reduce((sum, item) => sum + item.priceKes, 0);
 
   async function pay() {
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -24,7 +24,7 @@ export function CheckoutClient({ email }: { email: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, planIds: items.map((item) => item.planId) })
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.authorizationUrl) throw new Error(body.error || "Checkout could not start");
       window.location.assign(body.authorizationUrl);
     } catch (checkoutError) {
@@ -33,25 +33,23 @@ export function CheckoutClient({ email }: { email: string }) {
     }
   }
 
-  if (!items.length) return <div className="empty-state"><h2>Your cart is empty</h2><p>Add a member plan from a service detail page.</p></div>;
+  if (!items.length) return <div className="empty-state"><h2>Your cart is empty</h2><p>Add a member plan from a service detail page.</p><a className="button button-dark" href="/services">Browse services</a></div>;
 
   return (
     <div className="checkout-grid">
       <section className="panel">
         <p className="eyebrow">Secure checkout</p><h1>Confirm your services</h1><p>Signed in as {email}</p>
         <div className="checkout-items">
-          {items.map((item) => <div className="checkout-item" key={item.planId}><div><strong>{item.serviceName}</strong><span>{item.planName} · {item.billingCycle}</span></div><strong>{formatKes(item.priceKes)}</strong><button onClick={() => remove(item.planId)}>Remove</button></div>)}
+          {items.map((item) => <div className="checkout-item" key={item.planId}><div><strong>{item.serviceName}</strong><span>{item.planName} · {item.billingCycle}</span></div><strong>{formatKes(item.priceKes)}</strong><button type="button" onClick={() => remove(item.planId)}>Remove</button></div>)}
         </div>
-        <label className="field">Phone / WhatsApp<input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07…" /></label>
+        <label className="field">Phone / WhatsApp<input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07…" /></label>
       </section>
-      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatKes(displayedTotal)}</strong></div><p>The final amount is recalculated securely from the database before payment.</p>{error && <p className="form-error">{error}</p>}<button className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
+      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatKes(displayedTotal)}</strong></div><p>The final amount is recalculated securely from the database before payment.</p>{error && <p className="form-error">{error}</p>}<button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
     </div>
   );
 }
 
-export function PaymentStatus() {
-  const searchParams = useSearchParams();
-  const reference = searchParams.get("reference") || searchParams.get("trxref");
+export function PaymentStatus({ reference }: { reference: string | null }) {
   const { clear } = useCart();
   const [state, setState] = useState<"checking" | "paid" | "failed">("checking");
   const [message, setMessage] = useState("Confirming your payment…");
@@ -59,7 +57,7 @@ export function PaymentStatus() {
   useEffect(() => {
     if (!reference) { setState("failed"); setMessage("The payment reference is missing."); return; }
     const controller = new AbortController();
-    fetch(`/api/payments/verify?reference=${encodeURIComponent(reference)}`, { signal: controller.signal })
+    fetch(`/api/payments/verify?reference=${encodeURIComponent(reference)}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => ({ ok: response.ok, body: await response.json() }))
       .then(({ ok, body }) => {
         if (ok && body.paid) { clear(); setState("paid"); setMessage("Payment confirmed. Your service will appear in the dashboard as activation begins."); }
