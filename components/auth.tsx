@@ -63,6 +63,7 @@ export function SignOutButton() {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
+        localStorage.removeItem("uniplug-member-cart");
         const supabase = createBrowserSupabaseClient();
         await supabase.auth.signOut();
         router.replace("/");
