@@ -1,6 +1,6 @@
 {
   "name": "uniplugke",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "node": ">=22"
@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/verify-public-pricing.mjs",
+    "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {

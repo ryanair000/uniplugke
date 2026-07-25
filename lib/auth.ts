@@ -12,11 +12,20 @@ export const getViewer = cache(async () => {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return { user: null, profile: null as MemberProfile | null };
 
-  const { data: profile } = await supabase
+  const expanded = await supabase
     .from("uniplug_profiles")
-    .select("user_id,email,display_name,username,role,status")
+    .select("user_id,email,display_name,username,phone,role,status,renewal_reminders_enabled,marketing_opt_in")
     .eq("user_id", data.user.id)
     .maybeSingle();
+
+  const fallback = expanded.error
+    ? await supabase
+        .from("uniplug_profiles")
+        .select("user_id,email,display_name,username,phone,role,status")
+        .eq("user_id", data.user.id)
+        .maybeSingle()
+    : null;
+  const profile = expanded.data || fallback?.data;
 
   return {
     user: data.user,
@@ -26,8 +35,11 @@ export const getViewer = cache(async () => {
           email: profile.email,
           displayName: profile.display_name,
           username: profile.username,
+          phone: profile.phone,
           role: profile.role,
-          status: profile.status
+          status: profile.status,
+          renewalRemindersEnabled: "renewal_reminders_enabled" in profile ? profile.renewal_reminders_enabled ?? true : true,
+          marketingOptIn: "marketing_opt_in" in profile ? profile.marketing_opt_in ?? false : false
         } as MemberProfile)
       : null
   };

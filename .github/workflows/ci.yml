@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase-1-foundation]
+    branches: [main, phase-1-foundation, phase-2-member-operations]
   pull_request:
     branches: [main]
 
@@ -29,12 +29,21 @@ jobs:
         with:
           node-version: 24
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Lint
-        run: npm run lint
-      - name: Type-check
-        run: npm run typecheck
-      - name: Verify guest catalog contains no pricing
-        run: npm test
-      - name: Production build
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          : > ci-output.log
+          npm install --no-audit --no-fund 2>&1 | tee -a ci-output.log
+      - name: Run complete quality gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee -a ci-output.log
+      - name: Preserve quality output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-2-quality-output
+          path: ci-output.log
+          if-no-files-found: error
+          retention-days: 3

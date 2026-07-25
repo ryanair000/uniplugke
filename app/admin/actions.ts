@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const categories = new Set(["streaming", "music", "creative", "ai", "productivity", "cloud", "security", "gaming", "learning"]);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function slug(value: FormDataEntryValue | null) {
   return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -91,8 +92,44 @@ export async function activateMemberOrder(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
   const orderId = String(formData.get("orderId") || "");
-  if (!orderId) throw new Error("Order ID is required");
+  if (!uuidPattern.test(orderId)) throw new Error("A valid order is required");
   const { error } = await supabase.rpc("uniplug_activate_member_order", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/orders");
+}
+
+export async function resolveSubscriptionRequest(formData: FormData) {
+  await requireAdmin();
+  const requestId = String(formData.get("requestId") || "");
+  const resolution = String(formData.get("resolution") || "");
+  const adminNote = String(formData.get("adminNote") || "").trim().slice(0, 1000);
+  if (!uuidPattern.test(requestId) || !["completed", "declined"].includes(resolution)) {
+    throw new Error("A valid request and resolution are required");
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("uniplug_resolve_subscription_request", {
+    p_request_id: requestId,
+    p_resolution: resolution,
+    p_admin_note: adminNote || null
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/dashboard");
+}
+
+export async function updateMemberStatus(formData: FormData) {
+  await requireAdmin();
+  const userId = String(formData.get("userId") || "");
+  const status = String(formData.get("status") || "");
+  if (!uuidPattern.test(userId) || !["active", "suspended", "pending"].includes(status)) {
+    throw new Error("A valid member and status are required");
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.rpc("uniplug_set_member_status", { p_user_id: userId, p_status: status });
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/dashboard");

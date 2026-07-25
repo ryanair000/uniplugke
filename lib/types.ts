@@ -50,8 +50,11 @@ export type MemberProfile = {
   email: string;
   displayName: string | null;
   username: string;
+  phone: string | null;
   role: "client" | "support" | "admin";
   status: "active" | "suspended" | "pending";
+  renewalRemindersEnabled: boolean;
+  marketingOptIn: boolean;
 };
 
 export type CartItem = {
@@ -61,4 +64,26 @@ export type CartItem = {
   planName: string;
   priceKes: number;
   billingCycle: MemberPlan["billingCycle"];
+};
+
+export type MemberOrderSummary = {
+  id: string;
+  orderNumber: string;
+  totalKes: number;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  createdAt: string;
+};
+
+export type SubscriptionRequestStatus = "pending" | "completed" | "declined";
+export type SubscriptionRequestType = "pause" | "cancel";
+
+export type MemberEvent = {
+  id: string;
+  eventType: string;
+  title: string;
+  detail: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  createdAt: string;
 };
