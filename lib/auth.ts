@@ -14,7 +14,7 @@ export const getViewer = cache(async () => {
 
   const { data: profile } = await supabase
     .from("uniplug_profiles")
-    .select("user_id,email,display_name,username,role,status")
+    .select("user_id,email,display_name,username,phone,role,status,renewal_reminders_enabled,marketing_opt_in")
     .eq("user_id", data.user.id)
     .maybeSingle();
 
@@ -26,8 +26,11 @@ export const getViewer = cache(async () => {
           email: profile.email,
           displayName: profile.display_name,
           username: profile.username,
+          phone: profile.phone,
           role: profile.role,
-          status: profile.status
+          status: profile.status,
+          renewalRemindersEnabled: profile.renewal_reminders_enabled ?? true,
+          marketingOptIn: profile.marketing_opt_in ?? false
         } as MemberProfile)
       : null
   };
