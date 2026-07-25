@@ -4,13 +4,22 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/sup
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type RenewalRequestBody = {
+  subscriptionId?: unknown;
+  phone?: unknown;
+};
+
+type PaystackInitializeResponse = {
+  data?: { authorization_url?: string };
+};
+
 export async function POST(request: Request) {
   const viewer = await getViewer();
   if (!viewer.user || !viewer.profile || viewer.profile.status !== "active") {
     return NextResponse.json({ error: "Member sign-in required" }, { status: 401 });
   }
 
-  const body = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({})) as RenewalRequestBody;
   const subscriptionId = String(body.subscriptionId || "");
   const phone = String(body.phone || "").replace(/[^+\d]/g, "").slice(0, 20);
   if (!uuidPattern.test(subscriptionId) || phone.replace(/\D/g, "").length < 9) {
@@ -48,8 +57,8 @@ export async function POST(request: Request) {
     }),
     cache: "no-store"
   });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || !result?.data?.authorization_url) {
+  const result = await response.json().catch(() => ({})) as PaystackInitializeResponse;
+  if (!response.ok || !result.data?.authorization_url) {
     const admin = createAdminSupabaseClient();
     await admin?.from("uniplug_member_orders").update({ payment_status: "initialization_failed" }).eq("id", order.order_id);
     return NextResponse.json({ error: "Payment provider could not start the renewal" }, { status: 502 });
