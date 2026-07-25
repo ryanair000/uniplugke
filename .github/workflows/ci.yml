@@ -29,17 +29,21 @@ jobs:
         with:
           node-version: 24
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        shell: bash
+        run: |
+          set -o pipefail
+          : > ci-output.log
+          npm install --no-audit --no-fund 2>&1 | tee -a ci-output.log
       - name: Run complete quality gate
         shell: bash
         run: |
           set -o pipefail
-          npm run check 2>&1 | tee ci-output.log
+          npm run check 2>&1 | tee -a ci-output.log
       - name: Preserve quality output
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: phase-2-quality-output
           path: ci-output.log
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 3
