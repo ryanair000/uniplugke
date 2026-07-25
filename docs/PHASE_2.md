@@ -31,6 +31,7 @@ Apply these after the Phase 1 migration, in filename order:
 3. `20260725204000_phase2_password_activity.sql`
 4. `20260725204500_phase2_request_profile_relation.sql`
 5. `20260725205000_phase2_renewal_orders.sql`
+6. `20260725205500_phase2_service_role_grants.sql`
 
 Apply them to a Supabase preview branch first. Do not apply them to the shared production database until Phase 1 cutover testing is complete.
 
