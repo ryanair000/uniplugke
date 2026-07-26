@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   createContext,
@@ -24,6 +25,76 @@ const categoryLabels: Record<string, string> = {
   gaming: "Gaming",
   learning: "Learning"
 };
+
+const homepageCategories = [
+  ["all", "All services"],
+  ["streaming", "Watch"],
+  ["music", "Listen"],
+  ["creative", "Create"],
+  ["productivity", "Work"],
+  ["cloud", "Store & cloud"],
+  ["gaming", "Play"]
+] as const;
+
+const homepageCategoryLabels: Record<string, string> = {
+  streaming: "Watch",
+  music: "Listen",
+  creative: "Create",
+  productivity: "Work",
+  cloud: "Store & cloud",
+  gaming: "Play",
+  ai: "Create",
+  security: "Work",
+  learning: "Work"
+};
+
+const homepageServiceOrder = [
+  "netflix-premium",
+  "spotify-premium",
+  "canva-pro",
+  "microsoft-365",
+  "game-pass-ultimate",
+  "icloud-plus-200"
+];
+
+const homepageDescriptions: Record<string, string> = {
+  "netflix-premium": "Unlimited movies, TV shows and Netflix originals.",
+  "spotify-premium": "Ad-free music listening, offline downloads, on demand.",
+  "canva-pro": "Design anything. Unlock premium templates and tools.",
+  "microsoft-365": "Premium Office apps, 1TB cloud storage, and more.",
+  "game-pass-ultimate": "Hundreds of games, EA Play, Xbox Live Gold and more.",
+  "icloud-plus-200": "Private cloud storage for your photos, files and backups."
+};
+
+const homepageDevices: Record<string, string[]> = {
+  "netflix-premium": ["Smart TV", "Phone", "Tablet", "Web"],
+  "spotify-premium": ["Phone", "Tablet", "Desktop", "Web"],
+  "canva-pro": ["Web", "Desktop", "Mobile", "Tablet"],
+  "microsoft-365": ["PC", "Mac", "Tablet", "Phone"],
+  "game-pass-ultimate": ["Console", "PC", "Cloud", "Mobile"],
+  "icloud-plus-200": ["iPhone", "iPad", "Mac", "Web"]
+};
+
+const homepageLogoThemes: Record<string, string> = {
+  "netflix-premium": "dark",
+  "spotify-premium": "green",
+  "canva-pro": "purple",
+  "microsoft-365": "soft",
+  "game-pass-ultimate": "green",
+  "icloud-plus-200": "soft"
+};
+
+function homeDeviceLabel(device: string) {
+  const labels: Record<string, string> = {
+    Browser: "Web",
+    Mobile: "Phone",
+    Xbox: "Console",
+    Windows: "PC",
+    "Windows PC": "PC",
+    "Supported mobile devices": "Mobile"
+  };
+  return labels[device] ?? device;
+}
 
 function formatKes(value: number) {
   return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
@@ -98,11 +169,13 @@ export function CartLink() {
 export function CatalogExplorer({
   services,
   plans,
-  isMember
+  isMember,
+  variant = "default"
 }: {
   services: CatalogService[];
   plans: MemberPlan[];
   isMember: boolean;
+  variant?: "default" | "homepage";
 }) {
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
@@ -117,6 +190,126 @@ export function CatalogExplorer({
     const searchMatch = !search || `${service.name} ${service.shortDescription} ${service.features.join(" ")}`.toLowerCase().includes(search.toLowerCase());
     return categoryMatch && searchMatch;
   }), [category, search, services]);
+
+  if (variant === "homepage") {
+    const orderedServices = [...visible]
+      .sort((a, b) => {
+        const aIndex = homepageServiceOrder.indexOf(a.slug);
+        const bIndex = homepageServiceOrder.indexOf(b.slug);
+        return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex)
+          - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
+      })
+      .slice(0, 6);
+
+    return (
+      <section className="home-catalog" aria-labelledby="catalog-title">
+        <div className="home-catalog-toolbar">
+          <div>
+            <h1 id="catalog-title">Explore digital services</h1>
+            <p>Find what you need and manage it in one account.</p>
+          </div>
+          <form
+            className="home-search"
+            role="search"
+            onSubmit={(event) => event.preventDefault()}
+          >
+            <label className="home-search-input">
+              <span className="sr-only">Search services</span>
+              <input
+                type="search"
+                placeholder="Search services"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <Image src="/figma/search-icon.svg" alt="" width={20} height={20} />
+            </label>
+            <button type="submit">Search</button>
+          </form>
+        </div>
+
+        <div className="home-catalog-body">
+          <div className="home-category-block">
+            <h2>Browse by category</h2>
+            <div className="home-category-row" aria-label="Service categories">
+              {homepageCategories.map(([key, label]) => (
+                <button
+                  type="button"
+                  key={key}
+                  className={category === key ? "active" : ""}
+                  aria-pressed={category === key}
+                  onClick={() => setCategory(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="home-popular-heading">
+            <h2>Popular on UniPlug</h2>
+            <p>Member plans and pricing appear after sign-in.</p>
+          </div>
+
+          <div className="home-service-grid">
+            {orderedServices.map((service) => {
+              const logoTheme = homepageLogoThemes[service.slug];
+              const availability = service.availabilityStatus === "limited"
+                ? "Limited stock"
+                : service.availabilityStatus === "coming_soon"
+                  ? "Coming soon"
+                  : "In stock";
+
+              return (
+                <article className="home-service-card" key={service.id}>
+                  <div className="home-service-header">
+                    <div
+                      className={`home-service-logo ${logoTheme ? `theme-${logoTheme}` : ""}`}
+                      style={logoTheme ? undefined : { backgroundColor: service.accentColor }}
+                    >
+                      {service.logoText}
+                    </div>
+                    <div className="home-service-identity">
+                      <h3>{service.name}</h3>
+                      <span className="home-category-tag">
+                        {homepageCategoryLabels[service.category] ?? categoryLabels[service.category]}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="home-service-description">
+                    {homepageDescriptions[service.slug] ?? service.shortDescription}
+                  </p>
+
+                  <div className="home-device-row" aria-label={`Supported devices for ${service.name}`}>
+                    {(homepageDevices[service.slug] ?? service.supportedDevices.slice(0, 4).map(homeDeviceLabel)).map((device) => (
+                      <span key={device}>{device}</span>
+                    ))}
+                  </div>
+
+                  <div className="home-service-footer">
+                    <span className={`home-stock ${service.availabilityStatus}`}>
+                      <span aria-hidden="true" />
+                      {availability}
+                    </span>
+                    <Link href={`/services/${service.slug}`}>
+                      View service <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {!orderedServices.length && (
+            <div className="home-empty-state">
+              <h2>No services found</h2>
+              <p>Try another search or category.</p>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div>
