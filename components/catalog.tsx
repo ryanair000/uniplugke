@@ -92,6 +92,13 @@ function formatKes(value: number) {
   return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
 }
 
+function formatUsd(value: number) {
+  return `$${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+}
+
 type CartContextValue = {
   items: CartItem[];
   add: (item: CartItem) => void;
@@ -239,11 +246,16 @@ export function CatalogExplorer({
 
           <div className="home-popular-heading">
             <h2>Popular on UniPlug</h2>
-            <p>Member plans and pricing appear after sign-in.</p>
+            <p>
+              {isMember
+                ? "Your exact member prices are shown in Kenyan shillings."
+                : "Starting prices are shown in USD. Sign in for exact Kenya pricing in KSh."}
+            </p>
           </div>
 
           <div className="home-service-grid">
             {orderedServices.map((service) => {
+              const plan = planByService.get(service.id);
               const availability = service.availabilityStatus === "limited"
                 ? "Limited stock"
                 : service.availabilityStatus === "coming_soon"
@@ -279,10 +291,23 @@ export function CatalogExplorer({
                   </div>
 
                   <div className="home-service-footer">
-                    <span className={`home-stock ${service.availabilityStatus}`}>
-                      <span aria-hidden="true" />
-                      {availability}
-                    </span>
+                    <div className="home-service-meta">
+                      <span className={`home-stock ${service.availabilityStatus}`}>
+                        <span aria-hidden="true" />
+                        {availability}
+                      </span>
+                      {isMember && plan ? (
+                        <span className="home-card-price">
+                          <strong>{formatKes(plan.priceKes)}</strong> / {plan.billingCycle}
+                        </span>
+                      ) : service.startingPriceUsd !== null ? (
+                        <span className="home-card-price">
+                          From <strong>{formatUsd(service.startingPriceUsd)}</strong> USD
+                        </span>
+                      ) : (
+                        <span className="home-card-price">Sign in for pricing</span>
+                      )}
+                    </div>
                     <Link href={`/services/${service.slug}`}>
                       View service <span aria-hidden="true">→</span>
                     </Link>
@@ -335,8 +360,10 @@ export function CatalogExplorer({
               <div className="service-card-footer">
                 {isMember && plan ? (
                   <div><strong>{formatKes(plan.priceKes)}</strong><span> / {plan.billingCycle}</span></div>
+                ) : service.startingPriceUsd !== null ? (
+                  <div className="public-price"><strong>From {formatUsd(service.startingPriceUsd)}</strong><span> USD · exact KSh pricing after sign-in</span></div>
                 ) : (
-                  <div className="price-lock">Sign in to view member pricing</div>
+                  <div className="price-lock">Sign in to view current pricing</div>
                 )}
                 <Link className="round-link" href={`/services/${service.slug}`} aria-label={`View ${service.name}`}>→</Link>
               </div>

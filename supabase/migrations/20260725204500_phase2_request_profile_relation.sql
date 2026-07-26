@@ -3,7 +3,10 @@
 do $$
 begin
   if not exists (
-    select 1 from pg_constraint where conname = 'uniplug_subscription_requests_profile_fkey'
+    select 1
+    from pg_constraint
+    where conname = 'uniplug_subscription_requests_profile_fkey'
+      and conrelid = 'public.uniplug_subscription_requests'::regclass
   ) then
     alter table public.uniplug_subscription_requests
       add constraint uniplug_subscription_requests_profile_fkey

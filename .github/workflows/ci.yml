@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint, type-check, privacy test, and build
+    name: Lint, type-check, source invariants, and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -33,7 +33,7 @@ jobs:
         run: |
           set -o pipefail
           : > ci-output.log
-          npm install --no-audit --no-fund 2>&1 | tee -a ci-output.log
+          npm ci --no-audit --no-fund 2>&1 | tee -a ci-output.log
       - name: Run complete quality gate
         shell: bash
         run: |
@@ -47,3 +47,17 @@ jobs:
           path: ci-output.log
           if-no-files-found: error
           retention-days: 3
+
+  database:
+    name: Migrations, RLS, RPC privileges, and idempotency
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+      - name: Start isolated Supabase stack
+        run: supabase start
+      - name: Run pgTAP database tests
+        run: supabase test db

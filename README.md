@@ -4,8 +4,8 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 
 ## Phase 1 included
 
-- Public catalog with no prices in guest HTML, payloads, or fallback data.
-- Authenticated member plans and pricing.
+- Public catalog with USD starting prices for visitors.
+- Authenticated member plans and exact KSh pricing.
 - Detailed service pages.
 - Invite-only email/password authentication using Supabase SSR cookies.
 - Protected dashboard, cart, checkout, admin, and payment routes.
@@ -43,6 +43,6 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 
 ## Security boundary
 
-Guest-facing code reads only `uniplug_catalog_services`. Prices live in `uniplug_member_plans`, whose RLS policy requires an active UniPlug profile. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
+Guest-facing code reads only `uniplug_catalog_services`, including a deliberately public USD starting price. Exact KSh prices live in `uniplug_member_plans`, whose RLS policy requires an active UniPlug profile. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
 
 See `docs/PHASE_1.md` for the initial cutover and `docs/PHASE_2.md` for member-operations validation.

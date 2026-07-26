@@ -24,6 +24,7 @@ export const publicCatalogFallback: CatalogService[] = [
       { question: "How do I receive access?", answer: "Activation details appear securely in your dashboard once the service is ready." },
       { question: "Can I report an issue?", answer: "Yes. Active members can report service issues from their dashboard." }
     ],
+    startingPriceUsd: 4.99,
     availabilityStatus: "available",
     featured: true
   },
@@ -43,6 +44,7 @@ export const publicCatalogFallback: CatalogService[] = [
     activationWindow: "Normally completed after member verification",
     replacementSummary: "Eligible account faults can be reported and tracked online.",
     faqs: [{ question: "Where do I manage the service?", answer: "Your plan, access state, and support history appear in My UniPlug." }],
+    startingPriceUsd: 3.99,
     availabilityStatus: "available",
     featured: true
   },
@@ -62,6 +64,7 @@ export const publicCatalogFallback: CatalogService[] = [
     activationWindow: "Invitation delivered after verification",
     replacementSummary: "Invitation and access issues can be reported from the dashboard.",
     faqs: [{ question: "Do I use my own email?", answer: "The service detail shown after sign-in explains the current activation method." }],
+    startingPriceUsd: 2.99,
     availabilityStatus: "available",
     featured: true
   },
@@ -81,6 +84,7 @@ export const publicCatalogFallback: CatalogService[] = [
     activationWindow: "Activation time depends on account verification",
     replacementSummary: "Support reviews account-specific problems before replacement.",
     faqs: [{ question: "Is every device supported?", answer: "Compatibility requirements are checked before activation." }],
+    startingPriceUsd: 2.99,
     availabilityStatus: "limited",
     featured: false
   },
@@ -100,6 +104,7 @@ export const publicCatalogFallback: CatalogService[] = [
     activationWindow: "Activation follows account and region verification",
     replacementSummary: "Account faults are checked for eligibility before replacement.",
     faqs: [{ question: "Are region requirements checked?", answer: "Yes. The member plan page shows the applicable requirements before checkout." }],
+    startingPriceUsd: 9.99,
     availabilityStatus: "available",
     featured: true
   },
@@ -119,6 +124,7 @@ export const publicCatalogFallback: CatalogService[] = [
     activationWindow: "Normally completed after member verification",
     replacementSummary: "Access problems can be reported and followed from the dashboard.",
     faqs: [{ question: "Can I track activation?", answer: "Yes. Activation and renewal information appears in My UniPlug." }],
+    startingPriceUsd: 4.99,
     availabilityStatus: "available",
     featured: true
   }
@@ -150,6 +156,7 @@ function normalizeService(row: Record<string, unknown>): CatalogService {
           answer: String(faq.answer ?? "")
         }))
       : [],
+    startingPriceUsd: row.starting_price_usd == null ? null : Number(row.starting_price_usd),
     availabilityStatus: String(row.availability_status ?? "available") as CatalogService["availabilityStatus"],
     featured: Boolean(row.is_featured)
   };
@@ -161,7 +168,7 @@ export async function getPublicCatalog() {
 
   const { data, error } = await supabase
     .from("uniplug_catalog_services")
-    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured")
+    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,starting_price_usd,availability_status,is_featured")
     .eq("is_active", true)
     .order("sort_order");
 

@@ -803,6 +803,26 @@
   min-width: 0;
 }
 
+.public-price-admin {
+  display: flex !important;
+  align-items: flex-end;
+  gap: 8px !important;
+}
+
+.public-price-admin form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-price-admin input {
+  width: 92px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
 .admin-quick-grid {
   display: grid;
   gap: 14px;
@@ -1069,6 +1089,9 @@
   .member-admin-list > article { grid-template-columns: 1fr; }
   .member-admin-list form { align-items: stretch; flex-direction: column; }
   .member-admin-list select, .member-admin-list .button { width: 100%; }
+  .public-price-admin { width: 100%; align-items: stretch; flex-direction: column; }
+  .public-price-admin form { width: 100%; }
+  .public-price-admin input { width: 100%; }
 }
 
 @media (max-width: 520px) {

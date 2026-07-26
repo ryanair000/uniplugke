@@ -7,5 +7,12 @@ coverage
 .env.*.local
 !.env.example
 .vercel
+supabase/.temp/
 .DS_Store
 *.log
+*.tsbuildinfo
+.codex/
+.playwright-cli/
+output/
+
+.env*.local

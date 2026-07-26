@@ -27,6 +27,7 @@ export type CatalogService = {
   activationWindow: string;
   replacementSummary: string;
   faqs: CatalogFaq[];
+  startingPriceUsd: number | null;
   availabilityStatus: "available" | "limited" | "coming_soon";
   featured: boolean;
 };

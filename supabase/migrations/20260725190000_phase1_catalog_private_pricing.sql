@@ -169,25 +169,33 @@ as $$
   );
 $$;
 
--- Preserve access for existing Account Hub administrators without relying on
--- the old role table after the UniPlug split.
-insert into public.uniplug_profiles(user_id,email,display_name,username,role,status,onboarding_completed_at)
-select distinct
-  u.id,
-  lower(u.email),
-  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), split_part(u.email, '@', 1)),
-  'admin-' || substr(replace(u.id::text, '-', ''), 1, 12),
-  'admin',
-  'active',
-  now()
-from auth.users u
-join public.user_roles r on r.user_id = u.id
-where r.role in ('admin','co_admin') and u.email is not null
-on conflict (user_id) do update
-set email = excluded.email,
-    role = 'admin',
-    status = 'active',
-    updated_at = now();
+-- Preserve access for existing Account Hub administrators without making a
+-- fresh local database depend on the legacy role table.
+do $$
+begin
+  if to_regclass('public.user_roles') is not null then
+    execute $bootstrap$
+      insert into public.uniplug_profiles(user_id,email,display_name,username,role,status,onboarding_completed_at)
+      select distinct
+        u.id,
+        lower(u.email),
+        coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), split_part(u.email, '@', 1)),
+        'admin-' || substr(replace(u.id::text, '-', ''), 1, 12),
+        'admin',
+        'active',
+        now()
+      from auth.users u
+      join public.user_roles r on r.user_id = u.id
+      where r.role in ('admin','co_admin') and u.email is not null
+      on conflict (user_id) do update
+      set email = excluded.email,
+          role = 'admin',
+          status = 'active',
+          updated_at = now()
+    $bootstrap$;
+  end if;
+end
+$$;
 
 alter table public.uniplug_catalog_services enable row level security;
 alter table public.uniplug_profiles enable row level security;

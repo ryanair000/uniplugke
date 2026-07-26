@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs",
+    "test:db": "supabase test db",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
@@ -23,11 +24,11 @@
     "server-only": "0.0.1"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "eslint": "^9.39.0",
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.2",
     "eslint-config-next": "16.2.11",
-    "typescript": "^5.9.0"
+    "typescript": "5.9.3"
   }
 }

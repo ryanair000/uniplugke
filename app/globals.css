@@ -1470,6 +1470,16 @@ main {
   }
 }
 
+.public-price {
+  display: grid;
+  gap: 3px;
+}
+
+.public-price span {
+  max-width: 180px;
+  line-height: 1.35;
+}
+
 /* Approved UniPlug homepage and shared site chrome */
 
 .sr-only {
@@ -1857,6 +1867,23 @@ main {
   padding-top: 12px;
 }
 
+.home-service-meta {
+  display: grid;
+  gap: 5px;
+}
+
+.home-card-price {
+  color: #6f6f7a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.home-card-price strong {
+  color: #18181b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .home-stock {
   display: inline-flex;
   align-items: center;
@@ -1889,6 +1916,18 @@ main {
 
 .home-service-footer > a:hover {
   color: #5b21b6;
+}
+
+.public-price-card {
+  text-align: left;
+}
+
+.public-detail-price {
+  margin: 10px 0;
+  color: var(--ink);
+  font-size: clamp(1.65rem, 3vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
 }
 
 .home-empty-state {

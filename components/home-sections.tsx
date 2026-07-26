@@ -12,8 +12,8 @@ const processItems: InfoItem[] = [
   },
   {
     icon: "2",
-    title: "Sign in to see plans",
-    description: "View plans and complete setup securely."
+    title: "Sign in for local pricing",
+    description: "See exact member plans in KSh and complete setup securely."
   },
   {
     icon: "3",

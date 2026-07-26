@@ -2,7 +2,7 @@
 
 ## Objective
 
-Guests can explore a polished catalog and detailed service pages, but pricing, cart, checkout, and account management require an active invited member profile.
+Guests can explore a polished catalog, detailed service pages, and public USD starting prices. Exact KSh plans, cart, checkout, and account management require an active invited member profile.
 
 ## Database cutover
 
@@ -18,7 +18,7 @@ Guests can explore a polished catalog and detailed service pages, but pricing, c
 
 ## Required privacy tests
 
-- Search guest HTML for known prices.
+- Confirm guest HTML contains only the deliberate USD starting price, never exact KSh member-plan fields.
 - Inspect React server payloads and network requests while logged out.
 - Query the REST endpoint for `uniplug_member_plans` using only the publishable key; access must be denied or return no rows.
 - Attempt `/checkout`, `/dashboard`, and `/admin` while logged out.
