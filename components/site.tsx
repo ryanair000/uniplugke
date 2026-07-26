@@ -38,7 +38,7 @@ export async function SiteHeader() {
             <>
               {isAdmin && <Link href="/admin">Operations</Link>}
               <Link href="/dashboard">My UniPlug</Link>
-              <Link href="/settings">Settings</Link>
+              <Link href="/dashboard/settings">Settings</Link>
               <CartLink />
               <SignOutButton />
             </>

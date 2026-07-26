@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,7 @@ function refreshCatalog() {
   revalidatePath("/");
   revalidatePath("/services");
   revalidatePath("/admin");
+  revalidatePath("/admin/catalog");
 }
 
 export async function createCatalogService(formData: FormData) {
@@ -54,6 +56,7 @@ export async function createCatalogService(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   refreshCatalog();
+  redirect("/admin/catalog?success=service");
 }
 
 export async function createMemberPlan(formData: FormData) {
@@ -85,6 +88,7 @@ export async function createMemberPlan(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   refreshCatalog();
+  redirect("/admin/catalog?success=plan");
 }
 
 export async function activateMemberOrder(formData: FormData) {
@@ -96,8 +100,10 @@ export async function activateMemberOrder(formData: FormData) {
   const { error } = await supabase.rpc("uniplug_activate_member_order", { p_order_id: orderId });
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+  revalidatePath("/admin/orders");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/orders");
+  redirect("/admin/orders?success=activated");
 }
 
 export async function resolveSubscriptionRequest(formData: FormData) {
@@ -117,7 +123,9 @@ export async function resolveSubscriptionRequest(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+  revalidatePath("/admin/requests");
   revalidatePath("/dashboard");
+  redirect("/admin/requests?success=resolved");
 }
 
 export async function updateMemberStatus(formData: FormData) {
@@ -132,5 +140,7 @@ export async function updateMemberStatus(formData: FormData) {
   const { error } = await supabase.rpc("uniplug_set_member_status", { p_user_id: userId, p_status: status });
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
+  revalidatePath("/admin/members");
   revalidatePath("/dashboard");
+  redirect("/admin/members?success=status");
 }

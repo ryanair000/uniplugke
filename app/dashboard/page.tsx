@@ -76,7 +76,7 @@ export default async function DashboardPage() {
           <p>Your services, orders, renewal dates, requests, and account activity are organised here.</p>
         </div>
         <div className="dashboard-heading-actions">
-          <Link className="button button-light" href="/settings">Account settings</Link>
+          <Link className="button button-light" href="/dashboard/settings">Account settings</Link>
           <Link className="button button-dark" href="/services">Browse services</Link>
         </div>
       </div>
