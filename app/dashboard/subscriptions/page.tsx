@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -15,7 +16,7 @@ export default async function SubscriptionsPage() {
   const { data } = supabase
     ? await supabase
         .from("uniplug_member_subscriptions")
-        .select("id,status,start_at,current_period_start,current_period_end,service:uniplug_catalog_services(name,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
+        .select("id,status,start_at,current_period_start,current_period_end,service:uniplug_catalog_services(name,slug,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
         .eq("user_id", viewer.user.id)
         .order("current_period_end")
     : { data: [] };
@@ -26,7 +27,7 @@ export default async function SubscriptionsPage() {
     start_at: string | null;
     current_period_start: string | null;
     current_period_end: string | null;
-    service: { name: string; logo_text: string; accent_color: string } | null;
+    service: { name: string; slug: string; logo_text: string; accent_color: string } | null;
     plan: { plan_name: string; billing_cycle: string } | null;
   }>;
   const active = subscriptions.filter((subscription) => subscription.status === "active").length;
@@ -59,9 +60,13 @@ export default async function SubscriptionsPage() {
           <div className="subscription-list">
             {subscriptions.map((subscription) => (
               <Link className="subscription-row" href={`/dashboard/subscriptions/${subscription.id}`} key={subscription.id}>
-                <span className="service-logo small" style={{ background: subscription.service?.accent_color || "#6957ff" }}>
-                  {subscription.service?.logo_text || "UP"}
-                </span>
+                <ServiceArtwork
+                  accentColor={subscription.service?.accent_color || "#6957ff"}
+                  className="service-logo small"
+                  logoText={subscription.service?.logo_text || "UP"}
+                  name={subscription.service?.name || "Digital service"}
+                  slug={subscription.service?.slug}
+                />
                 <div>
                   <strong>{subscription.service?.name || "Digital service"}</strong>
                   <span>{subscription.plan?.plan_name || "Member plan"} · {subscription.plan?.billing_cycle || "managed billing"}</span>

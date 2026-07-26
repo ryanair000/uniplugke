@@ -1,4 +1,5 @@
 import { createCatalogService, createMemberPlan } from "@/app/admin/actions";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function AdminCatalogPage({
   const empty = { data: [] as Array<Record<string, unknown>> };
   const [servicesResult, plansResult] = supabase
     ? await Promise.all([
-        supabase.from("uniplug_catalog_services").select("id,name,slug,category_slug,is_active,is_featured,availability_status,short_description").order("name"),
+        supabase.from("uniplug_catalog_services").select("id,name,slug,category_slug,is_active,is_featured,availability_status,short_description,logo_text,accent_color").order("name"),
         supabase.from("uniplug_member_plans").select("id,plan_name,plan_code,price_kes,billing_cycle,is_active,availability_status,service:uniplug_catalog_services(name)").order("created_at", { ascending: false })
       ])
     : [empty, empty];
@@ -27,6 +28,8 @@ export default async function AdminCatalogPage({
     is_featured: boolean;
     availability_status: string;
     short_description: string;
+    logo_text: string;
+    accent_color: string;
   }>;
   const plans = (plansResult.data || []) as unknown as Array<{
     id: string;
@@ -93,7 +96,7 @@ export default async function AdminCatalogPage({
         <section className="panel">
           <div className="section-heading compact"><div><p className="eyebrow">Public inventory</p><h2>Services</h2></div></div>
           <div className="admin-list">
-            {services.map((service) => <div key={service.id}><div><strong>{service.name}</strong><span>/{service.slug} · {service.category_slug}</span><span>{service.short_description}</span></div><span className={`status-pill status-${service.availability_status}`}>{service.is_active ? service.availability_status : "hidden"}</span></div>)}
+            {services.map((service) => <div key={service.id}><div className="admin-service-identity"><ServiceArtwork accentColor={service.accent_color} className="service-logo small" logoText={service.logo_text} name={service.name} slug={service.slug} /><div><strong>{service.name}</strong><span>/{service.slug} · {service.category_slug}</span><span>{service.short_description}</span></div></div><span className={`status-pill status-${service.availability_status}`}>{service.is_active ? service.availability_status : "hidden"}</span></div>)}
           </div>
         </section>
         <section className="panel">

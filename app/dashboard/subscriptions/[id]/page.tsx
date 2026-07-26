@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RenewPlanButton } from "@/components/renew-plan-button";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { requestSubscriptionAction } from "@/app/dashboard/subscriptions/actions";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -87,7 +88,14 @@ export default async function SubscriptionDetailPage({
       {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
 
       <div className="subscription-detail-hero">
-        <div className="service-logo detail-service-logo" style={{ background: service?.accent_color || "#6957ff" }}>{service?.logo_text || "UP"}</div>
+        <ServiceArtwork
+          accentColor={service?.accent_color || "#6957ff"}
+          className="service-logo detail-service-logo"
+          descriptive
+          logoText={service?.logo_text || "UP"}
+          name={service?.name || "Digital service"}
+          slug={service?.slug}
+        />
         <div><p className="eyebrow">My subscription</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span>{readableStatus(subscription.status)}</span><span>{plan?.billing_cycle || "Billing cycle pending"}</span></div></div>
       </div>
 

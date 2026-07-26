@@ -791,6 +791,18 @@
   text-align: right;
 }
 
+.admin-service-identity {
+  display: flex !important;
+  align-items: center;
+  gap: 12px !important;
+}
+
+.admin-service-identity > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .admin-quick-grid {
   display: grid;
   gap: 14px;

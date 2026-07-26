@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -95,7 +96,13 @@ export default async function DashboardPage() {
           <div className="subscription-list">
             {subscriptions.map((item) => (
               <Link className="subscription-row" href={`/dashboard/subscriptions/${item.id}`} key={item.id}>
-                <div className="service-logo small" style={{ background: item.service?.accent_color || "#6957ff" }}>{item.service?.logo_text || "UP"}</div>
+                <ServiceArtwork
+                  accentColor={item.service?.accent_color || "#6957ff"}
+                  className="service-logo small"
+                  logoText={item.service?.logo_text || "UP"}
+                  name={item.service?.name || "Digital service"}
+                  slug={item.service?.slug}
+                />
                 <div><strong>{item.service?.name || "Digital service"}</strong><span>{item.plan?.plan_name || "Member plan"}</span></div>
                 <span className="status-pill">{readableStatus(item.status)}</span>
                 <span>{item.current_period_end ? `Renews ${new Date(item.current_period_end).toLocaleDateString("en-KE", { dateStyle: "medium" })}` : "Activation pending"}</span>

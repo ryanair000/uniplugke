@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -66,7 +67,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <div className="order-item-list">
               {orderItems.map((item) => (
                 <article key={item.id}>
-                  <div className="service-logo small" style={{ background: item.service?.accent_color || "#6957ff" }}>{item.service?.logo_text || "UP"}</div>
+                  <ServiceArtwork
+                    accentColor={item.service?.accent_color || "#6957ff"}
+                    className="service-logo small"
+                    logoText={item.service?.logo_text || "UP"}
+                    name={item.service_name}
+                    slug={item.service?.slug}
+                  />
                   <div><strong>{item.service_name}</strong><span>{item.plan_name} · {readableStatus(item.billing_cycle)}</span></div>
                   <strong>{formatKes(Number(item.unit_price_kes))}</strong>
                   {item.service?.slug ? <Link href={`/services/${item.service.slug}`}>View service</Link> : null}

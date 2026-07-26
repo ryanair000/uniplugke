@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode
 } from "react";
+import { ServiceArtwork } from "@/components/service-artwork";
 import type { CartItem, CatalogService, MemberPlan } from "@/lib/types";
 
 const categoryLabels: Record<string, string> = {
@@ -73,15 +74,6 @@ const homepageDevices: Record<string, string[]> = {
   "microsoft-365": ["PC", "Mac", "Tablet", "Phone"],
   "game-pass-ultimate": ["Console", "PC", "Cloud", "Mobile"],
   "icloud-plus-200": ["iPhone", "iPad", "Mac", "Web"]
-};
-
-const homepageLogoThemes: Record<string, string> = {
-  "netflix-premium": "dark",
-  "spotify-premium": "green",
-  "canva-pro": "purple",
-  "microsoft-365": "soft",
-  "game-pass-ultimate": "green",
-  "icloud-plus-200": "soft"
 };
 
 function homeDeviceLabel(device: string) {
@@ -252,7 +244,6 @@ export function CatalogExplorer({
 
           <div className="home-service-grid">
             {orderedServices.map((service) => {
-              const logoTheme = homepageLogoThemes[service.slug];
               const availability = service.availabilityStatus === "limited"
                 ? "Limited stock"
                 : service.availabilityStatus === "coming_soon"
@@ -262,12 +253,13 @@ export function CatalogExplorer({
               return (
                 <article className="home-service-card" key={service.id}>
                   <div className="home-service-header">
-                    <div
-                      className={`home-service-logo ${logoTheme ? `theme-${logoTheme}` : ""}`}
-                      style={logoTheme ? undefined : { backgroundColor: service.accentColor }}
-                    >
-                      {service.logoText}
-                    </div>
+                    <ServiceArtwork
+                      accentColor={service.accentColor}
+                      className="home-service-logo"
+                      logoText={service.logoText}
+                      name={service.name}
+                      slug={service.slug}
+                    />
                     <div className="home-service-identity">
                       <h3>{service.name}</h3>
                       <span className="home-category-tag">
@@ -327,7 +319,13 @@ export function CatalogExplorer({
           return (
             <article className="service-card" key={service.id}>
               <div className="service-card-top">
-                <div className="service-logo" style={{ background: service.accentColor }}>{service.logoText}</div>
+                <ServiceArtwork
+                  accentColor={service.accentColor}
+                  className="service-logo"
+                  logoText={service.logoText}
+                  name={service.name}
+                  slug={service.slug}
+                />
                 <span className={`availability ${service.availabilityStatus}`}>{service.availabilityStatus.replace("_", " ")}</span>
               </div>
               <p className="eyebrow">{categoryLabels[service.category]}</p>
