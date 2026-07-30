@@ -48,6 +48,11 @@ export async function POST(request: Request) {
     .eq("user_id", data.user.id)
     .maybeSingle();
 
+  if (!profile || !["active", "pending"].includes(profile.status)) {
+    await supabase.auth.signOut();
+    return genericFailure();
+  }
+
   const destination = profile?.status === "pending" ? "/set-password" : safeNext(body.next);
   return NextResponse.json(
     { next: destination },

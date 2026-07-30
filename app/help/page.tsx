@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { HelpFaq } from "@/components/help-faq";
 import { PublicCard, PublicCta, PublicPageIntro } from "@/components/public-page";
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 const faqs = [
   {
-    question: "Why can’t I see prices in the public catalog?",
-    answer: "UniPlug plan pricing is private to active members. Sign in with your member account to view current plans, billing cycles, and availability."
+    question: "Why do prices appear in both KSh and USD?",
+    answer: "KSh is the checkout currency. The USD amount is an approximate equivalent based on UniPlug’s configured display rate, so your final payment remains the KSh amount shown."
   },
   {
     question: "How do I become a member?",
@@ -52,34 +53,21 @@ export default function HelpPage() {
 
       <div className="public-page-shell public-page-content">
         <section className="public-card-grid three" aria-label="Support channels">
-          <PublicCard marker="W" title="WhatsApp support">
+          <PublicCard marker="Chat" title="WhatsApp support">
             <p>Talk to a real person for order, activation, or service help.</p>
             <a className="public-text-link" href="https://wa.me/254113033475">Open WhatsApp →</a>
           </PublicCard>
-          <PublicCard marker="@" title="Email support">
+          <PublicCard marker="Email" title="Email support">
             <p>Send a detailed, non-urgent request and include the relevant order reference.</p>
             <a className="public-text-link" href="mailto:support@uniplug.co.ke">support@uniplug.co.ke →</a>
           </PublicCard>
-          <PublicCard marker="UP" title="Member dashboard">
+          <PublicCard marker="Account" title="Member dashboard">
             <p>Check current orders, subscriptions, renewal dates, and support activity.</p>
             <a className="public-text-link" href="/dashboard">Open My UniPlug →</a>
           </PublicCard>
         </section>
 
-        <section className="public-faq-section">
-          <div className="public-section-heading">
-            <p className="public-eyebrow">Common questions</p>
-            <h2>Start with the essentials.</h2>
-          </div>
-          <div className="public-faq-list">
-            {faqs.map((faq) => (
-              <details key={faq.question}>
-                <summary>{faq.question}</summary>
-                <p>{faq.answer}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+        <HelpFaq items={faqs} />
 
         <PublicCta
           eyebrow="Still need help?"

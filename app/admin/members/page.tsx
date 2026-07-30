@@ -1,5 +1,6 @@
 import { updateMemberStatus } from "@/app/admin/actions";
 import { AdminInvitationForm } from "@/components/admin-invitations";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -82,12 +83,26 @@ export default async function AdminMembersPage({
               </div>
               <form action={updateMemberStatus}>
                 <input name="userId" type="hidden" value={profile.user_id} />
-                <select name="status" defaultValue={profile.status} disabled={profile.user_id === viewer.user.id}>
+                <label className="sr-only" htmlFor={`status-${profile.user_id}`}>
+                  Access status for @{profile.username}
+                </label>
+                <select
+                  id={`status-${profile.user_id}`}
+                  name="status"
+                  defaultValue={profile.status}
+                  disabled={profile.user_id === viewer.user.id}
+                >
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="suspended">Suspended</option>
                 </select>
-                <button className="button button-light small" disabled={profile.user_id === viewer.user.id}>Update</button>
+                <ConfirmSubmitButton
+                  className="button button-light small"
+                  confirmation={`Change access status for @${profile.username}? This takes effect immediately.`}
+                  disabled={profile.user_id === viewer.user.id}
+                >
+                  Update
+                </ConfirmSubmitButton>
               </form>
             </article>
           ))}

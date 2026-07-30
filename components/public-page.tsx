@@ -75,3 +75,20 @@ export function PublicCta({
     </section>
   );
 }
+
+export function LegalToc({
+  items
+}: {
+  items: Array<{ id: string; label: string }>;
+}) {
+  return (
+    <nav className="legal-toc" aria-label="On this page">
+      <strong>On this page</strong>
+      <div>
+        {items.map((item) => (
+          <a href={`#${item.id}`} key={item.id}>{item.label}</a>
+        ))}
+      </div>
+    </nav>
+  );
+}

@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignOutButton } from "@/components/auth";
 
 export type PortalNavItem = {
   href: string;
@@ -29,13 +31,15 @@ export function PortalNav({
 
   return (
     <aside className={`portal-nav portal-nav-${tone}`}>
-      <div className="portal-nav-heading">
-        <span className="portal-nav-mark" aria-hidden="true">U</span>
+      <Link className="portal-nav-heading" href="/" aria-label="UniPlug home">
+        <span className="portal-nav-mark" aria-hidden="true">
+          <Image src="/figma/uniplug-mark.svg" alt="" width={18} height={25} />
+        </span>
         <div>
           <small>{eyebrow}</small>
           <strong>{title}</strong>
         </div>
-      </div>
+      </Link>
 
       <nav aria-label={`${title} navigation`}>
         {items.map((item) => {
@@ -52,19 +56,21 @@ export function PortalNav({
               href={item.href}
               key={item.href}
             >
-              <span aria-hidden="true">{item.shortLabel}</span>
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="portal-nav-account">
-        <span>{identity.slice(0, 1).toUpperCase()}</span>
-        <div>
-          <small>Signed in as</small>
-          <strong>@{identity}</strong>
+      <div className="portal-nav-footer">
+        <div className="portal-nav-account">
+          <span>{identity.slice(0, 1).toUpperCase()}</span>
+          <div>
+            <small>Signed in as</small>
+            <strong>@{identity}</strong>
+          </div>
         </div>
+        <SignOutButton />
       </div>
     </aside>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDualPrice } from "@/lib/currency";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export default async function AdminPage() {
                   <span>{order.customer_email} · {new Date(order.created_at).toLocaleDateString("en-KE", { dateStyle: "medium" })}</span>
                 </div>
                 <div className="admin-list-meta">
-                  <strong>KSh {Number(order.total_kes).toLocaleString("en-KE")}</strong>
+                  <strong>{formatDualPrice(Number(order.total_kes))}</strong>
                   <span>{readableStatus(order.payment_status)} · {readableStatus(order.fulfillment_status)}</span>
                 </div>
               </div>

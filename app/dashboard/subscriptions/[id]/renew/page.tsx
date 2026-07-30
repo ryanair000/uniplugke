@@ -15,7 +15,7 @@ export default async function RenewalPage({ params }: { params: Promise<{ id: st
 
   const { data: subscription } = await supabase
     .from("uniplug_member_subscriptions")
-    .select("id,status,service:uniplug_catalog_services(name),plan:uniplug_member_plans(plan_name,price_kes,billing_cycle,availability_status)")
+    .select("id,status,duration_months,service:uniplug_catalog_services(name),plan:uniplug_member_plans(plan_name,price_kes,billing_cycle,availability_status)")
     .eq("id", id)
     .eq("user_id", viewer.user.id)
     .maybeSingle();
@@ -32,8 +32,8 @@ export default async function RenewalPage({ params }: { params: Promise<{ id: st
         subscriptionId={id}
         serviceName={service.name}
         planName={plan.plan_name}
-        billingCycle={plan.billing_cycle}
-        priceKes={Number(plan.price_kes)}
+        durationMonths={Number(subscription.duration_months)}
+        priceKes={Number(plan.price_kes) * Number(subscription.duration_months)}
         email={viewer.profile.email}
         defaultPhone={viewer.profile.phone || ""}
       />

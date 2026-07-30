@@ -1,4 +1,6 @@
 import { activateMemberOrder } from "@/app/admin/actions";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { formatDualPrice } from "@/lib/currency";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -65,12 +67,17 @@ export default async function AdminOrdersPage({
                     <td><strong>{order.customer_email}</strong><small>{order.customer_phone}</small></td>
                     <td><span className={`status-pill status-${order.payment_status}`}>{readableStatus(order.payment_status)}</span><small>{order.paystack_channel || "Channel pending"}</small></td>
                     <td><span className={`status-pill subtle status-${order.fulfillment_status}`}>{readableStatus(order.fulfillment_status)}</span></td>
-                    <td><strong>KSh {Number(order.total_kes).toLocaleString("en-KE")}</strong></td>
+                    <td><strong>{formatDualPrice(Number(order.total_kes))}</strong></td>
                     <td>
                       {canActivate ? (
                         <form action={activateMemberOrder}>
                           <input name="orderId" type="hidden" value={order.id} />
-                          <button className="button button-dark small">Activate</button>
+                          <ConfirmSubmitButton
+                            className="button button-dark small"
+                            confirmation={`Activate paid order ${order.order_number}? Confirm the service is ready before continuing.`}
+                          >
+                            Activate
+                          </ConfirmSubmitButton>
                         </form>
                       ) : <span className="table-complete">Complete</span>}
                     </td>

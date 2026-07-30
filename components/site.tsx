@@ -28,11 +28,13 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="header-inner">
         <Brand />
-        <nav className="desktop-nav" aria-label="Primary navigation">
-          <Link href="/services">Services</Link>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/help">Support</Link>
-        </nav>
+        {isMember ? (
+          <nav className="desktop-nav" aria-label="Primary navigation">
+            <Link href="/services">Services</Link>
+            <Link href="/#how-it-works">How it works</Link>
+            <Link href="/help">Support</Link>
+          </nav>
+        ) : <span className="desktop-nav">Invitation-only storefront</span>}
         <div className="header-actions">
           {isMember ? (
             <>
@@ -48,63 +50,46 @@ export async function SiteHeader() {
             </Link>
           )}
         </div>
+        {isMember ? <details className="mobile-menu">
+          <summary aria-label="Open navigation menu">
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+          </summary>
+          <div className="mobile-menu-panel">
+            <nav aria-label="Mobile navigation">
+              <Link href="/services">Services</Link>
+              <Link href="/#how-it-works">How it works</Link>
+              <Link href="/help">Help centre</Link>
+              <Link href="/contact">Contact</Link>
+            </nav>
+            <div className="mobile-menu-account">
+              <Link href="/dashboard">Open My UniPlug</Link>
+              {isAdmin ? <Link href="/admin">Administration</Link> : null}
+              <CartLink />
+              <SignOutButton />
+            </div>
+          </div>
+        </details> : null}
       </div>
     </header>
   );
 }
 
-const footerColumns = [
-  {
-    title: "Explore",
-    links: [
-      { label: "Services", href: "/services" },
-      { label: "How it works", href: "/#how-it-works" },
-      { label: "Member sign in", href: "/login" }
-    ]
-  },
-  {
-    title: "Support",
-    links: [
-      { label: "Help centre", href: "/help" },
-      { label: "WhatsApp support", href: "https://wa.me/254113033475" },
-      { label: "Contact us", href: "/contact" }
-    ]
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About UniPlug", href: "/about" },
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" }
-    ]
-  }
-] as const;
-
 export function SiteFooter() {
   return (
     <footer id="support" className="site-footer">
-      <div className="footer-shell">
-        <div className="footer-top">
-          <div className="footer-brand">
-            <Brand tone="dark" />
-            <p>Digital services, simply managed.</p>
-          </div>
-          <div className="footer-links">
-            {footerColumns.map((column) => (
-              <nav key={column.title} aria-label={`${column.title} links`}>
-                <h2>{column.title}</h2>
-                {column.links.map((link) => (
-                  <Link key={link.label} href={link.href}>{link.label}</Link>
-                ))}
-              </nav>
-            ))}
-          </div>
+      <div className="footer-shell footer-simple">
+        <div className="footer-simple-brand">
+          <Brand tone="dark" />
+          <span>Digital services, simply managed.</span>
         </div>
-        <div className="footer-divider" />
-        <div className="footer-bottom">
-          <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>
-          <p>© 2026 UniPlug. All rights reserved.</p>
-        </div>
+        <nav className="footer-simple-links" aria-label="Footer links">
+          <Link href="/help">Help</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+        <p className="footer-simple-copyright">© 2026 UniPlug.</p>
       </div>
     </footer>
   );

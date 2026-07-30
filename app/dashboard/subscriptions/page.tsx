@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
+import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function SubscriptionsPage() {
   const { data } = supabase
     ? await supabase
         .from("uniplug_member_subscriptions")
-        .select("id,status,start_at,current_period_start,current_period_end,service:uniplug_catalog_services(name,slug,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
+        .select("id,status,start_at,current_period_start,current_period_end,duration_months,service:uniplug_catalog_services(name,slug,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
         .eq("user_id", viewer.user.id)
         .order("current_period_end")
     : { data: [] };
@@ -27,6 +28,7 @@ export default async function SubscriptionsPage() {
     start_at: string | null;
     current_period_start: string | null;
     current_period_end: string | null;
+    duration_months: number;
     service: { name: string; slug: string; logo_text: string; accent_color: string } | null;
     plan: { plan_name: string; billing_cycle: string } | null;
   }>;
@@ -69,7 +71,7 @@ export default async function SubscriptionsPage() {
                 />
                 <div>
                   <strong>{subscription.service?.name || "Digital service"}</strong>
-                  <span>{subscription.plan?.plan_name || "Member plan"} · {subscription.plan?.billing_cycle || "managed billing"}</span>
+                  <span>{subscription.plan?.plan_name || "Member plan"} · {planDurationLabel(Number(subscription.duration_months))}</span>
                 </div>
                 <span className={`status-pill status-${subscription.status}`}>{readableStatus(subscription.status)}</span>
                 <span>

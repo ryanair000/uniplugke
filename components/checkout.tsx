@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/catalog";
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
+import { formatDualPrice } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 
 export function CheckoutClient({ email }: { email: string }) {
   const { items, remove } = useCart();
@@ -23,7 +21,13 @@ export function CheckoutClient({ email }: { email: string }) {
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, planIds: items.map((item) => item.planId) })
+        body: JSON.stringify({
+          phone,
+          selections: items.map((item) => ({
+            planId: item.planId,
+            durationMonths: item.durationMonths
+          }))
+        })
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.authorizationUrl) throw new Error(body.error || "Checkout could not start");
@@ -41,11 +45,11 @@ export function CheckoutClient({ email }: { email: string }) {
       <section className="panel">
         <p className="eyebrow">Secure checkout</p><h1>Confirm your services</h1><p>Signed in as {email}</p>
         <div className="checkout-items">
-          {items.map((item) => <div className="checkout-item" key={item.planId}><div><strong>{item.serviceName}</strong><span>{item.planName} · {item.billingCycle}</span></div><strong>{formatKes(item.priceKes)}</strong><button type="button" onClick={() => remove(item.planId)}>Remove</button></div>)}
+          {items.map((item) => <div className="checkout-item" key={item.planId}><div><strong>{item.serviceName}</strong><span>{item.planName} · {planDurationLabel(item.durationMonths)} · {formatDualPrice(item.monthlyPriceKes)}/month</span></div><strong>{formatDualPrice(item.priceKes)}</strong><button type="button" onClick={() => remove(item.planId)}>Remove</button></div>)}
         </div>
         <label className="field">Phone / WhatsApp<input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07…" /></label>
       </section>
-      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatKes(displayedTotal)}</strong></div><p>The final amount is recalculated securely from the database before payment.</p>{error && <p className="form-error">{error}</p>}<button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
+      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatDualPrice(displayedTotal)}</strong></div><p>The final amount is recalculated securely and charged in KSh. USD values are approximate equivalents.</p>{error && <p className="form-error">{error}</p>}<button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
     </div>
   );
 }

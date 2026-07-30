@@ -17,14 +17,20 @@ export default function ContactPage() {
 
       <div className="public-page-shell public-page-content">
         <section className="public-card-grid two" aria-label="Contact methods">
-          <PublicCard marker="W" title="WhatsApp">
+          <PublicCard marker="Chat" title="WhatsApp">
             <p>Get help with an order, activation, renewal, or a service connected to your member account.</p>
             <a className="button button-primary" href="https://wa.me/254113033475">Message +254 113 033 475</a>
           </PublicCard>
-          <PublicCard marker="@" title="Email">
+          <PublicCard marker="Email" title="Email">
             <p>Send product questions, account enquiries, or information that benefits from a more detailed response.</p>
             <a className="button button-light" href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>
           </PublicCard>
+        </section>
+
+        <section className="contact-expectations" aria-label="Choosing a support channel">
+          <article><span>Fastest route</span><strong>WhatsApp for an active order or access issue</strong></article>
+          <article><span>Best for detail</span><strong>Email for questions that need more context</strong></article>
+          <article><span>Have ready</span><strong>Your service name and order reference</strong></article>
         </section>
 
         <section className="public-split-panel contact-guidance">

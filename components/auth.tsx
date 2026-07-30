@@ -8,6 +8,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -46,7 +47,22 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       </label>
       <label>
         Private password
-        <input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+        <span className="password-field">
+          <input
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <button
+            type="button"
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </span>
       </label>
       {message && <p className="form-error" role="alert">{message}</p>}
       <button className="button button-dark" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
@@ -66,7 +82,7 @@ export function SignOutButton() {
         localStorage.removeItem("uniplug-member-cart");
         const supabase = createBrowserSupabaseClient();
         await supabase.auth.signOut();
-        router.replace("/");
+        router.replace("/login");
         router.refresh();
       }}
     >

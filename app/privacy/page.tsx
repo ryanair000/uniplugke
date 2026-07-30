@@ -1,10 +1,21 @@
 import type { Metadata } from "next";
-import { PublicPageIntro } from "@/components/public-page";
+import { LegalToc, PublicPageIntro } from "@/components/public-page";
 
 export const metadata: Metadata = {
   title: "Privacy Notice",
   description: "How UniPlug handles personal data when you browse the catalog, use a member account, place orders, and request support."
 };
+
+const privacySections = [
+  { id: "scope", label: "Scope" },
+  { id: "information", label: "Information collected" },
+  { id: "use", label: "How information is used" },
+  { id: "payments", label: "Payments and partners" },
+  { id: "sharing", label: "Sharing and transfers" },
+  { id: "retention", label: "Retention and security" },
+  { id: "rights", label: "Your rights" },
+  { id: "updates", label: "Updates and contact" }
+];
 
 export default function PrivacyPage() {
   return (
@@ -17,13 +28,14 @@ export default function PrivacyPage() {
 
       <article className="public-page-shell legal-document">
         <p className="legal-updated">Effective: 26 July 2026</p>
+        <LegalToc items={privacySections} />
 
-        <section>
+        <section id="scope">
           <h2>1. Scope of this notice</h2>
           <p>This notice applies when you browse UniPlug, use a member account, place or manage an order, access a subscription, or contact the support team.</p>
         </section>
 
-        <section>
+        <section id="information">
           <h2>2. Information we may collect</h2>
           <ul>
             <li>Account details such as your name, username, email address, and phone number.</li>
@@ -34,33 +46,33 @@ export default function PrivacyPage() {
           </ul>
         </section>
 
-        <section>
+        <section id="use">
           <h2>3. Why we use personal data</h2>
           <p>We use personal data to provide and secure member accounts, process requested transactions, coordinate service activation and support, show order and renewal information, respond to enquiries, meet legal obligations, and improve the reliability of UniPlug.</p>
         </section>
 
-        <section>
+        <section id="payments">
           <h2>4. Payments and service partners</h2>
           <p>Payment providers and service-fulfillment partners may process the information required to complete a transaction or activate a selected service. UniPlug does not need your account password or one-time authentication codes for support. Do not send them to us.</p>
         </section>
 
-        <section>
+        <section id="sharing">
           <h2>5. Sharing and transfers</h2>
           <p>Information is shared only where reasonably needed to operate the platform, fulfill your request, comply with law, protect users, or work with contracted providers. Where processing involves a transfer outside Kenya, appropriate safeguards should apply as required by Kenyan data-protection law.</p>
         </section>
 
-        <section>
+        <section id="retention">
           <h2>6. Retention and security</h2>
           <p>We retain information for as long as needed for the purpose it was collected, including account administration, transaction records, support, fraud prevention, dispute handling, and legal requirements. We use access controls and technical and organisational safeguards appropriate to the information being processed.</p>
         </section>
 
-        <section>
+        <section id="rights">
           <h2>7. Your privacy rights</h2>
           <p>Subject to applicable law, you may ask to be informed about how your data is used, request access or correction, object to certain processing, or request deletion of false or misleading information. You can start a request by emailing <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>.</p>
           <p>Kenya’s Office of the Data Protection Commissioner provides more information about <a href="https://www.odpc.go.ke/rights-of-a-data-subject/" target="_blank" rel="noreferrer">data-subject rights</a> and complaints.</p>
         </section>
 
-        <section>
+        <section id="updates">
           <h2>8. Updates and contact</h2>
           <p>We may update this notice when the platform, providers, or legal requirements change. The effective date above identifies the current version. Questions can be sent to <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>.</p>
         </section>

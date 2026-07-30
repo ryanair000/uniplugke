@@ -17,14 +17,21 @@ export default async function LoginPage({
   const viewer = await getViewer();
   const query = await searchParams;
   if (viewer.profile?.status === "active") redirect(safeNext(query.next));
+  const nextPath = safeNext(query.next);
+  const isCheckout = nextPath === "/checkout";
+  const isServiceReturn = nextPath.startsWith("/services/");
 
   return (
     <section className="auth-page">
       <div className="auth-card">
         <div className="auth-icon">⚡</div>
         <p className="eyebrow">Invite-only membership</p>
-        <h1>Welcome back</h1>
-        <p>Use the username or email from your invitation and the private password you created.</p>
+        <h1>{isCheckout ? "Sign in to continue checkout" : "Welcome back"}</h1>
+        <p>
+          {isServiceReturn
+            ? "Sign in to return to this service and review prices in KSh and USD."
+            : "Use the username or email from your invitation and the private password you created."}
+        </p>
         {viewer.user && viewer.profile?.status === "pending" ? (
           <div className="notice">
             <strong>Finish setting up your account</strong>
@@ -39,10 +46,16 @@ export default async function LoginPage({
             <SignOutButton />
           </div>
         ) : (
-          <LoginForm nextPath={safeNext(query.next)} />
+          <LoginForm nextPath={nextPath} />
         )}
-        {query.error === "membership_required" && <p className="form-error">This account does not currently have active UniPlug membership.</p>}
-        <small>There is no public registration. Contact support when an invitation needs to be resent.</small>
+        {query.error === "membership_required" && <p className="form-error">This storefront is available only to invited clients with an active UniPlug membership.</p>}
+        {query.error === "not_configured" && <p className="form-error">Member access is temporarily unavailable. Please contact UniPlug support.</p>}
+        <div className="auth-support-actions">
+          <a href="https://wa.me/254113033475?text=Hi%20UniPlug%2C%20I%20need%20help%20with%20member%20access%20or%20my%20invitation.">
+            Get help with your invitation
+          </a>
+        </div>
+        <small>There is no public registration. Only clients invited by UniPlug can sign in.</small>
       </div>
     </section>
   );

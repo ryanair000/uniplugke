@@ -32,14 +32,9 @@ export async function createCatalogService(formData: FormData) {
   const serviceSlug = slug(formData.get("slug") || name);
   const category = String(formData.get("category") || "productivity");
   const accentColor = String(formData.get("accentColor") || "#6957ff");
-  const startingPriceRaw = String(formData.get("startingPriceUsd") || "").trim();
-  const startingPriceUsd = startingPriceRaw ? Number(startingPriceRaw) : null;
   if (!name || !serviceSlug) throw new Error("Name and slug are required");
   if (!categories.has(category)) throw new Error("Choose a valid category");
   if (!/^#[0-9a-f]{6}$/i.test(accentColor)) throw new Error("Choose a valid accent color");
-  if (startingPriceUsd !== null && (!Number.isFinite(startingPriceUsd) || startingPriceUsd <= 0)) {
-    throw new Error("Public USD price must be greater than zero");
-  }
 
   const { error } = await supabase.from("uniplug_catalog_services").insert({
     name,
@@ -55,7 +50,6 @@ export async function createCatalogService(formData: FormData) {
     fulfillment_label: String(formData.get("fulfillmentLabel") || "Managed access").trim().slice(0, 100),
     activation_window: String(formData.get("activationWindow") || "Activation details available after sign-in").trim().slice(0, 300),
     replacement_summary: String(formData.get("replacementSummary") || "Eligible issues can be reported from the dashboard.").trim().slice(0, 500),
-    starting_price_usd: startingPriceUsd,
     availability_status: String(formData.get("availabilityStatus") || "available"),
     is_featured: formData.get("isFeatured") === "on",
     is_active: true
@@ -63,27 +57,6 @@ export async function createCatalogService(formData: FormData) {
   if (error) throw new Error(error.message);
   refreshCatalog();
   redirect("/admin/catalog?success=service");
-}
-
-export async function updateCatalogStartingPrice(formData: FormData) {
-  await requireAdmin();
-  const supabase = await createServerSupabaseClient();
-  if (!supabase) throw new Error("Supabase is not configured");
-
-  const serviceId = String(formData.get("serviceId") || "");
-  const startingPriceUsd = Number(formData.get("startingPriceUsd"));
-  if (!serviceId) throw new Error("Service is required");
-  if (!Number.isFinite(startingPriceUsd) || startingPriceUsd <= 0) {
-    throw new Error("Public USD price must be greater than zero");
-  }
-
-  const { error } = await supabase
-    .from("uniplug_catalog_services")
-    .update({ starting_price_usd: startingPriceUsd })
-    .eq("id", serviceId);
-  if (error) throw new Error(error.message);
-  refreshCatalog();
-  redirect("/admin/catalog?success=public-price");
 }
 
 export async function createMemberPlan(formData: FormData) {
@@ -107,7 +80,7 @@ export async function createMemberPlan(formData: FormData) {
     plan_code: planCode,
     price_kes: price,
     compare_at_kes: compareAt,
-    billing_cycle: String(formData.get("billingCycle") || "monthly"),
+    billing_cycle: "monthly",
     plan_features: lines(formData.get("planFeatures")),
     purchase_limit: Math.min(20, Math.max(1, Number(formData.get("purchaseLimit") || 1))),
     availability_status: String(formData.get("availabilityStatus") || "available"),

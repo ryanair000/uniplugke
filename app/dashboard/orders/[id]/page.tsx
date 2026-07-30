@@ -2,13 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
+import { formatDualPrice } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
 
 function readableStatus(value: string) {
   return value.replaceAll("_", " ");
@@ -29,7 +27,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       .maybeSingle(),
     supabase
       .from("uniplug_member_order_items")
-      .select("id,service_name,plan_name,billing_cycle,unit_price_kes,service:uniplug_catalog_services(slug,logo_text,accent_color)")
+      .select("id,service_name,plan_name,billing_cycle,duration_months,unit_price_kes,service:uniplug_catalog_services(slug,logo_text,accent_color)")
       .eq("order_id", id)
       .order("created_at")
   ]);
@@ -40,6 +38,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     service_name: string;
     plan_name: string;
     billing_cycle: string;
+    duration_months: number;
     unit_price_kes: number;
     service: { slug: string; logo_text: string; accent_color: string } | null;
   }>;
@@ -74,8 +73,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     name={item.service_name}
                     slug={item.service?.slug}
                   />
-                  <div><strong>{item.service_name}</strong><span>{item.plan_name} · {readableStatus(item.billing_cycle)}</span></div>
-                  <strong>{formatKes(Number(item.unit_price_kes))}</strong>
+                  <div><strong>{item.service_name}</strong><span>{item.plan_name} · {planDurationLabel(Number(item.duration_months))}</span></div>
+                  <strong>{formatDualPrice(Number(item.unit_price_kes))}</strong>
                   {item.service?.slug ? <Link href={`/services/${item.service.slug}`}>View service</Link> : null}
                 </article>
               ))}
@@ -92,7 +91,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         <aside className="panel receipt-summary">
           <p className="eyebrow">Payment summary</p>
-          <div className="receipt-total"><span>Total</span><strong>{formatKes(Number(order.total_kes))}</strong></div>
+          <div className="receipt-total"><span>Total</span><strong>{formatDualPrice(Number(order.total_kes))}</strong></div>
+          <p className="muted-copy">USD is an approximate equivalent. The receipt and payment are settled in KSh.</p>
           <dl>
             <div><dt>Payment</dt><dd>{readableStatus(order.payment_status)}</dd></div>
             <div><dt>Fulfilment</dt><dd>{readableStatus(order.fulfillment_status)}</dd></div>

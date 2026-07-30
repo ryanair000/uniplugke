@@ -12,6 +12,14 @@ import {
   type ReactNode
 } from "react";
 import { ServiceArtwork } from "@/components/service-artwork";
+import {
+  PLAN_DURATIONS,
+  isPlanDurationMonths,
+  planDurationLabel,
+  planPriceForDuration,
+  type PlanDurationMonths
+} from "@/lib/plan-durations";
+import { formatDualPrice } from "@/lib/currency";
 import type { CartItem, CatalogService, MemberPlan } from "@/lib/types";
 
 const categoryLabels: Record<string, string> = {
@@ -88,17 +96,6 @@ function homeDeviceLabel(device: string) {
   return labels[device] ?? device;
 }
 
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
-
-function formatUsd(value: number) {
-  return `$${value.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
-}
-
 type CartContextValue = {
   items: CartItem[];
   add: (item: CartItem) => void;
@@ -111,7 +108,21 @@ const CartContext = createContext<CartContextValue | null>(null);
 function readStoredCart(): CartItem[] {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem("uniplug-member-cart") || "[]");
-    return Array.isArray(stored) ? stored as CartItem[] : [];
+    if (!Array.isArray(stored)) return [];
+    return stored.filter((item): item is CartItem => {
+      if (!item || typeof item !== "object") return false;
+      const candidate = item as Partial<CartItem>;
+      return (
+        typeof candidate.planId === "string" &&
+        typeof candidate.serviceSlug === "string" &&
+        typeof candidate.serviceName === "string" &&
+        typeof candidate.planName === "string" &&
+        typeof candidate.monthlyPriceKes === "number" &&
+        typeof candidate.priceKes === "number" &&
+        typeof candidate.billingCycle === "string" &&
+        isPlanDurationMonths(candidate.durationMonths)
+      );
+    });
   } catch {
     return [];
   }
@@ -140,7 +151,11 @@ export function CartProvider({ children, enabled }: { children: ReactNode; enabl
 
   const add = useCallback((item: CartItem) => {
     if (!enabled) return;
-    setItems((current) => current.some((entry) => entry.planId === item.planId) ? current : [...current, item]);
+    setItems((current) => {
+      const existingIndex = current.findIndex((entry) => entry.planId === item.planId);
+      if (existingIndex === -1) return [...current, item];
+      return current.map((entry, index) => index === existingIndex ? item : entry);
+    });
   }, [enabled]);
   const remove = useCallback((planId: string) => {
     setItems((current) => current.filter((item) => item.planId !== planId));
@@ -248,8 +263,8 @@ export function CatalogExplorer({
             <h2>Popular on UniPlug</h2>
             <p>
               {isMember
-                ? "Your exact member prices are shown in Kenyan shillings."
-                : "Starting prices are shown in USD. Sign in for exact Kenya pricing in KSh."}
+                ? "Every plan shows its KSh price and approximate USD equivalent."
+                : "Invitation-only member pricing."}
             </p>
           </div>
 
@@ -298,14 +313,10 @@ export function CatalogExplorer({
                       </span>
                       {isMember && plan ? (
                         <span className="home-card-price">
-                          <strong>{formatKes(plan.priceKes)}</strong> / {plan.billingCycle}
-                        </span>
-                      ) : service.startingPriceUsd !== null ? (
-                        <span className="home-card-price">
-                          From <strong>{formatUsd(service.startingPriceUsd)}</strong> USD
+                          <strong>{formatDualPrice(plan.priceKes)}</strong> / {plan.billingCycle}
                         </span>
                       ) : (
-                        <span className="home-card-price">Sign in for pricing</span>
+                        <span className="home-card-price">Invitation required</span>
                       )}
                     </div>
                     <Link href={`/services/${service.slug}`}>
@@ -359,11 +370,9 @@ export function CatalogExplorer({
               <ul>{service.features.slice(0, 3).map((feature) => <li key={feature}>{feature}</li>)}</ul>
               <div className="service-card-footer">
                 {isMember && plan ? (
-                  <div><strong>{formatKes(plan.priceKes)}</strong><span> / {plan.billingCycle}</span></div>
-                ) : service.startingPriceUsd !== null ? (
-                  <div className="public-price"><strong>From {formatUsd(service.startingPriceUsd)}</strong><span> USD · exact KSh pricing after sign-in</span></div>
+                  <div><strong>{formatDualPrice(plan.priceKes)}</strong><span> / {plan.billingCycle}</span></div>
                 ) : (
-                  <div className="price-lock">Sign in to view current pricing</div>
+                  <div className="price-lock">Invitation required</div>
                 )}
                 <Link className="round-link" href={`/services/${service.slug}`} aria-label={`View ${service.name}`}>→</Link>
               </div>
@@ -376,31 +385,75 @@ export function CatalogExplorer({
   );
 }
 
-export function PlanOptions({ plans, service }: { plans: MemberPlan[]; service: CatalogService }) {
+function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogService }) {
   const { add, items } = useCart();
+  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(3);
+  const existingItem = items.find((item) => item.planId === plan.id);
+  const totalPrice = planPriceForDuration(plan.priceKes, durationMonths);
+  const compareAtPrice = plan.compareAtKes
+    ? planPriceForDuration(plan.compareAtKes, durationMonths)
+    : null;
+  const selectedIsInCart = existingItem?.durationMonths === durationMonths;
+
+  return (
+    <div className="plan-card">
+      <p className="eyebrow">Choose duration</p>
+      <h3>{plan.planName}</h3>
+      <div className="plan-duration-grid" aria-label={`Duration for ${plan.planName}`}>
+        {PLAN_DURATIONS.map((duration) => (
+          <button
+            type="button"
+            key={duration.months}
+            className={durationMonths === duration.months ? "active" : ""}
+            aria-pressed={durationMonths === duration.months}
+            onClick={() => setDurationMonths(duration.months)}
+          >
+            <span>{duration.shortLabel}</span>
+            <strong>{formatDualPrice(planPriceForDuration(plan.priceKes, duration.months))}</strong>
+          </button>
+        ))}
+      </div>
+      <div className="plan-price">
+        {formatDualPrice(totalPrice)}
+        {compareAtPrice ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
+      </div>
+      <p className="plan-price-note">
+        {planDurationLabel(durationMonths)} at {formatDualPrice(plan.priceKes)} per month
+      </p>
+      <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+      <button
+        type="button"
+        className="button button-dark"
+        disabled={plan.availabilityStatus === "unavailable"}
+        onClick={() => add({
+          planId: plan.id,
+          serviceSlug: service.slug,
+          serviceName: service.name,
+          planName: plan.planName,
+          monthlyPriceKes: plan.priceKes,
+          priceKes: totalPrice,
+          billingCycle: plan.billingCycle,
+          durationMonths
+        })}
+      >
+        {selectedIsInCart ? "Added to cart" : existingItem ? "Update cart" : "Add to cart"}
+      </button>
+    </div>
+  );
+}
+
+export function PlanOptions({ plans, service }: { plans: MemberPlan[]; service: CatalogService }) {
   if (!plans.length) return <div className="member-lock"><h3>Member pricing</h3><p>No active member plan is currently available for this service.</p></div>;
 
   return (
     <div className="plan-grid">
-      {plans.map((plan) => {
-        const added = items.some((item) => item.planId === plan.id);
-        return (
-          <div className="plan-card" key={plan.id}>
-            <p className="eyebrow">{plan.billingCycle}</p>
-            <h3>{plan.planName}</h3>
-            <div className="plan-price">{formatKes(plan.priceKes)}{plan.compareAtKes ? <del>{formatKes(plan.compareAtKes)}</del> : null}</div>
-            <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
-            <button
-              type="button"
-              className="button button-dark"
-              disabled={added || plan.availabilityStatus === "unavailable"}
-              onClick={() => add({ planId: plan.id, serviceSlug: service.slug, serviceName: service.name, planName: plan.planName, priceKes: plan.priceKes, billingCycle: plan.billingCycle })}
-            >
-              {added ? "Added to cart" : "Add to cart"}
-            </button>
-          </div>
-        );
-      })}
+      {plans.map((plan) => (
+        <PlanOptionCard
+          key={plan.id}
+          plan={plan}
+          service={service}
+        />
+      ))}
     </div>
   );
 }

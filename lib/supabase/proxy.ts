@@ -1,12 +1,42 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPrefixes = ["/dashboard", "/checkout", "/settings", "/admin"];
+const publicPaths = new Set([
+  "/login",
+  "/set-password",
+  "/auth/callback",
+  "/api/auth/login",
+  "/api/payments/webhook",
+  "/robots.txt"
+]);
+
+function redirectWithCookies(response: NextResponse, destination: URL) {
+  const redirect = NextResponse.redirect(destination);
+  response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
+}
+
+function securePrivateResponse(response: NextResponse) {
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  return response;
+}
 
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+  const isPublicPath = publicPaths.has(pathname);
+
+  if (!url || !key) {
+    if (isPublicPath) return securePrivateResponse(NextResponse.next({ request }));
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    loginUrl.searchParams.set("error", "not_configured");
+    return NextResponse.redirect(loginUrl);
+  }
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
@@ -25,16 +55,29 @@ export async function updateSession(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getUser();
-  const isProtected = protectedPrefixes.some((prefix) =>
-    request.nextUrl.pathname.startsWith(prefix)
-  );
+  if (isPublicPath) return securePrivateResponse(response);
 
-  if (isProtected && !data.user) {
+  if (!data.user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
+    loginUrl.search = "";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectWithCookies(response, loginUrl);
   }
 
-  return response;
+  const { data: profile } = await supabase
+    .from("uniplug_profiles")
+    .select("status")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
+  if (profile?.status !== "active") {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    loginUrl.searchParams.set("error", "membership_required");
+    return redirectWithCookies(response, loginUrl);
+  }
+
+  return securePrivateResponse(response);
 }

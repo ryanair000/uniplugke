@@ -1,4 +1,5 @@
 import { resolveSubscriptionRequest } from "@/app/admin/actions";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +60,31 @@ export default async function AdminRequestsPage({
               </div>
               <form action={resolveSubscriptionRequest} className="request-resolution-form">
                 <input name="requestId" type="hidden" value={request.id} />
-                <input name="adminNote" placeholder="Decision note for the member" maxLength={1000} />
-                <button className="button button-light small" name="resolution" value="declined">Decline</button>
-                <button className="button button-dark small" name="resolution" value="completed">Complete</button>
+                <label className="sr-only" htmlFor={`decision-note-${request.id}`}>
+                  Decision note for the member
+                </label>
+                <input
+                  id={`decision-note-${request.id}`}
+                  name="adminNote"
+                  placeholder="Decision note for the member"
+                  maxLength={1000}
+                />
+                <ConfirmSubmitButton
+                  className="button button-light small"
+                  confirmation={`Decline this ${request.request_type} request? The member will see the decision note.`}
+                  name="resolution"
+                  value="declined"
+                >
+                  Decline
+                </ConfirmSubmitButton>
+                <ConfirmSubmitButton
+                  className="button button-dark small"
+                  confirmation={`Mark this ${request.request_type} request as complete? This records the decision immediately.`}
+                  name="resolution"
+                  value="completed"
+                >
+                  Complete
+                </ConfirmSubmitButton>
               </form>
             </article>
           ))}

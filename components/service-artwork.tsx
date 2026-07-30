@@ -29,6 +29,7 @@ export function ServiceArtwork({
         <Image
           alt={descriptive ? `${name} app icon` : ""}
           height={128}
+          loading="eager"
           src={artwork}
           unoptimized
           width={128}

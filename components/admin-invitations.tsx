@@ -55,30 +55,47 @@ export function AdminInvitationForm() {
       <h2>Invite a member</h2>
       <p>Create a one-time link. The customer chooses a private password after opening it.</p>
       <form className="admin-form" onSubmit={submit}>
-        <input
-          required
-          placeholder="Member name"
-          value={form.displayName}
-          onChange={(event) => setForm({ ...form, displayName: event.target.value })}
-        />
-        <input
-          required
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={(event) => setForm({ ...form, email: event.target.value })}
-        />
+        <label className="field">
+          Member name
+          <input
+            required
+            autoComplete="name"
+            placeholder="e.g. Amina Kamau"
+            value={form.displayName}
+            onChange={(event) => setForm({ ...form, displayName: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          Email
+          <input
+            required
+            type="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
+          />
+        </label>
         <div className="form-row">
-          <input
-            placeholder="Username"
-            value={form.username}
-            onChange={(event) => setForm({ ...form, username: event.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "") })}
-          />
-          <input
-            placeholder="Phone / WhatsApp"
-            value={form.phone}
-            onChange={(event) => setForm({ ...form, phone: event.target.value })}
-          />
+          <label className="field">
+            Username
+            <input
+              autoComplete="username"
+              placeholder="amina.k"
+              value={form.username}
+              onChange={(event) => setForm({ ...form, username: event.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "") })}
+            />
+          </label>
+          <label className="field">
+            Phone / WhatsApp
+            <input
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="+254…"
+              value={form.phone}
+              onChange={(event) => setForm({ ...form, phone: event.target.value })}
+            />
+          </label>
         </div>
         <button className="button button-dark" disabled={busy}>{busy ? "Creating link…" : "Create invitation"}</button>
       </form>

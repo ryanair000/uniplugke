@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
+import { formatDualPrice } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My UniPlug" };
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
 
 function readableStatus(value: string) {
   return value.replaceAll("_", " ");
@@ -22,7 +20,7 @@ export default async function DashboardPage() {
     ? await Promise.all([
         supabase
           .from("uniplug_member_subscriptions")
-          .select("id,status,start_at,current_period_end,service:uniplug_catalog_services(id,name,slug,logo_text,accent_color),plan:uniplug_member_plans(id,plan_name,price_kes,billing_cycle,availability_status)")
+          .select("id,status,start_at,current_period_end,duration_months,service:uniplug_catalog_services(id,name,slug,logo_text,accent_color),plan:uniplug_member_plans(id,plan_name,price_kes,billing_cycle,availability_status)")
           .eq("user_id", viewer.user.id)
           .order("current_period_end"),
         supabase
@@ -51,6 +49,7 @@ export default async function DashboardPage() {
     status: string;
     start_at: string | null;
     current_period_end: string | null;
+    duration_months: number;
     service: { id: string; name: string; slug: string; logo_text: string; accent_color: string } | null;
     plan: { id: string; plan_name: string; price_kes: number; billing_cycle: string; availability_status: string } | null;
   }>;
@@ -103,7 +102,7 @@ export default async function DashboardPage() {
                   name={item.service?.name || "Digital service"}
                   slug={item.service?.slug}
                 />
-                <div><strong>{item.service?.name || "Digital service"}</strong><span>{item.plan?.plan_name || "Member plan"}</span></div>
+                <div><strong>{item.service?.name || "Digital service"}</strong><span>{item.plan?.plan_name || "Member plan"} · {planDurationLabel(Number(item.duration_months))}</span></div>
                 <span className="status-pill">{readableStatus(item.status)}</span>
                 <span>{item.current_period_end ? `Renews ${new Date(item.current_period_end).toLocaleDateString("en-KE", { dateStyle: "medium" })}` : "Activation pending"}</span>
                 <b aria-hidden="true">→</b>
@@ -122,7 +121,7 @@ export default async function DashboardPage() {
             {orders.map((order) => (
               <Link href={`/dashboard/orders/${order.id}`} key={order.id}>
                 <div><strong>{order.order_number}</strong><span>{new Date(order.created_at).toLocaleDateString("en-KE", { dateStyle: "medium" })}</span></div>
-                <div className="list-end"><strong>{formatKes(Number(order.total_kes))}</strong><span>{readableStatus(order.payment_status)}</span></div>
+                <div className="list-end"><strong>{formatDualPrice(Number(order.total_kes))}</strong><span>{readableStatus(order.payment_status)}</span></div>
               </Link>
             ))}
             {!orders.length ? <p className="muted-copy">No orders have been placed yet.</p> : null}

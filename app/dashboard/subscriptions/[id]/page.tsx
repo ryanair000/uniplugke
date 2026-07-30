@@ -4,13 +4,11 @@ import { RenewPlanButton } from "@/components/renew-plan-button";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { requestSubscriptionAction } from "@/app/dashboard/subscriptions/actions";
 import { requireMember } from "@/lib/auth";
+import { formatDualPrice } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
 
 function readableStatus(value: string) {
   return value.replaceAll("_", " ");
@@ -32,7 +30,7 @@ export default async function SubscriptionDetailPage({
   const [{ data: subscription }, { data: requests }] = await Promise.all([
     supabase
       .from("uniplug_member_subscriptions")
-      .select("id,status,start_at,current_period_end,auto_renew,provider_reference,created_at,service:uniplug_catalog_services(id,name,slug,short_description,logo_text,accent_color,fulfillment_label,activation_window,replacement_summary),plan:uniplug_member_plans(id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status)")
+      .select("id,status,start_at,current_period_end,duration_months,auto_renew,provider_reference,created_at,service:uniplug_catalog_services(id,name,slug,short_description,logo_text,accent_color,fulfillment_label,activation_window,replacement_summary),plan:uniplug_member_plans(id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status)")
       .eq("id", id)
       .eq("user_id", viewer.user.id)
       .maybeSingle(),
@@ -96,7 +94,7 @@ export default async function SubscriptionDetailPage({
           name={service?.name || "Digital service"}
           slug={service?.slug}
         />
-        <div><p className="eyebrow">My subscription</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span>{readableStatus(subscription.status)}</span><span>{plan?.billing_cycle || "Billing cycle pending"}</span></div></div>
+        <div><p className="eyebrow">My subscription</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span>{readableStatus(subscription.status)}</span><span>{planDurationLabel(Number(subscription.duration_months))}</span></div></div>
       </div>
 
       <div className="subscription-detail-grid">
@@ -107,6 +105,7 @@ export default async function SubscriptionDetailPage({
               <div><dt>Current status</dt><dd>{readableStatus(subscription.status)}</dd></div>
               <div><dt>Started</dt><dd>{subscription.start_at ? new Date(subscription.start_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Activation pending"}</dd></div>
               <div><dt>Current period ends</dt><dd>{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Not scheduled"}</dd></div>
+              <div><dt>Plan duration</dt><dd>{planDurationLabel(Number(subscription.duration_months))}</dd></div>
               <div><dt>Fulfilment</dt><dd>{service?.fulfillment_label || "Managed through UniPlug"}</dd></div>
               <div><dt>Activation window</dt><dd>{service?.activation_window || "Shown after verification"}</dd></div>
             </dl>
@@ -133,7 +132,7 @@ export default async function SubscriptionDetailPage({
           <section className="panel plan-renewal-card">
             <p className="eyebrow">Renewal</p>
             <h2>{plan?.plan_name || "Member plan"}</h2>
-            {plan ? <div className="plan-price">{formatKes(Number(plan.price_kes))}<span>/ {plan.billing_cycle}</span></div> : null}
+            {plan ? <div className="plan-price">{formatDualPrice(Number(plan.price_kes) * Number(subscription.duration_months))}<span>/ {planDurationLabel(Number(subscription.duration_months))}</span></div> : null}
             <p>A renewal creates a dedicated order and extends this subscription after payment and activation.</p>
             {plan && service ? <RenewPlanButton subscriptionId={subscription.id} disabled={!canRenew} /> : null}
             {!canRenew ? <small>This plan is not currently available for renewal.</small> : null}

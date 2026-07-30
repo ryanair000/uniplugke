@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/auth";
+import { formatDualPrice } from "@/lib/currency";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Order history" };
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
 
 function readableStatus(value: string) {
   return value.replaceAll("_", " ");
@@ -55,7 +52,7 @@ export default async function OrdersPage() {
               <div className="order-number-block"><strong>{order.order_number}</strong><span>{new Date(order.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
               <span className="status-pill">{readableStatus(order.payment_status)}</span>
               <span className="status-pill subtle">{readableStatus(order.fulfillment_status)}</span>
-              <div className="list-end"><strong>{formatKes(Number(order.total_kes))}</strong><span>{order.paystack_channel || "Payment channel pending"}</span></div>
+              <div className="list-end"><strong>{formatDualPrice(Number(order.total_kes))}</strong><span>{order.paystack_channel || "Payment channel pending"}</span></div>
               <b aria-hidden="true">→</b>
             </Link>
           ))}

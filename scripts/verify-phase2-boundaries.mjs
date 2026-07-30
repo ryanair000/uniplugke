@@ -21,9 +21,9 @@ const checks = [
     tokens: ["requireMember()", "Member portal"]
   },
   {
-    name: "member settings are rejected at the request boundary",
+    name: "all non-auth storefront routes require an active invited client",
     source: read("lib/supabase/proxy.ts"),
-    tokens: ['"/settings"', "isProtected && !data.user", 'loginUrl.pathname = "/login"']
+    tokens: ['const publicPaths = new Set([', "if (!data.user)", 'profile?.status !== "active"', 'loginUrl.pathname = "/login"']
   },
   {
     name: "renewal checkout authenticates and reprices through the database",
@@ -44,6 +44,17 @@ const checks = [
     name: "paid-order activation retries are no-ops",
     source: read("supabase/migrations/20260725210000_phase2_hardening.sql"),
     tokens: ["for update", "fulfillment_status in ('active', 'completed')", "then return 0"]
+  },
+  {
+    name: "prepaid durations are priced and activated by the database",
+    source: read("supabase/migrations/20260728202332_add_extended_plan_durations.sql"),
+    tokens: [
+      "duration_months in (1, 3, 6, 12, 36)",
+      "uniplug_create_member_order_v2",
+      "p.price_kes * (item.value->>'durationMonths')::integer",
+      "make_interval(months => i.duration_months)",
+      "from public, anon, authenticated"
+    ]
   },
   {
     name: "privileged member RPCs are removed from the anonymous API surface",

@@ -1,3 +1,5 @@
+import type { PlanDurationMonths } from "@/lib/plan-durations";
+
 export type ServiceCategory =
   | "streaming"
   | "music"
@@ -27,7 +29,6 @@ export type CatalogService = {
   activationWindow: string;
   replacementSummary: string;
   faqs: CatalogFaq[];
-  startingPriceUsd: number | null;
   availabilityStatus: "available" | "limited" | "coming_soon";
   featured: boolean;
 };
@@ -63,8 +64,10 @@ export type CartItem = {
   serviceSlug: string;
   serviceName: string;
   planName: string;
+  monthlyPriceKes: number;
   priceKes: number;
   billingCycle: MemberPlan["billingCycle"];
+  durationMonths: PlanDurationMonths;
 };
 
 export type MemberOrderSummary = {

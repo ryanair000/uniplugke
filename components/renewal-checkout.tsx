@@ -1,16 +1,14 @@
 "use client";
 
 import { useState } from "react";
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
+import { formatDualPrice } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 
 export function RenewalCheckout({
   subscriptionId,
   serviceName,
   planName,
-  billingCycle,
+  durationMonths,
   priceKes,
   email,
   defaultPhone
@@ -18,7 +16,7 @@ export function RenewalCheckout({
   subscriptionId: string;
   serviceName: string;
   planName: string;
-  billingCycle: string;
+  durationMonths: number;
   priceKes: number;
   email: string;
   defaultPhone: string;
@@ -54,16 +52,16 @@ export function RenewalCheckout({
         <p>Signed in as {email}. The renewal is applied to your existing subscription after payment and activation.</p>
         <div className="checkout-items">
           <div className="checkout-item renewal-line">
-            <div><strong>{serviceName}</strong><span>{planName} · {billingCycle}</span></div>
-            <strong>{formatKes(priceKes)}</strong>
+            <div><strong>{serviceName}</strong><span>{planName} · {planDurationLabel(durationMonths)}</span></div>
+            <strong>{formatDualPrice(priceKes)}</strong>
           </div>
         </div>
         <label className="field">Phone / WhatsApp<input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07…" /></label>
       </section>
       <aside className="summary-card">
         <p className="eyebrow">Renewal summary</p>
-        <div><span>One service period</span><strong>{formatKes(priceKes)}</strong></div>
-        <p>The final amount and plan eligibility are recalculated securely from the private database before Paystack opens.</p>
+        <div><span>{planDurationLabel(durationMonths)}</span><strong>{formatDualPrice(priceKes)}</strong></div>
+        <p>The final amount and plan eligibility are recalculated securely before Paystack opens. Payment is charged in KSh; USD is an approximate equivalent.</p>
         {error ? <p className="form-error">{error}</p> : null}
         <button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={startRenewal}>{busy ? "Starting renewal…" : "Pay renewal securely"}</button>
       </aside>

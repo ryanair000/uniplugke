@@ -10,18 +10,18 @@ export const metadata: Metadata = {
 const principles = [
   {
     marker: "01",
-    title: "A clearer catalog",
-    copy: "Services are organised around what people want to watch, create, store, play, and use for work."
+    title: "Clear before checkout",
+    copy: "Compare supported devices, setup requirements, starting prices, and activation expectations before choosing."
   },
   {
     marker: "02",
-    title: "Private member value",
-    copy: "Plan pricing and purchase options stay inside the member experience, where eligibility and current availability can be shown responsibly."
+    title: "Local member support",
+    copy: "Members can reach the Kenyan support team on WhatsApp and keep the relevant order or subscription connected to the conversation."
   },
   {
     marker: "03",
-    title: "Support after checkout",
-    copy: "Activation status, renewal dates, order history, and support requests remain connected to one account."
+    title: "One service history",
+    copy: "Payment, activation, renewal, and support updates stay attached to the same member account."
   }
 ];
 
@@ -30,11 +30,16 @@ export default function AboutPage() {
     <div className="public-page">
       <PublicPageIntro
         eyebrow="About UniPlug"
-        title="Digital services, simply managed."
-        description="UniPlug brings useful digital memberships into one clean catalog and gives members one place to follow purchases, activations, renewals, and support."
+        title="A clearer way to manage digital services."
+        description="UniPlug is a Kenya-focused catalog and member portal for discovering services, understanding activation, and keeping orders, renewals, and support organised."
       >
         <Link className="button button-primary" href="/services">Explore services</Link>
-        <Link className="button button-light" href="/login">Member sign in</Link>
+        <a
+          className="button button-light"
+          href="https://wa.me/254113033475?text=Hi%20UniPlug%2C%20I%27d%20like%20to%20request%20member%20access."
+        >
+          Request member access
+        </a>
       </PublicPageIntro>
 
       <div className="public-page-shell public-page-content">
@@ -45,7 +50,7 @@ export default function AboutPage() {
           </div>
           <div className="public-prose">
             <p>Digital services are useful, but keeping track of where to buy, how activation works, when a plan renews, and where to get help can become unnecessarily complicated.</p>
-            <p>UniPlug is designed to make that journey calmer. Guests can understand the catalog without seeing a crowded price wall. Members can then sign in to view current plans and manage the services connected to their account.</p>
+            <p>The storefront is private. Invited clients can review current plans in KSh and USD, complete checkout, and follow the service lifecycle from My UniPlug.</p>
           </div>
         </section>
 
@@ -73,8 +78,8 @@ export default function AboutPage() {
 
         <PublicCta
           eyebrow="Start exploring"
-          title="Find the services that fit your day."
-          description="Browse the public catalog, then sign in when you are ready to see member plans."
+          title="Find the service that fits your day."
+          description="Browse the catalog openly. If you need member access, the Kenyan support team can help you get started."
           primaryHref="/services"
           primaryLabel="Browse services"
           secondaryHref="/help"
