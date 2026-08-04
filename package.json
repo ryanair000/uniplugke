@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs",
+    "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs && node scripts/verify-client-portal.mjs",
     "test:db": "supabase test db",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },

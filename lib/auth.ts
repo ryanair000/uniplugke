@@ -27,19 +27,27 @@ export const getViewer = cache(async () => {
     : null;
   const profile = expanded.data || fallback?.data;
 
+  const portal = await supabase
+    .from("client_portal_accounts")
+    .select("client_id,must_change_password,contact_email")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+
   return {
     user: data.user,
     profile: profile
       ? ({
           userId: profile.user_id,
-          email: profile.email,
+          email: portal.data?.contact_email || profile.email,
           displayName: profile.display_name,
           username: profile.username,
           phone: profile.phone,
           role: profile.role,
           status: profile.status,
           renewalRemindersEnabled: "renewal_reminders_enabled" in profile ? profile.renewal_reminders_enabled ?? true : true,
-          marketingOptIn: "marketing_opt_in" in profile ? profile.marketing_opt_in ?? false : false
+          marketingOptIn: "marketing_opt_in" in profile ? profile.marketing_opt_in ?? false : false,
+          clientId: portal.data?.client_id || null,
+          mustChangePassword: portal.data?.must_change_password ?? false
         } as MemberProfile)
       : null
   };
@@ -51,6 +59,7 @@ export async function requireMember() {
   if (!viewer.profile || viewer.profile.status !== "active") {
     redirect("/login?error=membership_required");
   }
+  if (viewer.profile.mustChangePassword) redirect("/set-password");
   return viewer as { user: NonNullable<typeof viewer.user>; profile: MemberProfile };
 }
 

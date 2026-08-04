@@ -35,14 +35,14 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   return (
     <form className="auth-form" onSubmit={submit}>
       <label>
-        Username or email
+        Phone number, username or email
         <input
           type="text"
           autoComplete="username"
           required
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
-          placeholder="your.username or name@example.com"
+          placeholder="0712 345 678"
         />
       </label>
       <label>

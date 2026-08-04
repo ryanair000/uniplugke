@@ -7,6 +7,8 @@ import { requireMember } from "@/lib/auth";
 import { formatDualPrice } from "@/lib/currency";
 import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getTrackedSubscription } from "@/lib/client-portal";
+import { TrackedSubscriptionDetail } from "@/components/tracked-client-views";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,11 @@ export default async function SubscriptionDetailPage({
 }) {
   const viewer = await requireMember();
   const { id } = await params;
+  if (viewer.profile.clientId) {
+    const tracked = await getTrackedSubscription(viewer.profile.clientId, id);
+    if (!tracked) notFound();
+    return <TrackedSubscriptionDetail subscription={tracked} />;
+  }
   const query = await searchParams;
   const supabase = await createServerSupabaseClient();
   if (!supabase) notFound();
@@ -30,7 +37,7 @@ export default async function SubscriptionDetailPage({
   const [{ data: subscription }, { data: requests }] = await Promise.all([
     supabase
       .from("uniplug_member_subscriptions")
-      .select("id,status,start_at,current_period_end,duration_months,auto_renew,provider_reference,created_at,service:uniplug_catalog_services(id,name,slug,short_description,logo_text,accent_color,fulfillment_label,activation_window,replacement_summary),plan:uniplug_member_plans(id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status)")
+      .select("id,status,start_at,current_period_end,duration_months,auto_renew,created_at,service:uniplug_catalog_services(id,name,slug,short_description,logo_text,accent_color,fulfillment_label,activation_window,replacement_summary),plan:uniplug_member_plans(id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status)")
       .eq("id", id)
       .eq("user_id", viewer.user.id)
       .maybeSingle(),

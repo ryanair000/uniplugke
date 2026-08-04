@@ -4,6 +4,8 @@ import { requireMember } from "@/lib/auth";
 import { formatDualPrice } from "@/lib/currency";
 import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getTrackedSubscriptions } from "@/lib/client-portal";
+import { TrackedClientDashboard } from "@/components/tracked-client-views";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My UniPlug" };
@@ -14,6 +16,10 @@ function readableStatus(value: string) {
 
 export default async function DashboardPage() {
   const viewer = await requireMember();
+  if (viewer.profile.clientId) {
+    const tracked = await getTrackedSubscriptions(viewer.profile.clientId);
+    return <TrackedClientDashboard name={viewer.profile.displayName || viewer.profile.username} subscriptions={tracked} />;
+  }
   const supabase = await createServerSupabaseClient();
   const empty = { data: [] as Array<Record<string, unknown>> };
   const [subscriptionsResult, ordersResult, requestsResult, eventsResult] = supabase

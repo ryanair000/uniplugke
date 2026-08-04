@@ -3,6 +3,8 @@ import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
 import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getTrackedSubscriptions } from "@/lib/client-portal";
+import { TrackedSubscriptionsPage } from "@/components/tracked-client-views";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My subscriptions" };
@@ -13,11 +15,14 @@ function readableStatus(value: string) {
 
 export default async function SubscriptionsPage() {
   const viewer = await requireMember();
+  if (viewer.profile.clientId) {
+    return <TrackedSubscriptionsPage subscriptions={await getTrackedSubscriptions(viewer.profile.clientId)} />;
+  }
   const supabase = await createServerSupabaseClient();
   const { data } = supabase
     ? await supabase
         .from("uniplug_member_subscriptions")
-        .select("id,status,start_at,current_period_start,current_period_end,duration_months,service:uniplug_catalog_services(name,slug,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
+        .select("id,status,start_at,current_period_end,duration_months,service:uniplug_catalog_services(name,slug,logo_text,accent_color),plan:uniplug_member_plans(plan_name,billing_cycle)")
         .eq("user_id", viewer.user.id)
         .order("current_period_end")
     : { data: [] };
@@ -26,7 +31,6 @@ export default async function SubscriptionsPage() {
     id: string;
     status: string;
     start_at: string | null;
-    current_period_start: string | null;
     current_period_end: string | null;
     duration_months: number;
     service: { name: string; slug: string; logo_text: string; accent_color: string } | null;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { normalizeKenyanPhone } from "@/lib/phone";
 
 function safeNext(value: unknown) {
   const path = String(value || "/dashboard");
@@ -24,17 +25,38 @@ export async function POST(request: Request) {
   const password = String(body.password || "");
   if (!identifier || password.length < 8 || password.length > 256) return genericFailure();
 
+  const admin = createAdminSupabaseClient();
+  if (!admin) return NextResponse.json({ error: "Member login is not configured." }, { status: 503 });
+
   let email = identifier;
-  if (!identifier.includes("@")) {
-    const admin = createAdminSupabaseClient();
-    if (!admin) return NextResponse.json({ error: "Member login is not configured." }, { status: 503 });
-    const { data: profile } = await admin
-      .from("uniplug_profiles")
-      .select("email")
-      .eq("username", identifier)
+  let resolvedUserId: string | null = null;
+  const phone = normalizeKenyanPhone(identifier);
+  if (phone) {
+    const { data: portal } = await admin
+      .from("client_portal_accounts")
+      .select("user_id")
+      .eq("phone_e164", phone)
       .maybeSingle();
-    if (!profile?.email) return genericFailure();
-    email = profile.email;
+    resolvedUserId = portal?.user_id || null;
+  } else {
+    const profileQuery = identifier.includes("@")
+      ? admin.from("uniplug_profiles").select("user_id").eq("email", identifier).maybeSingle()
+      : admin.from("uniplug_profiles").select("user_id").eq("username", identifier).maybeSingle();
+    const { data: profile } = await profileQuery;
+    resolvedUserId = profile?.user_id || null;
+    if (!resolvedUserId && identifier.includes("@")) {
+      const { data: client } = await admin.from("clients").select("id").eq("email", identifier).is("deleted_at", null).maybeSingle();
+      if (client) {
+        const { data: portal } = await admin.from("client_portal_accounts").select("user_id").eq("client_id", client.id).maybeSingle();
+        resolvedUserId = portal?.user_id || null;
+      }
+    }
+  }
+
+  if (resolvedUserId) {
+    const { data: authUser } = await admin.auth.admin.getUserById(resolvedUserId);
+    if (!authUser.user?.email) return genericFailure();
+    email = authUser.user.email;
   }
 
   const supabase = await createServerSupabaseClient();
@@ -53,7 +75,18 @@ export async function POST(request: Request) {
     return genericFailure();
   }
 
-  const destination = profile?.status === "pending" ? "/set-password" : safeNext(body.next);
+  const { data: portal } = await admin
+    .from("client_portal_accounts")
+    .select("must_change_password")
+    .eq("user_id", data.user.id)
+    .maybeSingle();
+  await admin.from("client_portal_accounts")
+    .update({ last_login_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("user_id", data.user.id);
+
+  const destination = profile?.status === "pending" || portal?.must_change_password
+    ? "/set-password"
+    : safeNext(body.next);
   return NextResponse.json(
     { next: destination },
     { headers: { "Cache-Control": "no-store" } }

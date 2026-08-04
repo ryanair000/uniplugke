@@ -57,6 +57,8 @@ export type MemberProfile = {
   status: "active" | "suspended" | "pending";
   renewalRemindersEnabled: boolean;
   marketingOptIn: boolean;
+  clientId: string | null;
+  mustChangePassword: boolean;
 };
 
 export type CartItem = {
