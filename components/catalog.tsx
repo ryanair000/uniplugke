@@ -263,7 +263,7 @@ export function CatalogExplorer({
             <h2>Popular on UniPlug</h2>
             <p>
               {isMember
-                ? "Every plan shows its KSh price and approximate USD equivalent."
+                ? "Every plan is shown in US dollars."
                 : "Invitation-only member pricing."}
             </p>
           </div>
@@ -397,8 +397,13 @@ function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogS
 
   return (
     <div className="plan-card">
-      <p className="eyebrow">Choose duration</p>
-      <h3>{plan.planName}</h3>
+      <div className="plan-card-heading">
+        <div>
+          <p className="eyebrow">Choose duration</p>
+          <h3>{plan.planName}</h3>
+        </div>
+        <span>Flexible prepaid access</span>
+      </div>
       <div className="plan-duration-grid" aria-label={`Duration for ${plan.planName}`}>
         {PLAN_DURATIONS.map((duration) => (
           <button
@@ -408,22 +413,22 @@ function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogS
             aria-pressed={durationMonths === duration.months}
             onClick={() => setDurationMonths(duration.months)}
           >
-            <span>{duration.shortLabel}</span>
-            <strong>{formatDualPrice(planPriceForDuration(plan.priceKes, duration.months))}</strong>
+            <span>{duration.label}</span>
           </button>
         ))}
       </div>
-      <div className="plan-price">
-        {formatDualPrice(totalPrice)}
+      <div className="plan-selected-price" aria-live="polite">
+        <span>Total for {planDurationLabel(durationMonths)}</span>
+        <strong>{formatDualPrice(totalPrice)}</strong>
         {compareAtPrice ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
       </div>
       <p className="plan-price-note">
-        {planDurationLabel(durationMonths)} at {formatDualPrice(plan.priceKes)} per month
+        {formatDualPrice(plan.priceKes)} per month
       </p>
-      <ul>{plan.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
       <button
         type="button"
         className="button button-dark"
+        data-testid="add-plan-to-cart"
         disabled={plan.availabilityStatus === "unavailable"}
         onClick={() => add({
           planId: plan.id,

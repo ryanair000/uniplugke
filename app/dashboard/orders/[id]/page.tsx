@@ -92,7 +92,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
         <aside className="panel receipt-summary">
           <p className="eyebrow">Payment summary</p>
           <div className="receipt-total"><span>Total</span><strong>{formatDualPrice(Number(order.total_kes))}</strong></div>
-          <p className="muted-copy">USD is an approximate equivalent. The receipt and payment are settled in KSh.</p>
+          <p className="muted-copy">Your receipt shows the final dollar total for this order.</p>
           <dl>
             <div><dt>Payment</dt><dd>{readableStatus(order.payment_status)}</dd></div>
             <div><dt>Fulfilment</dt><dd>{readableStatus(order.fulfillment_status)}</dd></div>

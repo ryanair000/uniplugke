@@ -7,18 +7,18 @@ type InfoItem = {
 const processItems: InfoItem[] = [
   {
     icon: "1",
-    title: "Compare services",
-    description: "Review devices, starting prices, and setup requirements."
+    title: "Choose",
+    description: "Compare clear member prices and pick a duration."
   },
   {
     icon: "2",
-    title: "Choose a member plan",
-    description: "Invited clients see KSh prices, approximate USD equivalents, and billing cycles."
+    title: "Activate",
+    description: "Follow setup progress from your private dashboard."
   },
   {
     icon: "3",
-    title: "Track it in one place",
-    description: "Follow payment, activation, renewal, and support progress."
+    title: "Manage",
+    description: "Track renewals and request eligible replacements."
   }
 ];
 
@@ -48,7 +48,7 @@ export function ProcessStrip() {
       <div className="home-section-shell">
         <div className="home-process-heading">
           <p className="upgrade-eyebrow">How it works</p>
-          <h2 id="process-title">From discovery to renewal, without the guesswork.</h2>
+          <h2 id="process-title">Simple from checkout to renewal.</h2>
         </div>
         <div className="home-info-grid">
           {processItems.map((item, index) => (

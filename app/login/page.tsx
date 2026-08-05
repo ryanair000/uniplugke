@@ -29,7 +29,7 @@ export default async function LoginPage({
         <h1>{isCheckout ? "Sign in to continue checkout" : "Welcome back"}</h1>
         <p>
           {isServiceReturn
-            ? "Sign in to return to this service and review prices in KSh and USD."
+            ? "Sign in to return to this service and review dollar prices."
             : "Use the username or email from your invitation and the private password you created."}
         </p>
         {viewer.user && viewer.profile?.status === "pending" ? (

@@ -1,7 +1,8 @@
 import "server-only";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
+import { buildLokimaxCatalog } from "@/lib/lokimax-services";
 import type { CatalogService, MemberPlan, ServiceCategory } from "@/lib/types";
 
 export const publicCatalogFallback: CatalogService[] = [
@@ -165,8 +166,21 @@ export async function getPublicCatalog() {
     .eq("is_active", true)
     .order("sort_order");
 
-  if (error || !data?.length) return publicCatalogFallback;
-  return (data as Array<Record<string, unknown>>).map(normalizeService);
+  const curatedServices = error || !data?.length
+    ? publicCatalogFallback
+    : (data as Array<Record<string, unknown>>).map(normalizeService);
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) return curatedServices;
+
+  const { data: lokimaxServices, error: lokimaxError } = await admin
+    .from("services")
+    .select("id,service_name")
+    .eq("status", "active")
+    .order("service_name");
+
+  if (lokimaxError || !lokimaxServices?.length) return curatedServices;
+  return buildLokimaxCatalog(lokimaxServices, curatedServices);
 }
 
 export async function getPublicService(slug: string) {

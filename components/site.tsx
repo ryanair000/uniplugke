@@ -30,8 +30,8 @@ export async function SiteHeader() {
         <Brand />
         {isMember ? (
           <nav className="desktop-nav" aria-label="Primary navigation">
-            <Link href="/services">Services</Link>
-            <Link href="/#how-it-works">How it works</Link>
+            <Link href="/services">Catalog</Link>
+            <Link href="/dashboard/subscriptions">My subscriptions</Link>
             <Link href="/help">Support</Link>
           </nav>
         ) : <span className="desktop-nav">Invitation-only storefront</span>}
@@ -40,7 +40,6 @@ export async function SiteHeader() {
             <>
               {isAdmin && <Link href="/admin">Operations</Link>}
               <Link href="/dashboard">My UniPlug</Link>
-              <Link href="/dashboard/settings">Settings</Link>
               <CartLink />
               <SignOutButton />
             </>
@@ -51,20 +50,21 @@ export async function SiteHeader() {
           )}
         </div>
         {isMember ? <details className="mobile-menu">
-          <summary aria-label="Open navigation menu">
+          <summary role="button" aria-label="Open member menu">
             <span aria-hidden="true" />
             <span aria-hidden="true" />
             <span aria-hidden="true" />
           </summary>
           <div className="mobile-menu-panel">
             <nav aria-label="Mobile navigation">
-              <Link href="/services">Services</Link>
-              <Link href="/#how-it-works">How it works</Link>
+              <Link href="/services">Catalog</Link>
+              <Link href="/dashboard/subscriptions">My subscriptions</Link>
               <Link href="/help">Help centre</Link>
               <Link href="/contact">Contact</Link>
             </nav>
             <div className="mobile-menu-account">
               <Link href="/dashboard">Open My UniPlug</Link>
+              <Link href="/dashboard/settings">Settings</Link>
               {isAdmin ? <Link href="/admin">Administration</Link> : null}
               <CartLink />
               <SignOutButton />

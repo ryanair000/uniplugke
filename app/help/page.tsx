@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 const faqs = [
   {
-    question: "Why do prices appear in both KSh and USD?",
-    answer: "KSh is the checkout currency. The USD amount is an approximate equivalent based on UniPlug’s configured display rate, so your final payment remains the KSh amount shown."
+    question: "Which currency does UniPlug show?",
+    answer: "UniPlug shows one clear US-dollar price throughout the catalog, cart, and member portal."
   },
   {
     question: "How do I become a member?",

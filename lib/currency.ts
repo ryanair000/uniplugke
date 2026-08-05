@@ -5,15 +5,12 @@ export const KES_PER_USD =
     ? configuredKesPerUsd
     : 130;
 
-export function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  })}`;
-}
-
 export function kesToUsd(value: number) {
   return value / KES_PER_USD;
+}
+
+export function usdToKes(value: number) {
+  return Math.round(value * KES_PER_USD);
 }
 
 export function formatUsd(value: number) {
@@ -24,5 +21,5 @@ export function formatUsd(value: number) {
 }
 
 export function formatDualPrice(valueKes: number) {
-  return `${formatKes(valueKes)} · ≈ ${formatUsd(kesToUsd(valueKes))} USD`;
+  return formatUsd(kesToUsd(valueKes));
 }

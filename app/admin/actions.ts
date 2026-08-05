@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { usdToKes } from "@/lib/currency";
 
 const categories = new Set(["streaming", "music", "creative", "ai", "productivity", "cloud", "security", "gaming", "learning"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -64,22 +65,22 @@ export async function createMemberPlan(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const price = Number(formData.get("priceKes"));
-  const compareAtRaw = String(formData.get("compareAtKes") || "").trim();
-  const compareAt = compareAtRaw ? Number(compareAtRaw) : null;
+  const priceUsd = Number(formData.get("priceUsd"));
+  const compareAtRaw = String(formData.get("compareAtUsd") || "").trim();
+  const compareAtUsd = compareAtRaw ? Number(compareAtRaw) : null;
   const planName = String(formData.get("planName") || "").trim().slice(0, 100);
   const planCode = slug(formData.get("planCode") || planName);
   const serviceId = String(formData.get("serviceId") || "");
   if (!serviceId || !planName || !planCode) throw new Error("Service, plan name, and plan code are required");
-  if (!Number.isFinite(price) || price < 1) throw new Error("A valid price is required");
-  if (compareAt !== null && (!Number.isFinite(compareAt) || compareAt < price)) throw new Error("Compare-at price must be at least the member price");
+  if (!Number.isFinite(priceUsd) || priceUsd <= 0) throw new Error("A valid price is required");
+  if (compareAtUsd !== null && (!Number.isFinite(compareAtUsd) || compareAtUsd < priceUsd)) throw new Error("Compare-at price must be at least the member price");
 
   const { error } = await supabase.from("uniplug_member_plans").insert({
     service_id: serviceId,
     plan_name: planName,
     plan_code: planCode,
-    price_kes: price,
-    compare_at_kes: compareAt,
+    price_kes: usdToKes(priceUsd),
+    compare_at_kes: compareAtUsd === null ? null : usdToKes(compareAtUsd),
     billing_cycle: "monthly",
     plan_features: lines(formData.get("planFeatures")),
     purchase_limit: Math.min(20, Math.max(1, Number(formData.get("purchaseLimit") || 1))),

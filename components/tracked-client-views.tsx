@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountAccess } from "@/components/account-access";
 import type { TrackedSubscription } from "@/lib/client-portal";
+import { formatDualPrice, formatUsd } from "@/lib/currency";
 
 function statusLabel(status: string) {
   return status.replaceAll("_", " ");
@@ -12,7 +13,9 @@ function renewalLabel(subscription: TrackedSubscription) {
 }
 
 function money(subscription: TrackedSubscription) {
-  return new Intl.NumberFormat("en-KE", { style: "currency", currency: subscription.currency || "KES", maximumFractionDigits: 0 }).format(subscription.amount);
+  return subscription.currency === "USD"
+    ? formatUsd(subscription.amount)
+    : formatDualPrice(subscription.amount);
 }
 
 function TrackedList({ subscriptions }: { subscriptions: TrackedSubscription[] }) {

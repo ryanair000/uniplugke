@@ -50,7 +50,7 @@ export default function AboutPage() {
           </div>
           <div className="public-prose">
             <p>Digital services are useful, but keeping track of where to buy, how activation works, when a plan renews, and where to get help can become unnecessarily complicated.</p>
-            <p>The storefront is private. Invited clients can review current plans in KSh and USD, complete checkout, and follow the service lifecycle from My UniPlug.</p>
+            <p>The storefront is private. Invited clients can review current dollar prices, complete checkout, and follow the service lifecycle from My UniPlug.</p>
           </div>
         </section>
 

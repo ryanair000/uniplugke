@@ -5,41 +5,43 @@ import type { CatalogService, MemberPlan } from "@/lib/types";
 
 export const categoryLabels: Record<string, string> = {
   all: "All services",
-  streaming: "Streaming",
-  music: "Music",
-  creative: "Creative",
+  streaming: "Watch",
+  music: "Listen",
+  creative: "Create",
   ai: "AI tools",
-  productivity: "Productivity",
-  cloud: "Cloud & storage",
-  security: "Security & VPN",
-  gaming: "Gaming",
-  learning: "Learning"
+  productivity: "Work",
+  cloud: "Store & cloud",
+  security: "Security",
+  gaming: "Play",
+  learning: "Learn"
 };
 
 function availabilityLabel(status: CatalogService["availabilityStatus"]) {
-  if (status === "limited") return "Limited availability";
+  if (status === "limited") return "Limited";
   if (status === "coming_soon") return "Coming soon";
-  return "Available today";
+  return "Available";
 }
 
 export function CatalogServiceCard({
   service,
   plan,
-  isMember
+  isMember,
+  managementHref
 }: {
   service: CatalogService;
   plan?: MemberPlan;
   isMember: boolean;
+  managementHref?: string;
 }) {
-  const deviceCount = service.supportedDevices.length;
-  const primaryFeature = service.features[0] || service.fulfillmentLabel;
+  const href = managementHref || `/services/${service.slug}`;
+  const action = managementHref ? "Manage" : "View service";
 
   return (
-    <article className="catalog-card">
+    <article className={`catalog-card${managementHref ? " is-managed" : ""}`}>
       <Link
         className="catalog-card-link"
-        href={`/services/${service.slug}`}
-        aria-label={`View ${service.name}`}
+        href={href}
+        aria-label={`${action} ${service.name}`}
       >
         <div className="catalog-card-top">
           <ServiceArtwork
@@ -49,8 +51,8 @@ export function CatalogServiceCard({
             name={service.name}
             slug={service.slug}
           />
-          <span className={`catalog-availability ${service.availabilityStatus}`}>
-            {availabilityLabel(service.availabilityStatus)}
+          <span className={`catalog-availability ${managementHref ? "managed" : service.availabilityStatus}`}>
+            {managementHref ? "In your account" : availabilityLabel(service.availabilityStatus)}
           </span>
         </div>
 
@@ -61,27 +63,22 @@ export function CatalogServiceCard({
 
         <p className="catalog-card-description">{service.shortDescription}</p>
 
-        <div className="catalog-card-facts" aria-label={`${service.name} highlights`}>
-          <span>{primaryFeature}</span>
-          <span>{deviceCount} supported device{deviceCount === 1 ? "" : "s"}</span>
-        </div>
-
         <div className="catalog-card-footer">
           <div>
             {isMember && plan ? (
               <>
                 <strong>{formatDualPrice(plan.priceKes)}</strong>
-                <small>per {plan.billingCycle.replace("ly", "")}</small>
+                <small>per month</small>
               </>
             ) : (
               <>
-                <strong>Invitation required</strong>
-                <small>Private client pricing</small>
+                <strong>{isMember ? "Contact for price" : "Invitation required"}</strong>
+                <small>{isMember ? "Ask UniPlug support" : "Private client pricing"}</small>
               </>
             )}
           </div>
           <span className="catalog-card-action">
-            View service <span aria-hidden="true">→</span>
+            {action} <span aria-hidden="true">→</span>
           </span>
         </div>
       </Link>

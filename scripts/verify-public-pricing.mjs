@@ -26,14 +26,19 @@ const checks = [
     ]
   },
   {
-    name: "member prices display KSh and an approximate USD equivalent",
+    name: "member prices display one dollar amount",
     source: read("lib/currency.ts"),
-    tokens: ["NEXT_PUBLIC_KES_PER_USD", "formatKes", "kesToUsd", "formatUsd", "formatDualPrice"]
+    tokens: ["NEXT_PUBLIC_KES_PER_USD", "kesToUsd", "formatUsd", "return formatUsd(kesToUsd(valueKes))"]
   },
   {
-    name: "catalog and checkout use the shared dual-currency formatter",
+    name: "catalog and checkout use the shared dollar formatter",
     source: read("components/catalog.tsx") + read("components/checkout.tsx"),
-    tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "charged in KSh"]
+    tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "final dollar amount"]
+  },
+  {
+    name: "Lokimax active services drive the UniPlug catalog",
+    source: read("lib/catalog.ts") + read("lib/lokimax-services.ts"),
+    tokens: ['.from("services")', '.eq("status", "active")', "buildLokimaxCatalog", "primevideo", "office365"]
   },
   {
     name: "private pages enforce membership independently of navigation",
@@ -53,4 +58,22 @@ if (failed.length) {
   process.exit(1);
 }
 
-console.log(`Verified ${checks.length} invite-only and dual-currency source invariants.`);
+const customerFacingSource = [
+  "app/page.tsx",
+  "app/about/page.tsx",
+  "app/help/page.tsx",
+  "app/login/page.tsx",
+  "app/services/page.tsx",
+  "app/services/[slug]/page.tsx",
+  "components/catalog.tsx",
+  "components/checkout.tsx",
+  "components/renewal-checkout.tsx",
+  "components/service-card.tsx"
+].map(read).join("\n");
+
+if (/\bKSh\b|approximate USD equivalent/i.test(customerFacingSource)) {
+  console.error("Dollar-only pricing check failed: legacy currency copy remains customer-facing");
+  process.exit(1);
+}
+
+console.log(`Verified ${checks.length} invite-only, dollar-pricing, and Lokimax catalog source invariants.`);

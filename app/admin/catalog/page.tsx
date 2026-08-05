@@ -46,7 +46,7 @@ export default async function AdminCatalogPage({
   return (
     <section className="section shell page-top portal-page">
       <div className="dashboard-heading">
-        <div><p className="eyebrow">Merchandising</p><h1>Catalog & member plans</h1><p>Manage the private catalog and member prices. KSh prices automatically include an approximate USD equivalent.</p></div>
+        <div><p className="eyebrow">Merchandising</p><h1>Catalog & member plans</h1><p>Manage the private catalog and its dollar prices.</p></div>
       </div>
       {query.success ? <p className="form-success page-notice">{query.success === "plan" ? "Member plan created." : "Catalog service created."}</p> : null}
 
@@ -92,7 +92,7 @@ export default async function AdminCatalogPage({
         <section className="panel">
           <p className="eyebrow">Private pricing</p>
           <h2>Add a member plan</h2>
-          <p className="muted-copy">Enter the KSh checkout price. The storefront also shows its USD equivalent using the configured exchange rate.</p>
+          <p className="muted-copy">Enter the monthly member price in US dollars.</p>
           <form action={createMemberPlan} className="admin-form">
             <label className="field">Service<select name="serviceId" required><option value="">Choose service</option>{services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
             <div className="form-row">
@@ -100,8 +100,8 @@ export default async function AdminCatalogPage({
               <label className="field">Plan code<input name="planCode" placeholder="individual-plan" /></label>
             </div>
             <div className="form-row">
-              <label className="field">Monthly price (KSh)<input name="priceKes" type="number" min="1" placeholder="e.g. 650" required /></label>
-              <label className="field">Compare-at price<input name="compareAtKes" type="number" min="1" placeholder="Optional" /></label>
+              <label className="field">Monthly price ($)<input name="priceUsd" type="number" min="0.01" step="0.01" placeholder="e.g. 5.00" required /></label>
+              <label className="field">Compare-at price ($)<input name="compareAtUsd" type="number" min="0.01" step="0.01" placeholder="Optional" /></label>
             </div>
             <div className="form-row">
               <label className="field">Available durations<input value="3 months · 6 months · 12 months · 3 years" readOnly /></label>

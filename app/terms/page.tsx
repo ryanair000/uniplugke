@@ -44,7 +44,7 @@ export default function TermsPage() {
 
         <section id="catalog">
           <h2>3. Catalog and member plans</h2>
-          <p>The private catalog is available only to invited clients. Current KSh pricing, approximate USD equivalents, billing cycles, plan features, availability, and setup requirements are shown before purchase. Service names and trademarks belong to their respective owners.</p>
+          <p>The private catalog is available only to invited clients. Current dollar pricing, billing cycles, plan features, availability, and setup requirements are shown before purchase. Service names and trademarks belong to their respective owners.</p>
         </section>
 
         <section id="orders">

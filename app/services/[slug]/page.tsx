@@ -5,6 +5,8 @@ import { categoryLabels } from "@/components/service-card";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { requireMember } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog, getPublicService } from "@/lib/catalog";
+import { getTrackedSubscriptions } from "@/lib/client-portal";
+import { formatDualPrice } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 function availabilityLabel(value: "available" | "limited" | "coming_soon") {
   if (value === "limited") return "Limited availability";
   if (value === "coming_soon") return "Coming soon";
-  return "Available today";
+  return "Available";
+}
+
+function comparableName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 export default async function ServiceDetailPage({
@@ -28,12 +34,26 @@ export default async function ServiceDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  await requireMember();
+  const viewer = await requireMember();
+  const isMember = viewer.profile.status === "active";
   const services = await getPublicCatalog();
   const service = services.find((item) => item.slug === slug);
   if (!service) notFound();
 
   const plans = await getMemberPlans([service.id]);
+  const subscriptions = viewer.profile.clientId
+    ? await getTrackedSubscriptions(viewer.profile.clientId)
+    : [];
+  const catalogName = comparableName(service.name);
+  const activeSubscription = subscriptions.find((subscription) => {
+    if (!["active", "due_soon", "trial"].includes(subscription.status)) return false;
+    const trackedName = comparableName(subscription.service?.name || subscription.serviceIdentifier || "");
+    return trackedName === catalogName
+      || trackedName.includes(catalogName)
+      || catalogName.includes(trackedName)
+      || trackedName.split(" ")[0] === catalogName.split(" ")[0];
+  });
+  const primaryPlan = plans[0];
   const relatedServices = services
     .filter((item) => item.id !== service.id)
     .sort((a, b) => {
@@ -42,152 +62,117 @@ export default async function ServiceDetailPage({
       return Number(b.featured) - Number(a.featured);
     })
     .slice(0, 3);
+
   return (
-    <div className="service-detail upgrade-service-detail">
-      <section className="upgrade-product-hero">
-        <div className="upgrade-shell upgrade-product-hero-grid">
-          <div className="upgrade-product-copy">
-            <Link className="back-link" href="/services">← Back to all services</Link>
-            <p className="upgrade-eyebrow">
-              {categoryLabels[service.category] ?? service.category}
-            </p>
-            <h1>{service.name}</h1>
-            <p>{service.description}</p>
-            <div className="upgrade-product-badges">
-              <span>{service.fulfillmentLabel}</span>
-              <span className={service.availabilityStatus}>
-                {availabilityLabel(service.availabilityStatus)}
-              </span>
-            </div>
-          </div>
-          <div className="upgrade-product-art">
+    <div className="product-page-minimal">
+      <div className="upgrade-shell product-decision-layout">
+        <section className="product-overview" aria-labelledby="product-title">
+          <Link className="back-link" href="/services">← All services</Link>
+
+          <div className="product-identity">
             <ServiceArtwork
               accentColor={service.accentColor}
-              className="upgrade-product-logo"
+              className="product-minimal-logo"
               descriptive
               logoText={service.logoText}
               name={service.name}
               slug={service.slug}
             />
             <div>
-              <span>Typical activation</span>
-              <strong>{service.activationWindow}</strong>
+              <p className="upgrade-eyebrow">{categoryLabels[service.category] ?? service.category}</p>
+              <h1 id="product-title">{service.name}</h1>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="upgrade-shell upgrade-product-layout member-layout">
-        <main className="upgrade-product-content">
-          <section className="upgrade-product-facts" aria-label={`${service.name} overview`}>
-            <article>
-              <span>What you get</span>
-              <strong>{service.features[0] || service.fulfillmentLabel}</strong>
-            </article>
-            <article>
-              <span>Works on</span>
-              <strong>{service.supportedDevices.length} supported devices</strong>
-            </article>
-            <article>
-              <span>Support</span>
-              <strong>Dashboard and WhatsApp</strong>
-            </article>
-          </section>
-
-          <section className="upgrade-detail-section">
-            <div className="upgrade-detail-heading">
-              <p className="upgrade-eyebrow">Included</p>
-              <h2>What comes with this service</h2>
-            </div>
-            <div className="upgrade-feature-list">
-              {service.features.map((feature) => (
-                <div key={feature}><span aria-hidden="true">✓</span>{feature}</div>
-              ))}
-            </div>
-          </section>
-
-          <section className="upgrade-detail-section upgrade-detail-split">
-            <div>
-              <div className="upgrade-detail-heading">
-                <p className="upgrade-eyebrow">Compatibility</p>
-                <h2>Supported devices</h2>
-              </div>
-              <div className="upgrade-device-list">
-                {service.supportedDevices.map((device) => <span key={device}>{device}</span>)}
-              </div>
-            </div>
-            <div>
-              <div className="upgrade-detail-heading">
-                <p className="upgrade-eyebrow">Before activation</p>
-                <h2>What you will need</h2>
-              </div>
-              <ol className="upgrade-requirement-list">
-                {service.setupRequirements.map((requirement) => (
-                  <li key={requirement}>{requirement}</li>
-                ))}
-              </ol>
-            </div>
-          </section>
-
-          <section className="upgrade-detail-section upgrade-support-note">
-            <div>
-              <p className="upgrade-eyebrow">After purchase</p>
-              <h2>Support and replacements</h2>
-            </div>
-            <p>{service.replacementSummary}</p>
-            <Link className="text-link" href="/help">See how support works →</Link>
-          </section>
-
-          <section className="upgrade-detail-section">
-            <div className="upgrade-detail-heading">
-              <p className="upgrade-eyebrow">Common questions</p>
-              <h2>Before you choose a plan</h2>
-            </div>
-            <div className="upgrade-faq-list">
-              {service.faqs.map((faq) => (
-                <details key={faq.question}>
-                  <summary>{faq.question}</summary>
-                  <p>{faq.answer}</p>
-                </details>
-              ))}
-              <details>
-                <summary>Where will I see activation and renewal updates?</summary>
-                <p>Active members can follow order, activation, and renewal status from My UniPlug.</p>
-              </details>
-              <details>
-                <summary>How do I get help if something goes wrong?</summary>
-                <p>Use the relevant subscription in your dashboard or contact the Kenyan support team on WhatsApp.</p>
-              </details>
-            </div>
-          </section>
-        </main>
-
-        <aside className="upgrade-product-aside">
-          <div className="upgrade-member-plans">
-            <p className="upgrade-eyebrow">Member plans</p>
-            <h2>Choose your plan</h2>
-            <p>Choose 3 months, 6 months, 12 months, or 3 years. KSh totals and approximate USD equivalents are shown before checkout.</p>
-            <PlanOptions plans={plans} service={service} />
+          <p className="product-value">{service.shortDescription}</p>
+          <div className="product-status-row">
+            <span className={service.availabilityStatus}>{availabilityLabel(service.availabilityStatus)}</span>
+            <span>{service.fulfillmentLabel}</span>
           </div>
+
+          {primaryPlan ? (
+            <div className="product-starting-price">
+              <span>From</span>
+              <strong>{formatDualPrice(primaryPlan.priceKes)} <small>/ month</small></strong>
+            </div>
+          ) : null}
+
+        </section>
+
+        <aside className="product-purchase-card" aria-label={`${service.name} purchase options`}>
+          {activeSubscription ? (
+            <div className="product-managed-state">
+              <span className="managed-kicker">Already in your account</span>
+              <h2>Manage {service.name}</h2>
+              <p>View access, renewal information, and replacement support in your dashboard.</p>
+              <Link className="button button-dark" href={`/dashboard/subscriptions/${activeSubscription.id}`}>
+                Manage service
+              </Link>
+              <Link className="text-link" href="/services">Continue browsing</Link>
+            </div>
+          ) : (
+            <>
+              <p className="upgrade-eyebrow">Member plan</p>
+              <h2>Choose your duration</h2>
+              <p className="purchase-card-intro">Select a prepaid term. Your total updates below.</p>
+              <PlanOptions plans={plans} service={service} />
+            </>
+          )}
         </aside>
-      </section>
+
+        <section className="product-support-summary" aria-label={`${service.name} highlights`}>
+          <ul className="product-confidence-list">
+            {service.features.slice(0, 3).map((feature) => <li key={feature}>{feature}</li>)}
+          </ul>
+          <div className="product-quick-facts">
+            <span><small>Activation</small><strong>{service.activationWindow}</strong></span>
+            <span><small>Help</small><strong>Dashboard and WhatsApp</strong></span>
+          </div>
+        </section>
+
+        <section className="product-disclosures" aria-label={`${service.name} details`}>
+          <details>
+            <summary>Compatibility and setup</summary>
+            <div className="product-disclosure-content">
+              <div>
+                <h2>Supported devices</h2>
+                <p>{service.supportedDevices.join(", ")}</p>
+              </div>
+              <div>
+                <h2>What you need</h2>
+                <ul>{service.setupRequirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul>
+              </div>
+            </div>
+          </details>
+          <details>
+            <summary>Support and common questions</summary>
+            <div className="product-disclosure-content product-support-content">
+              <p>{service.replacementSummary}</p>
+              {service.faqs.map((faq) => (
+                <div key={faq.question}>
+                  <h2>{faq.question}</h2>
+                  <p>{faq.answer}</p>
+                </div>
+              ))}
+              <Link className="text-link" href="/help">Open the help centre →</Link>
+            </div>
+          </details>
+        </section>
+      </div>
 
       {relatedServices.length ? (
-        <section className="upgrade-related-services">
+        <section className="product-related-minimal" aria-labelledby="related-title">
           <div className="upgrade-shell">
-            <div className="catalog-section-heading">
-              <div>
-                <p className="upgrade-eyebrow">Keep exploring</p>
-                <h2>Other services you may need</h2>
-              </div>
-              <Link className="text-link" href="/services">View full catalog →</Link>
+            <div className="product-related-heading">
+              <h2 id="related-title">You may also like</h2>
+              <Link href="/services">View catalog →</Link>
             </div>
-            <div className="upgrade-related-grid">
+            <div className="product-related-row">
               {relatedServices.map((related) => (
                 <Link href={`/services/${related.slug}`} key={related.id}>
                   <ServiceArtwork
                     accentColor={related.accentColor}
-                    className="upgrade-related-logo"
+                    className="product-related-logo"
                     logoText={related.logoText}
                     name={related.name}
                     slug={related.slug}
@@ -203,7 +188,7 @@ export default async function ServiceDetailPage({
           </div>
         </section>
       ) : null}
-
+      <span className="sr-only">{isMember ? "Member pricing is active" : ""}</span>
     </div>
   );
 }

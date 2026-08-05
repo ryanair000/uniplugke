@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,8 +22,9 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Sign-in failed");
-      router.replace(body.next || "/dashboard");
-      router.refresh();
+      // A hard navigation guarantees that the newly written auth cookies are
+      // available to protected Server Components on the first destination render.
+      window.location.assign(body.next || "/dashboard");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign-in failed");
       setBusy(false);
@@ -71,7 +70,6 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
 }
 
 export function SignOutButton() {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -82,8 +80,7 @@ export function SignOutButton() {
         localStorage.removeItem("uniplug-member-cart");
         const supabase = createBrowserSupabaseClient();
         await supabase.auth.signOut();
-        router.replace("/login");
-        router.refresh();
+        window.location.assign("/login");
       }}
     >
       {busy ? "Signing out…" : "Sign out"}

@@ -5,6 +5,11 @@ import { useMemo, useState } from "react";
 import { CatalogServiceCard, categoryLabels } from "@/components/service-card";
 import type { CatalogService, MemberPlan } from "@/lib/types";
 
+export type ManagedCatalogService = {
+  id: string;
+  serviceName: string;
+};
+
 const featuredOrder = [
   "netflix-premium",
   "spotify-premium",
@@ -14,15 +19,33 @@ const featuredOrder = [
   "icloud-plus-200"
 ];
 
+function comparableName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function findManagedService(service: CatalogService, managedServices: ManagedCatalogService[]) {
+  const catalogName = comparableName(service.name);
+  const catalogLead = catalogName.split(" ")[0];
+  return managedServices.find((managed) => {
+    const managedName = comparableName(managed.serviceName);
+    return managedName === catalogName
+      || managedName.includes(catalogName)
+      || catalogName.includes(managedName)
+      || (catalogLead.length > 3 && managedName.split(" ")[0] === catalogLead);
+  });
+}
+
 export function CatalogExplorer({
   services,
   plans,
   isMember,
+  managedServices = [],
   variant = "default"
 }: {
   services: CatalogService[];
   plans: MemberPlan[];
   isMember: boolean;
+  managedServices?: ManagedCatalogService[];
   variant?: "default" | "homepage";
 }) {
   const [category, setCategory] = useState("all");
@@ -35,6 +58,11 @@ export function CatalogExplorer({
     return map;
   }, [plans]);
 
+  const categories = useMemo(() => {
+    const available = Array.from(new Set(services.map((service) => service.category)));
+    return ["all", ...available];
+  }, [services]);
+
   const visible = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return services.filter((service) => {
@@ -42,7 +70,7 @@ export function CatalogExplorer({
       const searchableText = [
         service.name,
         service.shortDescription,
-        service.category,
+        categoryLabels[service.category],
         ...service.features,
         ...service.supportedDevices
       ].join(" ").toLowerCase();
@@ -50,50 +78,19 @@ export function CatalogExplorer({
     });
   }, [category, search, services]);
 
-  const featuredServices = useMemo(() => [...services]
-    .sort((a, b) => {
+  const hasFilters = category !== "all" || search.trim().length > 0;
+  const orderedVisible = useMemo(() => {
+    if (variant !== "homepage") return visible;
+    return [...visible].sort((a, b) => {
       const aIndex = featuredOrder.indexOf(a.slug);
       const bIndex = featuredOrder.indexOf(b.slug);
       return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex)
         - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
-    })
-    .slice(0, 6), [services]);
-
-  if (variant === "homepage") {
-    return (
-      <section className="featured-catalog" aria-labelledby="featured-services-title">
-        <div className="upgrade-shell">
-          <div className="catalog-section-heading">
-            <div>
-              <p className="upgrade-eyebrow">Popular services</p>
-              <h2 id="featured-services-title">Start with what you use most.</h2>
-              <p>
-              {isMember
-                  ? "Every member price is shown in KSh and with an approximate USD equivalent."
-                  : "This catalog is available only to invited clients."}
-              </p>
-            </div>
-            <Link className="text-link" href="/services">
-              View all services <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-
-          <div className="catalog-card-grid">
-            {featuredServices.map((service) => (
-              <CatalogServiceCard
-                isMember={isMember}
-                key={service.id}
-                plan={planByService.get(service.id)}
-                service={service}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  const hasFilters = category !== "all" || search.trim().length > 0;
+    });
+  }, [variant, visible]);
+  const displayedServices = variant === "homepage" && !hasFilters
+    ? orderedVisible.slice(0, 9)
+    : orderedVisible;
 
   function resetFilters() {
     setCategory("all");
@@ -101,25 +98,41 @@ export function CatalogExplorer({
   }
 
   return (
-    <div className="catalog-explorer">
+    <section
+      className={`catalog-browser ${variant === "homepage" ? "catalog-browser-home" : "catalog-browser-page"}`}
+      aria-labelledby={variant === "homepage" ? "catalog-title" : undefined}
+    >
+      <div className="catalog-browser-head">
+        <div>
+          {variant === "homepage" ? <p className="upgrade-eyebrow">Member catalog</p> : null}
+          {variant === "homepage" ? <h2 id="catalog-title">Choose your next service.</h2> : null}
+          <p>{services.length} services with local support and member-managed access.</p>
+        </div>
+        {variant === "homepage" ? (
+          <Link className="catalog-manage-link" href="/dashboard/subscriptions">
+            My subscriptions <span aria-hidden="true">→</span>
+          </Link>
+        ) : null}
+      </div>
+
       <div className="catalog-search-row">
         <label className="catalog-search">
-          <span>Search the catalog</span>
+          <span className="sr-only">Search services</span>
           <input
             type="search"
-            placeholder="Try Netflix, music, cloud…"
+            placeholder="Search Netflix, music, cloud…"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
         <p className="catalog-result-count" aria-live="polite">
-          {visible.length} service{visible.length === 1 ? "" : "s"}
+          {visible.length} result{visible.length === 1 ? "" : "s"}
         </p>
       </div>
 
       <div className="catalog-filter-row">
         <div className="catalog-category-row" aria-label="Service categories">
-          {Object.entries(categoryLabels).map(([key, label]) => (
+          {categories.map((key) => (
             <button
               type="button"
               key={key}
@@ -127,37 +140,55 @@ export function CatalogExplorer({
               aria-pressed={category === key}
               onClick={() => setCategory(key)}
             >
-              {label}
+              {categoryLabels[key] ?? key}
             </button>
           ))}
         </div>
         {hasFilters ? (
           <button className="catalog-clear" type="button" onClick={resetFilters}>
-            Clear filters
+            Clear
           </button>
         ) : null}
       </div>
 
       <div className="catalog-card-grid">
-        {visible.map((service) => (
-          <CatalogServiceCard
-            isMember={isMember}
-            key={service.id}
-            plan={planByService.get(service.id)}
-            service={service}
-          />
-        ))}
+        {displayedServices.map((service) => {
+          const managed = findManagedService(service, managedServices);
+          return (
+            <CatalogServiceCard
+              isMember={isMember}
+              key={service.id}
+              plan={planByService.get(service.id)}
+              service={service}
+              managementHref={managed ? `/dashboard/subscriptions/${managed.id}` : undefined}
+            />
+          );
+        })}
       </div>
+
+      {variant === "homepage" && visible.length > displayedServices.length ? (
+        <div className="catalog-view-all">
+          <Link href="/services">View all {visible.length} services <span aria-hidden="true">→</span></Link>
+        </div>
+      ) : null}
 
       {!visible.length ? (
         <div className="catalog-empty">
           <h2>No matching services</h2>
-          <p>Try a broader search or reset the active filters.</p>
+          <p>Try another search or clear the active category.</p>
           <button className="button button-light" type="button" onClick={resetFilters}>
-            Reset catalog
+            Show all services
           </button>
         </div>
       ) : null}
-    </div>
+
+      {variant === "homepage" ? (
+        <div className="catalog-trust-strip" aria-label="UniPlug member benefits">
+          <span><strong>Local support</strong> on WhatsApp</span>
+          <span><strong>Instant replacement</strong> when eligible</span>
+          <span><strong>Renewal tracking</strong> in your dashboard</span>
+        </div>
+      ) : null}
+    </section>
   );
 }
