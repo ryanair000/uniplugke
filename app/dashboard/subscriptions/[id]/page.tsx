@@ -167,7 +167,7 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Service support</p>
             <h2>Access issue?</h2>
             <p>{service?.replacement_summary || "Eligible service issues can be reviewed by UniPlug support."}</p>
-            <a className="button button-light" href={`https://wa.me/254113033475?text=${encodeURIComponent(`Hello UniPlug, I need help with my ${service?.name || "service"} subscription.`)}`}>Contact support</a>
+            <Link className="button button-light" href="/help">Create support ticket</Link>
           </section>
         </aside>
       </div>

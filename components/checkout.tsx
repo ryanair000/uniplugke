@@ -49,7 +49,7 @@ export function CheckoutClient({ email }: { email: string }) {
         </div>
         <label className="field">Phone / WhatsApp<input inputMode="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="07…" /></label>
       </section>
-      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatDualPrice(displayedTotal)}</strong></div><p>The final dollar amount and plan eligibility are recalculated securely before payment.</p>{error && <p className="form-error">{error}</p>}<button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
+      <aside className="summary-card"><p className="eyebrow">Order summary</p><div><span>{items.length} service{items.length === 1 ? "" : "s"}</span><strong>{formatDualPrice(displayedTotal)}</strong></div><p>The final KSh amount and plan eligibility are recalculated securely before payment.</p>{error && <p className="form-error">{error}</p>}<button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={pay}>{busy ? "Starting payment…" : "Pay securely"}</button></aside>
     </div>
   );
 }

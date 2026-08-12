@@ -10,6 +10,10 @@ const publicPaths = new Set([
   "/robots.txt"
 ]);
 
+function isPublicCatalogPath(pathname: string) {
+  return pathname === "/" || pathname === "/services" || pathname.startsWith("/services/");
+}
+
 function redirectWithCookies(response: NextResponse, destination: URL) {
   const redirect = NextResponse.redirect(destination);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
@@ -28,8 +32,10 @@ export async function updateSession(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const pathname = request.nextUrl.pathname;
   const isPublicPath = publicPaths.has(pathname);
+  const isCatalogPath = isPublicCatalogPath(pathname);
 
   if (!url || !key) {
+    if (isCatalogPath) return NextResponse.next({ request });
     if (isPublicPath) return securePrivateResponse(NextResponse.next({ request }));
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
@@ -55,6 +61,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getUser();
+  if (isCatalogPath) return response;
   if (isPublicPath) return securePrivateResponse(response);
 
   if (!data.user) {

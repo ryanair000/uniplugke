@@ -79,7 +79,7 @@ export default function TermsPage() {
 
         <section id="changes">
           <h2>10. Changes and contact</h2>
-          <p>We may update these terms to reflect platform, provider, or legal changes. The effective date identifies the current version. Questions about these terms can be sent to <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>.</p>
+          <p>We may update these terms to reflect platform, provider, or legal changes. The effective date identifies the current version. Members can submit questions through the support-ticket page in their account.</p>
         </section>
       </article>
     </div>

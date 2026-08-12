@@ -34,7 +34,7 @@ export async function SiteHeader() {
             <Link href="/dashboard/subscriptions">My subscriptions</Link>
             <Link href="/help">Support</Link>
           </nav>
-        ) : <span className="desktop-nav">Invitation-only storefront</span>}
+        ) : <nav className="desktop-nav" aria-label="Primary navigation"><Link href="/services">Catalog</Link></nav>}
         <div className="header-actions">
           {isMember ? (
             <>

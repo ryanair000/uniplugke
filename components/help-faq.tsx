@@ -51,7 +51,7 @@ export function HelpFaq({ items }: { items: HelpItem[] }) {
       ) : (
         <div className="catalog-empty">
           <h3>No matching answer</h3>
-          <p>Try a shorter search, or ask the support team directly.</p>
+          <p>Try a shorter search, or create a support ticket above.</p>
           <button className="button button-light" type="button" onClick={() => setQuery("")}>
             Clear search
           </button>

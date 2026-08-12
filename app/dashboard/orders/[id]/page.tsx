@@ -103,7 +103,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           </dl>
           {order.paystack_reference ? <div className="reference-box"><span>Payment reference</span><code>{order.paystack_reference}</code></div> : null}
           <p className="muted-copy">Need help with a payment? Share the order number with UniPlug support. Never share your password.</p>
-          <a className="button button-dark" href={`https://wa.me/254113033475?text=${encodeURIComponent(`Hello UniPlug, I need help with order ${order.order_number}.`)}`}>Contact support</a>
+          <Link className="button button-dark" href="/help">Create support ticket</Link>
         </aside>
       </div>
     </section>

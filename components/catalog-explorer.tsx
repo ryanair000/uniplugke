@@ -109,8 +109,8 @@ export function CatalogExplorer({
           <p>{services.length} services with local support and member-managed access.</p>
         </div>
         {variant === "homepage" ? (
-          <Link className="catalog-manage-link" href="/dashboard/subscriptions">
-            My subscriptions <span aria-hidden="true">→</span>
+          <Link className="catalog-manage-link" href={isMember ? "/dashboard/subscriptions" : "/login"}>
+            {isMember ? "My subscriptions" : "Member sign in"} <span aria-hidden="true">→</span>
           </Link>
         ) : null}
       </div>
@@ -184,7 +184,7 @@ export function CatalogExplorer({
 
       {variant === "homepage" ? (
         <div className="catalog-trust-strip" aria-label="UniPlug member benefits">
-          <span><strong>Local support</strong> on WhatsApp</span>
+          <span><strong>Ticket support</strong> in your account</span>
           <span><strong>Instant replacement</strong> when eligible</span>
           <span><strong>Renewal tracking</strong> in your dashboard</span>
         </div>

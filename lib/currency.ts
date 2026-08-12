@@ -20,6 +20,13 @@ export function formatUsd(value: number) {
   })}`;
 }
 
+export function formatKes(value: number) {
+  return `KSh ${value.toLocaleString("en-KE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  })}`;
+}
+
 export function formatDualPrice(valueKes: number) {
-  return formatUsd(kesToUsd(valueKes));
+  return formatKes(valueKes);
 }

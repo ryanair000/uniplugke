@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { CatalogExplorer } from "@/components/catalog-explorer";
-import { requireMember } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
 
@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default async function ServicesPage() {
-  const viewer = await requireMember();
-  const isMember = viewer.profile.status === "active";
+  const viewer = await getViewer();
+  const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();
   const plans = await getMemberPlans(services.map((service) => service.id));
-  const subscriptions = viewer.profile.clientId
+  const subscriptions = isMember && viewer.profile?.clientId
     ? await getTrackedSubscriptions(viewer.profile.clientId)
     : [];
   const managedServices = subscriptions

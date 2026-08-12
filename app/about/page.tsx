@@ -15,8 +15,8 @@ const principles = [
   },
   {
     marker: "02",
-    title: "Local member support",
-    copy: "Members can reach the Kenyan support team on WhatsApp and keep the relevant order or subscription connected to the conversation."
+    title: "Account-based ticket support",
+    copy: "Members create support tickets so each request stays connected to the relevant account, order, or subscription."
   },
   {
     marker: "03",
@@ -34,12 +34,6 @@ export default function AboutPage() {
         description="UniPlug is a Kenya-focused catalog and member portal for discovering services, understanding activation, and keeping orders, renewals, and support organised."
       >
         <Link className="button button-primary" href="/services">Explore services</Link>
-        <a
-          className="button button-light"
-          href="https://wa.me/254113033475?text=Hi%20UniPlug%2C%20I%27d%20like%20to%20request%20member%20access."
-        >
-          Request member access
-        </a>
       </PublicPageIntro>
 
       <div className="public-page-shell public-page-content">
@@ -50,7 +44,7 @@ export default function AboutPage() {
           </div>
           <div className="public-prose">
             <p>Digital services are useful, but keeping track of where to buy, how activation works, when a plan renews, and where to get help can become unnecessarily complicated.</p>
-            <p>The storefront is private. Invited clients can review current dollar prices, complete checkout, and follow the service lifecycle from My UniPlug.</p>
+            <p>Visitors can browse public dollar starting prices. Signed-in members can review exact KSh plan prices, complete checkout, and follow the service lifecycle from My UniPlug.</p>
           </div>
         </section>
 

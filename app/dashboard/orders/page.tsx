@@ -35,15 +35,15 @@ export default async function OrdersPage() {
   return (
     <section className="section shell page-top">
       <div className="dashboard-heading">
-        <div><p className="eyebrow">My UniPlug</p><h1>Order history</h1><p>Review payment status, activation progress, and individual order details.</p></div>
+        <div><p className="eyebrow">Payments & receipts</p><h1>Your orders</h1><p>Review payment status, activation progress, and receipts.</p></div>
         <Link className="button button-dark" href="/services">Add a service</Link>
       </div>
 
-      <div className="dashboard-stats compact-stats">
+      {orders.length ? <div className="dashboard-stats compact-stats">
         <article><span>Total orders</span><strong>{orders.length}</strong><small>All recorded purchases</small></article>
         <article><span>Paid</span><strong>{orders.filter((order) => order.payment_status === "paid").length}</strong><small>Payment confirmed</small></article>
         <article><span>Active</span><strong>{orders.filter((order) => order.fulfillment_status === "active" || order.fulfillment_status === "completed").length}</strong><small>Activated or completed</small></article>
-      </div>
+      </div> : null}
 
       <section className="panel order-history-panel">
         <div className="member-list order-history-list">

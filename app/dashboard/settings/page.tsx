@@ -34,7 +34,7 @@ export default async function SettingsPage({
             <label className="field">Username<input name="username" defaultValue={viewer.profile.username} minLength={3} maxLength={32} pattern="[a-z0-9._-]{3,32}" required /></label>
             <label className="field">Email<input value={viewer.profile.email} disabled aria-describedby="email-help" /></label>
             <small id="email-help" className="field-help">Contact support to change the email connected to an invitation.</small>
-            <label className="field">Phone / WhatsApp<input name="phone" inputMode="tel" autoComplete="tel" defaultValue={viewer.profile.phone || ""} placeholder="+254…" /></label>
+            <label className="field">Phone number<input name="phone" inputMode="tel" autoComplete="tel" defaultValue={viewer.profile.phone || ""} placeholder="+254…" /></label>
             <div className="preference-list">
               <label><input name="renewalRemindersEnabled" type="checkbox" defaultChecked={viewer.profile.renewalRemindersEnabled} /><span><strong>Renewal reminders</strong><small>Receive reminders before a service period ends.</small></span></label>
               <label><input name="marketingOptIn" type="checkbox" defaultChecked={viewer.profile.marketingOptIn} /><span><strong>Member offers</strong><small>Allow occasional UniPlug service and plan updates.</small></span></label>

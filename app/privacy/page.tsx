@@ -68,13 +68,13 @@ export default function PrivacyPage() {
 
         <section id="rights">
           <h2>7. Your privacy rights</h2>
-          <p>Subject to applicable law, you may ask to be informed about how your data is used, request access or correction, object to certain processing, or request deletion of false or misleading information. You can start a request by emailing <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>.</p>
+          <p>Subject to applicable law, you may ask to be informed about how your data is used, request access or correction, object to certain processing, or request deletion of false or misleading information. Members can start a request by creating a support ticket.</p>
           <p>Kenya’s Office of the Data Protection Commissioner provides more information about <a href="https://www.odpc.go.ke/rights-of-a-data-subject/" target="_blank" rel="noreferrer">data-subject rights</a> and complaints.</p>
         </section>
 
         <section id="updates">
           <h2>8. Updates and contact</h2>
-          <p>We may update this notice when the platform, providers, or legal requirements change. The effective date above identifies the current version. Questions can be sent to <a href="mailto:support@uniplug.co.ke">support@uniplug.co.ke</a>.</p>
+          <p>We may update this notice when the platform, providers, or legal requirements change. The effective date above identifies the current version. Members can submit questions through the support-ticket page in their account.</p>
         </section>
       </article>
     </div>

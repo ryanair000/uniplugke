@@ -152,7 +152,8 @@ function normalizeService(row: Record<string, unknown>): CatalogService {
         }))
       : [],
     availabilityStatus: String(row.availability_status ?? "available") as CatalogService["availabilityStatus"],
-    featured: Boolean(row.is_featured)
+    featured: Boolean(row.is_featured),
+    startingPriceUsd: row.starting_price_usd == null ? null : Number(row.starting_price_usd)
   };
 }
 
@@ -162,7 +163,7 @@ export async function getPublicCatalog() {
 
   const { data, error } = await supabase
     .from("uniplug_catalog_services")
-    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured")
+    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured,starting_price_usd")
     .eq("is_active", true)
     .order("sort_order");
 

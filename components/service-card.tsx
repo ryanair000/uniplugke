@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { formatDualPrice } from "@/lib/currency";
+import { formatDualPrice, formatUsd } from "@/lib/currency";
 import type { CatalogService, MemberPlan } from "@/lib/types";
 
 export const categoryLabels: Record<string, string> = {
@@ -70,10 +70,15 @@ export function CatalogServiceCard({
                 <strong>{formatDualPrice(plan.priceKes)}</strong>
                 <small>per month</small>
               </>
+            ) : !isMember && service.startingPriceUsd ? (
+              <>
+                <strong>{formatUsd(service.startingPriceUsd)}</strong>
+                <small>starting price</small>
+              </>
             ) : (
               <>
-                <strong>{isMember ? "Contact for price" : "Invitation required"}</strong>
-                <small>{isMember ? "Ask UniPlug support" : "Private client pricing"}</small>
+                <strong>Contact for price</strong>
+                <small>Create a support ticket</small>
               </>
             )}
           </div>

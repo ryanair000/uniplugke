@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type TrackedSubscription = {
   id: string;
@@ -48,46 +48,22 @@ export async function getTrackedSubscription(clientId: string, subscriptionId: s
 }
 
 export async function getAuthorizedAccessDetails(userId: string, subscriptionId: string) {
-  const admin = createAdminSupabaseClient();
-  if (!admin) return { error: "Account access is not configured." } as const;
-  const { data: portal } = await admin.from("client_portal_accounts")
-    .select("client_id,must_change_password")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!portal || portal.must_change_password) return { error: "Complete password setup first." } as const;
-
-  const { data: subscription } = await admin.from("client_subscriptions")
-    .select("id,status,account_reference,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
-    .eq("id", subscriptionId)
-    .eq("client_id", portal.client_id)
-    .maybeSingle();
-  if (!subscription || !["active", "due_soon", "trial"].includes(subscription.status)) {
-    return { error: "An active tracked service was not found." } as const;
-  }
-
-  const metadata = (subscription.metadata || {}) as Record<string, unknown>;
-  let accountId = typeof metadata.assigned_account_id === "string" ? metadata.assigned_account_id : null;
-  const legacyId = typeof metadata.legacy_id === "string" && /^[0-9a-f-]{36}$/i.test(metadata.legacy_id)
-    ? metadata.legacy_id
-    : null;
-  if (!accountId && legacyId) {
-    const { data: legacy } = await admin.from("subscriptions").select("account_id").eq("id", legacyId).maybeSingle();
-    accountId = legacy?.account_id || null;
-  }
-
-  let accountQuery = admin.from("accounts").select("account_mail,account_password,verification_code");
-  accountQuery = accountId
-    ? accountQuery.eq("id", accountId)
-    : accountQuery.eq("account_mail", subscription.account_reference || "");
-  const { data: account } = await accountQuery.maybeSingle();
-  if (!account) return { error: "Access details are not assigned yet. Contact support." } as const;
-  const service = subscription.service as unknown as { name?: string } | null;
+  void userId;
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { error: "Account access is not configured." } as const;
+  const { data, error } = await supabase.rpc("uniplug_get_client_account_access", {
+    p_client_subscription_id: subscriptionId
+  });
+  if (error) return { error: error.message } as const;
+  const account = Array.isArray(data) ? data[0] : null;
+  if (!account) return { error: "Access details are not assigned yet. Create a support ticket." } as const;
   return {
     details: {
-      serviceName: service?.name || "Tracked service",
-      accountEmail: account.account_mail,
+      serviceName: account.service_name || "Tracked service",
+      accountEmail: account.account_email,
       accountPassword: account.account_password,
-      verificationCode: account.verification_code
+      verificationCode: account.verification_code,
+      profileName: account.profile_name
     }
   } as const;
 }

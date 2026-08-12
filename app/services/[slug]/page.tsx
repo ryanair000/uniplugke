@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { PlanOptions } from "@/components/catalog";
 import { categoryLabels } from "@/components/service-card";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { requireMember } from "@/lib/auth";
+import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog, getPublicService } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
-import { formatDualPrice } from "@/lib/currency";
+import { formatDualPrice, formatUsd } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -34,14 +34,14 @@ export default async function ServiceDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const viewer = await requireMember();
-  const isMember = viewer.profile.status === "active";
+  const viewer = await getViewer();
+  const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();
   const service = services.find((item) => item.slug === slug);
   if (!service) notFound();
 
   const plans = await getMemberPlans([service.id]);
-  const subscriptions = viewer.profile.clientId
+  const subscriptions = isMember && viewer.profile?.clientId
     ? await getTrackedSubscriptions(viewer.profile.clientId)
     : [];
   const catalogName = comparableName(service.name);
@@ -90,10 +90,15 @@ export default async function ServiceDetailPage({
             <span>{service.fulfillmentLabel}</span>
           </div>
 
-          {primaryPlan ? (
+          {isMember && primaryPlan ? (
             <div className="product-starting-price">
               <span>From</span>
               <strong>{formatDualPrice(primaryPlan.priceKes)} <small>/ month</small></strong>
+            </div>
+          ) : !isMember && service.startingPriceUsd ? (
+            <div className="product-starting-price">
+              <span>From</span>
+              <strong>{formatUsd(service.startingPriceUsd)} <small>/ month</small></strong>
             </div>
           ) : null}
 
@@ -110,13 +115,20 @@ export default async function ServiceDetailPage({
               </Link>
               <Link className="text-link" href="/services">Continue browsing</Link>
             </div>
-          ) : (
+          ) : isMember ? (
             <>
               <p className="upgrade-eyebrow">Member plan</p>
               <h2>Choose your duration</h2>
               <p className="purchase-card-intro">Select a prepaid term. Your total updates below.</p>
               <PlanOptions plans={plans} service={service} />
             </>
+          ) : (
+            <div className="product-managed-state">
+              <span className="managed-kicker">Member purchase</span>
+              <h2>Sign in to choose a plan</h2>
+              <p>Member prices and checkout are available after you sign in.</p>
+              <Link className="button button-dark" href={`/login?next=${encodeURIComponent(`/services/${service.slug}`)}`}>Member sign in</Link>
+            </div>
           )}
         </aside>
 
@@ -126,7 +138,7 @@ export default async function ServiceDetailPage({
           </ul>
           <div className="product-quick-facts">
             <span><small>Activation</small><strong>{service.activationWindow}</strong></span>
-            <span><small>Help</small><strong>Dashboard and WhatsApp</strong></span>
+            <span><small>Help</small><strong>Support tickets</strong></span>
           </div>
         </section>
 

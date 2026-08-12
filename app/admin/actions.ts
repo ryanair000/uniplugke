@@ -129,6 +129,54 @@ export async function resolveSubscriptionRequest(formData: FormData) {
   redirect("/admin/requests?success=resolved");
 }
 
+export async function resolveReplacementApproval(formData: FormData) {
+  const viewer = await requireAdmin();
+  const requestId = String(formData.get("requestId") || "");
+  const resolution = String(formData.get("resolution") || "");
+  const adminNote = String(formData.get("adminNote") || "").trim().slice(0, 1000);
+  if (!uuidPattern.test(requestId) || !["approved", "declined"].includes(resolution)) {
+    throw new Error("A valid replacement request and decision are required");
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { error } = await supabase.from("uniplug_replacement_approvals").update({
+    status: resolution,
+    admin_note: adminNote || null,
+    reviewed_by: viewer.user.id,
+    reviewed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }).eq("id", requestId).eq("status", "pending");
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin");
+  revalidatePath("/admin/requests");
+  revalidatePath("/dashboard/activity");
+  redirect("/admin/requests?success=replacement_reviewed");
+}
+
+export async function updateSupportTicket(formData: FormData) {
+  const viewer = await requireAdmin();
+  const ticketId = String(formData.get("ticketId") || "");
+  const status = String(formData.get("status") || "");
+  const adminNote = String(formData.get("adminNote") || "").trim().slice(0, 2000);
+  if (!uuidPattern.test(ticketId) || !["in_progress", "resolved", "closed"].includes(status)) {
+    throw new Error("A valid ticket and status are required");
+  }
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const resolved = ["resolved", "closed"].includes(status);
+  const { error } = await supabase.from("uniplug_support_tickets").update({
+    status,
+    admin_note: adminNote || null,
+    resolved_by: resolved ? viewer.user.id : null,
+    resolved_at: resolved ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString()
+  }).eq("id", ticketId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/requests");
+  revalidatePath("/help");
+  redirect("/admin/requests?success=ticket_updated");
+}
+
 export async function updateMemberStatus(formData: FormData) {
   await requireAdmin();
   const userId = String(formData.get("userId") || "");

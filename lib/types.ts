@@ -31,6 +31,7 @@ export type CatalogService = {
   faqs: CatalogFaq[];
   availabilityStatus: "available" | "limited" | "coming_soon";
   featured: boolean;
+  startingPriceUsd?: number | null;
 };
 
 export type MemberPlan = {

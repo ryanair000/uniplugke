@@ -26,34 +26,40 @@ export async function POST(request: Request) {
   if (!identifier || password.length < 8 || password.length > 256) return genericFailure();
 
   const admin = createAdminSupabaseClient();
-  if (!admin) return NextResponse.json({ error: "Member login is not configured." }, { status: 503 });
 
   let email = identifier;
   let resolvedUserId: string | null = null;
-  const phone = normalizeKenyanPhone(identifier);
-  if (phone) {
-    const { data: portal } = await admin
-      .from("client_portal_accounts")
-      .select("user_id")
-      .eq("phone_e164", phone)
-      .maybeSingle();
-    resolvedUserId = portal?.user_id || null;
-  } else {
-    const profileQuery = identifier.includes("@")
-      ? admin.from("uniplug_profiles").select("user_id").eq("email", identifier).maybeSingle()
-      : admin.from("uniplug_profiles").select("user_id").eq("username", identifier).maybeSingle();
-    const { data: profile } = await profileQuery;
-    resolvedUserId = profile?.user_id || null;
-    if (!resolvedUserId && identifier.includes("@")) {
-      const { data: client } = await admin.from("clients").select("id").eq("email", identifier).is("deleted_at", null).maybeSingle();
-      if (client) {
-        const { data: portal } = await admin.from("client_portal_accounts").select("user_id").eq("client_id", client.id).maybeSingle();
-        resolvedUserId = portal?.user_id || null;
+  if (admin) {
+    const phone = normalizeKenyanPhone(identifier);
+    if (phone) {
+      const { data: portal } = await admin
+        .from("client_portal_accounts")
+        .select("user_id")
+        .eq("phone_e164", phone)
+        .maybeSingle();
+      resolvedUserId = portal?.user_id || null;
+    } else {
+      const profileQuery = identifier.includes("@")
+        ? admin.from("uniplug_profiles").select("user_id").eq("email", identifier).maybeSingle()
+        : admin.from("uniplug_profiles").select("user_id").eq("username", identifier).maybeSingle();
+      const { data: profile } = await profileQuery;
+      resolvedUserId = profile?.user_id || null;
+      if (!resolvedUserId && identifier.includes("@")) {
+        const { data: client } = await admin.from("clients").select("id").eq("email", identifier).is("deleted_at", null).maybeSingle();
+        if (client) {
+          const { data: portal } = await admin.from("client_portal_accounts").select("user_id").eq("client_id", client.id).maybeSingle();
+          resolvedUserId = portal?.user_id || null;
+        }
       }
     }
+  } else if (!identifier.includes("@")) {
+    const phone = normalizeKenyanPhone(identifier);
+    email = phone
+      ? `${phone.replace(/^\+254/, "0")}@members.uniplug.shop`
+      : `${identifier}@members.uniplug.shop`;
   }
 
-  if (resolvedUserId) {
+  if (resolvedUserId && admin) {
     const { data: authUser } = await admin.auth.admin.getUserById(resolvedUserId);
     if (!authUser.user?.email) return genericFailure();
     email = authUser.user.email;
@@ -75,16 +81,20 @@ export async function POST(request: Request) {
     return genericFailure();
   }
 
-  const { data: portal } = await admin
-    .from("client_portal_accounts")
-    .select("must_change_password")
-    .eq("user_id", data.user.id)
-    .maybeSingle();
-  await admin.from("client_portal_accounts")
-    .update({ last_login_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("user_id", data.user.id);
+  let mustChangePassword = false;
+  if (admin) {
+    const { data: portal } = await admin
+      .from("client_portal_accounts")
+      .select("must_change_password")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+    mustChangePassword = Boolean(portal?.must_change_password);
+    await admin.from("client_portal_accounts")
+      .update({ last_login_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("user_id", data.user.id);
+  }
 
-  const destination = profile?.status === "pending" || portal?.must_change_password
+  const destination = profile?.status === "pending" || mustChangePassword
     ? "/set-password"
     : safeNext(body.next);
   return NextResponse.json(

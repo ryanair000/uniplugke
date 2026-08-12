@@ -1,83 +1,63 @@
 import type { Metadata } from "next";
+import { createSupportTicket } from "@/app/help/actions";
 import { HelpFaq } from "@/components/help-faq";
-import { PublicCard, PublicCta, PublicPageIntro } from "@/components/public-page";
+import { PublicPageIntro } from "@/components/public-page";
+import { requireMember } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Help Centre",
-  description: "Answers and support for UniPlug accounts, plans, payments, activations, renewals, and service issues."
+  title: "Support Tickets",
+  description: "Create and track support tickets for your UniPlug account."
 };
 
 const faqs = [
-  {
-    question: "Which currency does UniPlug show?",
-    answer: "UniPlug shows one clear US-dollar price throughout the catalog, cart, and member portal."
-  },
-  {
-    question: "How do I become a member?",
-    answer: "Membership access is invitation-based. If you have received an invitation, use the secure link to create your password and activate your account."
-  },
-  {
-    question: "Where can I follow an order?",
-    answer: "Open My UniPlug and choose Orders. Each order shows its payment state, fulfillment progress, included services, and reference number."
-  },
-  {
-    question: "How will I know when a service is active?",
-    answer: "Activation progress appears in your dashboard. Timing depends on the service, account checks, and the setup requirements shown before purchase."
-  },
-  {
-    question: "Can I request a pause or cancellation?",
-    answer: "Eligible active subscriptions include request options in the subscription detail page. The support team reviews each request against the current plan conditions."
-  },
-  {
-    question: "What happens before renewal?",
-    answer: "Your dashboard displays the renewal date. Members can also enable renewal reminders in Profile & security."
-  },
-  {
-    question: "What should I include in a support message?",
-    answer: "Share your order number or the service name and describe what you expected to happen. Never send a password, one-time code, or full payment credentials."
-  },
-  {
-    question: "Can UniPlug help with a service access problem?",
-    answer: "Yes. Use the support option on the relevant subscription or contact the team on WhatsApp. Eligibility for a correction or replacement depends on the service and issue."
-  }
+  { question: "Which currency does UniPlug show?", answer: "Visitors see public starting prices in US dollars. Signed-in members see authoritative plan prices in Kenyan shillings." },
+  { question: "Where can I follow an order?", answer: "Open My UniPlug and choose Orders to see payment, fulfillment, and reference details." },
+  { question: "How do I request support?", answer: "Create a ticket below. Include the service or order reference and describe the issue. Support is handled only through tickets." },
+  { question: "What should I never include?", answer: "Never submit passwords, one-time codes, or complete card or mobile-money credentials in a ticket." }
 ];
 
-export default function HelpPage() {
+export default async function HelpPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const viewer = await requireMember();
+  const query = await searchParams;
+  const supabase = await createServerSupabaseClient();
+  const { data } = supabase
+    ? await supabase.from("uniplug_support_tickets").select("id,subject,message,status,admin_note,created_at,updated_at").eq("user_id", viewer.user.id).order("created_at", { ascending: false }).limit(50)
+    : { data: [] };
+  const tickets = data || [];
+
   return (
     <div className="public-page">
-      <PublicPageIntro
-        eyebrow="Help Centre"
-        title="Answers when you need them."
-        description="Find quick guidance for accounts, orders, activations, renewals, and support—without sharing sensitive account information."
-      />
-
+      <PublicPageIntro eyebrow="Support tickets" title="Create and track a ticket." description="Ticketing is the only UniPlug support channel. Your requests and replies stay attached to your member account." />
       <div className="public-page-shell public-page-content">
-        <section className="public-card-grid three" aria-label="Support channels">
-          <PublicCard marker="Chat" title="WhatsApp support">
-            <p>Talk to a real person for order, activation, or service help.</p>
-            <a className="public-text-link" href="https://wa.me/254113033475">Open WhatsApp →</a>
-          </PublicCard>
-          <PublicCard marker="Email" title="Email support">
-            <p>Send a detailed, non-urgent request and include the relevant order reference.</p>
-            <a className="public-text-link" href="mailto:support@uniplug.co.ke">support@uniplug.co.ke →</a>
-          </PublicCard>
-          <PublicCard marker="Account" title="Member dashboard">
-            <p>Check current orders, subscriptions, renewal dates, and support activity.</p>
-            <a className="public-text-link" href="/dashboard">Open My UniPlug →</a>
-          </PublicCard>
+        {query.success === "ticket_created" ? <p className="form-success">Your support ticket was created.</p> : null}
+        {query.error ? <p className="form-error">The ticket could not be created. Check the subject and message, then try again.</p> : null}
+
+        <section className="panel" aria-labelledby="new-ticket-title">
+          <div className="section-heading compact"><div><p className="eyebrow">New request</p><h2 id="new-ticket-title">Create support ticket</h2></div></div>
+          <form action={createSupportTicket} className="stack-form">
+            <label className="field">Subject<input name="subject" minLength={3} maxLength={120} required placeholder="Briefly describe the issue" /></label>
+            <label className="field">Message<textarea name="message" minLength={10} maxLength={2000} required rows={7} placeholder="Include the service or order reference and what happened. Never include passwords or one-time codes." /></label>
+            <button className="button button-dark" type="submit">Create ticket</button>
+          </form>
+        </section>
+
+        <section className="panel" aria-labelledby="ticket-history-title">
+          <div className="section-heading compact"><div><p className="eyebrow">Your requests</p><h2 id="ticket-history-title">Ticket history</h2></div><span className="status-pill subtle">{tickets.length}</span></div>
+          <div className="request-history">
+            {tickets.map((ticket) => (
+              <article key={ticket.id}>
+                <div><strong>{ticket.subject}</strong><span>{new Date(ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
+                <span className="status-pill">{ticket.status.replace("_", " ")}</span>
+                <p>{ticket.message}</p>
+                {ticket.admin_note ? <p><b>UniPlug:</b> {ticket.admin_note}</p> : null}
+              </article>
+            ))}
+            {!tickets.length ? <div className="empty-state"><h3>No tickets yet</h3><p>Your support tickets will appear here after you create one.</p></div> : null}
+          </div>
         </section>
 
         <HelpFaq items={faqs} />
-
-        <PublicCta
-          eyebrow="Still need help?"
-          title="Send the support team a message."
-          description="For the fastest help, include the service name and your order reference. Never include passwords or one-time codes."
-          primaryHref="https://wa.me/254113033475"
-          primaryLabel="Chat on WhatsApp"
-          secondaryHref="/contact"
-          secondaryLabel="Contact options"
-        />
       </div>
     </div>
   );

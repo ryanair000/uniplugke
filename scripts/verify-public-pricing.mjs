@@ -6,10 +6,11 @@ function read(path) {
 
 const checks = [
   {
-    name: "the request proxy gates the whole storefront by active membership",
+    name: "the request proxy leaves catalog routes public and gates member routes",
     source: read("lib/supabase/proxy.ts"),
     tokens: [
       'const publicPaths = new Set([',
+      'function isPublicCatalogPath(',
       '.from("uniplug_profiles")',
       'profile?.status !== "active"',
       'loginUrl.pathname = "/login"',
@@ -17,23 +18,23 @@ const checks = [
     ]
   },
   {
-    name: "the database catalog is unavailable to anonymous clients",
-    source: read("supabase/migrations/20260730163130_invite_only_storefront.sql"),
+    name: "the database exposes active catalog rows but keeps plans private",
+    source: read("supabase/migrations/20260812160556_public_usd_catalog_access.sql") + read("supabase/migrations/20260730163130_invite_only_storefront.sql"),
     tokens: [
-      'drop policy if exists "guest reads active uniplug catalog"',
+      'create policy "guest reads active uniplug catalog"',
       'create policy "active members read uniplug catalog"',
-      "revoke all on public.uniplug_catalog_services from anon"
+      "grant select on public.uniplug_catalog_services to anon"
     ]
   },
   {
-    name: "member prices display one dollar amount",
+    name: "member prices display in Kenyan shillings",
     source: read("lib/currency.ts"),
-    tokens: ["NEXT_PUBLIC_KES_PER_USD", "kesToUsd", "formatUsd", "return formatUsd(kesToUsd(valueKes))"]
+    tokens: ["formatUsd", "formatKes", "return formatKes(valueKes)"]
   },
   {
-    name: "catalog and checkout use the shared dollar formatter",
+    name: "member catalog and checkout use the shared KSh formatter",
     source: read("components/catalog.tsx") + read("components/checkout.tsx"),
-    tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "final dollar amount"]
+    tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "final KSh amount"]
   },
   {
     name: "Lokimax active services drive the UniPlug catalog",
@@ -41,9 +42,9 @@ const checks = [
     tokens: ['.from("services")', '.eq("status", "active")', "buildLokimaxCatalog", "primevideo", "office365"]
   },
   {
-    name: "private pages enforce membership independently of navigation",
+    name: "catalog pages support both visitors and members",
     source: read("app/page.tsx") + read("app/services/page.tsx") + read("app/services/[slug]/page.tsx"),
-    tokens: ["await requireMember()", "isMember"]
+    tokens: ["await getViewer()", "isMember"]
   }
 ];
 
@@ -71,9 +72,9 @@ const customerFacingSource = [
   "components/service-card.tsx"
 ].map(read).join("\n");
 
-if (/\bKSh\b|approximate USD equivalent/i.test(customerFacingSource)) {
-  console.error("Dollar-only pricing check failed: legacy currency copy remains customer-facing");
+if (/approximate USD equivalent/i.test(customerFacingSource)) {
+  console.error("Split-currency pricing check failed: legacy dual-price copy remains customer-facing");
   process.exit(1);
 }
 
-console.log(`Verified ${checks.length} invite-only, dollar-pricing, and Lokimax catalog source invariants.`);
+console.log(`Verified ${checks.length} public-USD, member-KSh, and Lokimax catalog source invariants.`);

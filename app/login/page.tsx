@@ -50,11 +50,6 @@ export default async function LoginPage({
         )}
         {query.error === "membership_required" && <p className="form-error">This storefront is available only to invited clients with an active UniPlug membership.</p>}
         {query.error === "not_configured" && <p className="form-error">Member access is temporarily unavailable. Please contact UniPlug support.</p>}
-        <div className="auth-support-actions">
-          <a href="https://wa.me/254113033475?text=Hi%20UniPlug%2C%20I%20need%20help%20with%20member%20access%20or%20my%20invitation.">
-            Get help with your invitation
-          </a>
-        </div>
         <small>There is no public registration. Only clients invited by UniPlug can sign in.</small>
       </div>
     </section>
