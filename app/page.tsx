@@ -3,10 +3,13 @@ import { ProcessStrip } from "@/components/home-sections";
 import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
+import { KeyStoreHome } from "@/components/key-store";
+import { isKeysStoreRequest } from "@/lib/site-mode";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  if (await isKeysStoreRequest()) return <KeyStoreHome />;
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();

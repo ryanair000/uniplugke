@@ -1,6 +1,9 @@
 # UniPlug Kenya
 
-Standalone, invite-only digital services catalog and member portal for `uniplug.shop`.
+One deployment serving two deliberately separated UniPlug experiences:
+
+- `uniplug.shop`: public software-key store for Adobe Acrobat and Windows 11 Pro.
+- `vip.uniplug.shop`: the existing invite-only digital services catalog and member portal.
 
 ## Storefront
 
@@ -40,6 +43,7 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PAYSTACK_SECRET_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_VIP_SITE_URL` (use `https://vip.uniplug.shop`)
 - `NEXT_PUBLIC_KES_PER_USD` (display conversion rate; defaults to `130`)
 
 ## Security boundary
