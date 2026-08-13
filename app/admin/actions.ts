@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { usdToKes } from "@/lib/currency";
 
 const categories = new Set(["streaming", "music", "creative", "ai", "productivity", "cloud", "security", "gaming", "learning"]);
@@ -192,4 +192,16 @@ export async function updateMemberStatus(formData: FormData) {
   revalidatePath("/admin/members");
   revalidatePath("/dashboard");
   redirect("/admin/members?success=status");
+}
+
+export async function markKeyOrderDelivered(formData: FormData) {
+  await requireAdmin();
+  const orderId = String(formData.get("orderId") || "");
+  if (!uuidPattern.test(orderId)) throw new Error("A valid key order is required");
+  const admin = createAdminSupabaseClient();
+  if (!admin) throw new Error("Supabase is not configured");
+  const { error } = await admin.from("uniplug_key_orders").update({ fulfillment_status: "delivered", fulfilled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", orderId).eq("payment_status", "paid");
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/orders");
+  redirect("/admin/orders?success=key_delivered");
 }

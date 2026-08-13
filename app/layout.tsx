@@ -4,17 +4,29 @@ import "@/app/globals.css";
 import "@/app/phase2.css";
 import "@/app/upgrade.css";
 import "@/app/member-wallet.css";
+import "@/app/key-store.css";
 import { CartProvider } from "@/components/catalog";
 import { SiteFooter, SiteHeader } from "@/components/site";
 import { getViewer } from "@/lib/auth";
+import { KeyStoreFooter, KeyStoreHeader } from "@/components/key-store";
+import { isKeysStoreRequest } from "@/lib/site-mode";
 
 const geist = Geist({
   subsets: ["latin"],
   variable: "--font-geist"
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop"),
+export async function generateMetadata(): Promise<Metadata> {
+  const isKeysStore = await isKeysStoreRequest();
+  if (isKeysStore) return {
+    metadataBase: new URL("https://uniplug.shop"),
+    title: { default: "UniPlug | Software keys, simply delivered", template: "%s | UniPlug" },
+    description: "Buy Adobe Acrobat and Windows 11 Pro software keys in Kenya with secure local payment and activation support.",
+    robots: { index: true, follow: true },
+    openGraph: { type: "website", siteName: "UniPlug", title: "Software keys, simply delivered", description: "Essential software keys with secure payment and activation support.", images: ["/og-uniplug.png"] }
+  };
+  return {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"),
   title: { default: "UniPlug | Digital services, simply managed", template: "%s | UniPlug" },
   description: "Discover and manage streaming, creative, productivity, cloud, security, and gaming services through one clean member portal.",
   robots: { index: false, follow: false, noarchive: true, nocache: true },
@@ -38,9 +50,12 @@ export const metadata: Metadata = {
     description: "Discover digital services and manage orders, renewals, and support in one place.",
     images: ["/og-uniplug.png"]
   }
-};
+  };
+}
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const isKeysStore = await isKeysStoreRequest();
+  if (isKeysStore) return <html className={geist.variable} lang="en"><body><KeyStoreHeader /><main>{children}</main><KeyStoreFooter /></body></html>;
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   return (

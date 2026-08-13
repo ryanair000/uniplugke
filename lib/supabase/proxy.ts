@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isKeysHostname } from "@/lib/site-mode";
 
 const publicPaths = new Set([
   "/login",
@@ -31,6 +32,15 @@ export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const pathname = request.nextUrl.pathname;
+  const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+  if (isKeysHostname(host)) {
+    const allowed = pathname === "/" || pathname === "/checkout" || pathname === "/payment-return" || pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/api/keys/checkout" || pathname === "/api/payments/verify" || pathname === "/api/payments/webhook";
+    if (!allowed) {
+      const storeUrl = request.nextUrl.clone(); storeUrl.pathname = "/"; storeUrl.search = "";
+      return NextResponse.redirect(storeUrl);
+    }
+    return NextResponse.next({ request });
+  }
   const isPublicPath = publicPaths.has(pathname);
   const isCatalogPath = isPublicCatalogPath(pathname);
 

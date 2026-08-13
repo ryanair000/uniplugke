@@ -54,7 +54,7 @@ export function CheckoutClient({ email }: { email: string }) {
   );
 }
 
-export function PaymentStatus({ reference }: { reference: string | null }) {
+export function PaymentStatus({ reference, keyOrder = false }: { reference: string | null; keyOrder?: boolean }) {
   const { clear } = useCart();
   const [state, setState] = useState<"checking" | "paid" | "failed">(reference ? "checking" : "failed");
   const [message, setMessage] = useState(reference ? "Confirming your payment…" : "The payment reference is missing.");
@@ -65,12 +65,14 @@ export function PaymentStatus({ reference }: { reference: string | null }) {
     fetch(`/api/payments/verify?reference=${encodeURIComponent(reference)}`, { signal: controller.signal, cache: "no-store" })
       .then(async (response) => ({ ok: response.ok, body: await response.json() }))
       .then(({ ok, body }) => {
-        if (ok && body.paid) { clear(); setState("paid"); setMessage("Payment confirmed. Your order is now waiting for service activation or renewal processing."); }
+        if (ok && body.paid) { clear(); setState("paid"); setMessage(keyOrder ? "Payment confirmed. We are preparing your software key and activation instructions." : "Payment confirmed. Your order is now waiting for service activation or renewal processing."); }
         else { setState("failed"); setMessage(body.error || "Payment could not be confirmed."); }
       })
       .catch((error) => { if (error.name !== "AbortError") { setState("failed"); setMessage("Payment verification failed. Please contact support if you were charged."); } });
     return () => controller.abort();
-  }, [reference, clear]);
+  }, [reference, clear, keyOrder]);
 
-  return <div className={`payment-status ${state}`}><div className="status-icon">{state === "checking" ? "…" : state === "paid" ? "✓" : "!"}</div><h1>{state === "checking" ? "Confirming payment" : state === "paid" ? "You’re plugged in" : "Payment not confirmed"}</h1><p>{message}</p><Link className="button button-dark" href={state === "paid" ? "/dashboard" : "/services"}>{state === "paid" ? "Open dashboard" : "Back to services"}</Link></div>;
+  const destination = keyOrder ? "/" : state === "paid" ? "/dashboard" : "/services";
+  const label = keyOrder ? "Back to key store" : state === "paid" ? "Open dashboard" : "Back to services";
+  return <div className={`payment-status ${state} ${keyOrder ? "key-payment-status" : ""}`}><div className="status-icon">{state === "checking" ? "…" : state === "paid" ? "✓" : "!"}</div><h1>{state === "checking" ? "Confirming payment" : state === "paid" ? "You’re plugged in" : "Payment not confirmed"}</h1><p>{message}</p><Link className="button button-dark" href={destination}>{label}</Link></div>;
 }
