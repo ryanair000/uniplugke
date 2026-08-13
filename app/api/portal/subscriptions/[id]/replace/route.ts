@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({
       status: "approval_required",
       requestId: data.requestId,
-      message: "Your first replacement has already been used. An admin approval request is now pending."
+      message: "An administrator approval request is now pending."
     }, { status: 202, headers: { "Cache-Control": "no-store" } });
   }
   if (data?.status !== "completed") {
@@ -45,3 +45,4 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if ("error" in access) return NextResponse.json({ status: "completed", message: access.error }, { headers: { "Cache-Control": "no-store" } });
   return NextResponse.json({ status: "completed", details: access.details }, { headers: { "Cache-Control": "no-store" } });
 }
+

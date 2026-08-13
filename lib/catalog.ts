@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
 import { buildLokimaxCatalog } from "@/lib/lokimax-services";
@@ -26,7 +27,8 @@ export const publicCatalogFallback: CatalogService[] = [
       { question: "Can I report an issue?", answer: "Yes. Active members can report service issues from their dashboard." }
     ],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 5
   },
   {
     id: "10000000-0000-0000-0000-000000000002",
@@ -45,7 +47,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Eligible account faults can be reported and tracked online.",
     faqs: [{ question: "Where do I manage the service?", answer: "Your plan, access state, and support history appear in My UniPlug." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 2.69
   },
   {
     id: "10000000-0000-0000-0000-000000000003",
@@ -64,7 +67,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Invitation and access issues can be reported from the dashboard.",
     faqs: [{ question: "Do I use my own email?", answer: "The service detail shown after sign-in explains the current activation method." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 3.85
   },
   {
     id: "10000000-0000-0000-0000-000000000004",
@@ -83,7 +87,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Support reviews account-specific problems before replacement.",
     faqs: [{ question: "Is every device supported?", answer: "Compatibility requirements are checked before activation." }],
     availabilityStatus: "limited",
-    featured: false
+    featured: false,
+    startingPriceUsd: 3.46
   },
   {
     id: "10000000-0000-0000-0000-000000000005",
@@ -102,7 +107,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Account faults are checked for eligibility before replacement.",
     faqs: [{ question: "Are region requirements checked?", answer: "Yes. The member plan page shows the applicable requirements before checkout." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 11.15
   },
   {
     id: "10000000-0000-0000-0000-000000000006",
@@ -121,7 +127,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Access problems can be reported and followed from the dashboard.",
     faqs: [{ question: "Can I track activation?", answer: "Yes. Activation and renewal information appears in My UniPlug." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 6.92
   }
 ];
 
@@ -157,7 +164,7 @@ function normalizeService(row: Record<string, unknown>): CatalogService {
   };
 }
 
-export async function getPublicCatalog() {
+export const getPublicCatalog = cache(async function getPublicCatalog() {
   const supabase = await createServerSupabaseClient();
   if (!supabase) return publicCatalogFallback;
 
@@ -182,7 +189,7 @@ export async function getPublicCatalog() {
 
   if (lokimaxError || !lokimaxServices?.length) return curatedServices;
   return buildLokimaxCatalog(lokimaxServices, curatedServices);
-}
+});
 
 export async function getPublicService(slug: string) {
   const services = await getPublicCatalog();
@@ -223,3 +230,4 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
     };
   });
 }
+

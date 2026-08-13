@@ -76,17 +76,15 @@ export function CatalogServiceCard({
                 <small>starting price</small>
               </>
             ) : (
-              <>
-                <strong>Contact for price</strong>
-                <small>Create a support ticket</small>
-              </>
+              <strong>Price unavailable</strong>
             )}
           </div>
           <span className="catalog-card-action">
-            {action} <span aria-hidden="true">→</span>
+            {action} <span aria-hidden="true">â†’</span>
           </span>
         </div>
       </Link>
     </article>
   );
 }
+

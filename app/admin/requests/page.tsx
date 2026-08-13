@@ -74,7 +74,7 @@ export default async function AdminRequestsPage({
       </section>
 
       <section className="panel portal-table-panel">
-        <div className="section-heading compact"><div><p className="eyebrow">Replacement approvals</p><h2>Additional account replacements</h2><p>Members receive one instant replacement. Approve or decline every request after that.</p></div><span className="status-pill subtle">{pendingReplacements.length} pending</span></div>
+        <div className="section-heading compact"><div><p className="eyebrow">Replacement approvals</p><h2>Account replacement requests</h2><p>Every account replacement requires an administrator decision before credentials can change.</p></div><span className="status-pill subtle">{pendingReplacements.length} pending</span></div>
         <div className="request-admin-list">
           {pendingReplacements.map((request) => (
             <article key={request.id}>
@@ -82,8 +82,8 @@ export default async function AdminRequestsPage({
               <form action={resolveReplacementApproval} className="request-resolution-form">
                 <input name="requestId" type="hidden" value={request.id} />
                 <input name="adminNote" placeholder="Decision note (optional)" maxLength={1000} />
-                <ConfirmSubmitButton className="button button-light small" confirmation="Decline this additional account replacement?" name="resolution" value="declined">Decline</ConfirmSubmitButton>
-                <ConfirmSubmitButton className="button button-dark small" confirmation="Approve one additional account replacement for this member?" name="resolution" value="approved">Approve once</ConfirmSubmitButton>
+                <ConfirmSubmitButton className="button button-light small" confirmation="Decline this account replacement?" name="resolution" value="declined">Decline</ConfirmSubmitButton>
+                <ConfirmSubmitButton className="button button-dark small" confirmation="Approve one account replacement for this member?" name="resolution" value="approved">Approve once</ConfirmSubmitButton>
               </form>
             </article>
           ))}
@@ -99,7 +99,7 @@ export default async function AdminRequestsPage({
               <div className="request-admin-main">
                 <span className="status-pill">{request.request_type === "pause" ? "Pause" : "Cancellation"}</span>
                 <strong>{request.subscription?.service?.name || "Digital service"}</strong>
-                <span>{request.profile?.display_name || `@${request.profile?.username || "member"}`} · {request.profile?.email || "No email"}</span>
+                <span>{request.profile?.display_name || `@${request.profile?.username || "member"}`} Â· {request.profile?.email || "No email"}</span>
                 <small>{new Date(request.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small>
                 <p>{request.reason || "No reason supplied."}</p>
               </div>
@@ -142,7 +142,7 @@ export default async function AdminRequestsPage({
         <div className="admin-list">
           {resolved.slice(0, 30).map((request) => (
             <div key={request.id}>
-              <div><strong>{request.subscription?.service?.name || "Service"} · {request.request_type}</strong><span>@{request.profile?.username || "member"} · {request.admin_note || "No admin note"}</span></div>
+              <div><strong>{request.subscription?.service?.name || "Service"} Â· {request.request_type}</strong><span>@{request.profile?.username || "member"} Â· {request.admin_note || "No admin note"}</span></div>
               <span className={`status-pill status-${request.status}`}>{request.status}</span>
             </div>
           ))}
@@ -152,3 +152,4 @@ export default async function AdminRequestsPage({
     </section>
   );
 }
+
