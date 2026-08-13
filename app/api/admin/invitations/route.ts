@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth";
-import { normalizeKenyanPhone, temporaryPhonePassword } from "@/lib/phone";
+import { normalizeKenyanPhone } from "@/lib/phone";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 function portalEmail(clientId: string) {
@@ -8,12 +9,17 @@ function portalEmail(clientId: string) {
 }
 
 function portalUsername(clientCode: string | null, clientId: string) {
-  const value = String(clientCode || `client-${clientId.slice(0, 8)}`)
+  const value = String(clientCode || "client")
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "-")
     .replace(/-+/g, "-")
-    .slice(0, 32);
-  return value.length >= 3 ? value : `client-${clientId.slice(0, 8)}`;
+    .replace(/^-|-$/g, "")
+    .slice(0, 20);
+  return `${value.length >= 3 ? value : "client"}-${clientId.slice(0, 8)}`;
+}
+
+function temporaryPassword() {
+  return `${randomBytes(12).toString("base64url")}!7aA`;
 }
 
 export async function POST(request: Request) {
@@ -43,11 +49,7 @@ export async function POST(request: Request) {
   if (subscriptionError) return NextResponse.json({ error: "Tracked services could not be loaded." }, { status: 500 });
 
   const phoneE164 = normalizeKenyanPhone(client.phone_e164 || client.whatsapp_e164 || client.phone || client.whatsapp);
-  if (!phoneE164) {
-    return NextResponse.json({ error: "Add a valid Kenyan phone number to this client before inviting them." }, { status: 400 });
-  }
-
-  const password = temporaryPhonePassword(phoneE164);
+  const password = temporaryPassword();
   const username = portalUsername(client.client_code, client.id);
   const authEmail = portalEmail(client.id);
   const contactEmail = client.email ? String(client.email).toLowerCase() : null;
@@ -126,10 +128,11 @@ export async function POST(request: Request) {
     `Hello ${client.display_name}, your UniPlug client dashboard is ready.`,
     activeServices.length ? `Services already linked: ${activeServices.join(", ")}.` : "Your tracked services are linked to your account.",
     `Login: ${loginUrl}`,
-    `Phone: ${phoneE164}`,
+    `Username: ${username}`,
+    ...(phoneE164 ? [`Phone: ${phoneE164}`] : []),
     `Temporary password: ${password}`,
     "You will be required to choose a private password immediately after signing in.",
-    "If an account stops working, open the service and tap Instant replacement."
+    "Account replacement requests require administrator approval."
   ].join("\n");
 
   return NextResponse.json({
@@ -142,6 +145,7 @@ export async function POST(request: Request) {
     actionType,
     loginUrl,
     message,
-    whatsappUrl: `https://wa.me/${phoneE164.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`
+    whatsappUrl: phoneE164 ? `https://wa.me/${phoneE164.replace(/\D/g, "")}?text=${encodeURIComponent(message)}` : null
   }, { headers: { "Cache-Control": "no-store" } });
 }
+

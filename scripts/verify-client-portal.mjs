@@ -7,6 +7,7 @@ const secureAccessMigration = read("supabase/migrations/20260812163638_secure_ac
 const householdMigration = read("supabase/migrations/20260812173519_netflix_household_mailboxes.sql");
 const appPasswordMigration = read("supabase/migrations/20260812182013_gmail_app_password_mailboxes.sql");
 const approvalMigration = read("supabase/migrations/20260812184733_one_replacement_then_admin_approval.sql");
+const allApprovalMigration = read("supabase/migrations/20260813112220_require_approval_for_all_replacements.sql");
 const invites = read("app/api/admin/invitations/route.ts");
 const login = read("app/api/auth/login/route.ts");
 const subscriptions = read("app/dashboard/subscriptions/page.tsx");
@@ -22,7 +23,8 @@ assert.match(migration, /revoke all on public\.accounts from anon/i);
 assert.match(migration, /Portal users read own subscriptions/);
 assert.match(migration, /must_change_password = false/);
 assert.match(migration, /uniplug_replace_client_account/);
-assert.match(invites, /temporaryPhonePassword/);
+assert.match(invites, /randomBytes/);
+assert.doesNotMatch(invites, /temporaryPhonePassword/);
 assert.match(invites, /client_portal_accounts/);
 assert.match(invites, /whatsappUrl/);
 assert.match(login, /normalizeKenyanPhone/);
@@ -51,7 +53,12 @@ assert.match(approvalMigration, /v_completed_count >= 1/);
 assert.match(approvalMigration, /approval_required/);
 assert.match(approvalMigration, /status='consumed'/);
 assert.match(approvalMigration, /security invoker/);
+assert.match(allApprovalMigration, /alter column phone_e164 drop not null/i);
+assert.match(allApprovalMigration, /status = 'approved'/);
+assert.match(allApprovalMigration, /approval_required/);
+assert.match(allApprovalMigration, /status = 'consumed'/);
 assert.match(accountAccess, /Incorrect password/);
 assert.doesNotMatch(accountAccess, /Hide all|hide automatically/);
 
-console.log("Verified 35 client portal, visible credential, Netflix Household, and replacement-approval invariants.");
+console.log("Verified 40 client portal, visible credential, Netflix Household, and replacement-approval invariants.");
+

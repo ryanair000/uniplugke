@@ -45,6 +45,11 @@ const checks = [
     name: "catalog pages support both visitors and members",
     source: read("app/page.tsx") + read("app/services/page.tsx") + read("app/services/[slug]/page.tsx"),
     tokens: ["await getViewer()", "isMember"]
+  },
+  {
+    name: "guest catalog cards only expose services with public USD prices",
+    source: read("components/catalog-explorer.tsx") + read("components/service-card.tsx"),
+    tokens: ["service.startingPriceUsd != null", "formatUsd(service.startingPriceUsd)"]
   }
 ];
 
@@ -77,4 +82,11 @@ if (/approximate USD equivalent/i.test(customerFacingSource)) {
   process.exit(1);
 }
 
+const publicCardSource = read("components/catalog-explorer.tsx") + read("components/service-card.tsx");
+if (/Member catalog|services with local support and member-managed access|Contact for price|Create a support ticket/i.test(publicCardSource)) {
+  console.error("Public catalog card check failed: removed guest-facing catalog copy was reintroduced");
+  process.exit(1);
+}
+
 console.log(`Verified ${checks.length} public-USD, member-KSh, and Lokimax catalog source invariants.`);
+

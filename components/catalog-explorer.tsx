@@ -50,6 +50,10 @@ export function CatalogExplorer({
 }) {
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const browsableServices = useMemo(
+    () => isMember ? services : services.filter((service) => service.startingPriceUsd != null),
+    [isMember, services]
+  );
   const planByService = useMemo(() => {
     const map = new Map<string, MemberPlan>();
     plans.forEach((plan) => {
@@ -59,13 +63,13 @@ export function CatalogExplorer({
   }, [plans]);
 
   const categories = useMemo(() => {
-    const available = Array.from(new Set(services.map((service) => service.category)));
+    const available = Array.from(new Set(browsableServices.map((service) => service.category)));
     return ["all", ...available];
-  }, [services]);
+  }, [browsableServices]);
 
   const visible = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    return services.filter((service) => {
+    return browsableServices.filter((service) => {
       const categoryMatch = category === "all" || service.category === category;
       const searchableText = [
         service.name,
@@ -76,7 +80,7 @@ export function CatalogExplorer({
       ].join(" ").toLowerCase();
       return categoryMatch && (!normalizedSearch || searchableText.includes(normalizedSearch));
     });
-  }, [category, search, services]);
+  }, [browsableServices, category, search]);
 
   const hasFilters = category !== "all" || search.trim().length > 0;
   const orderedVisible = useMemo(() => {
@@ -103,14 +107,10 @@ export function CatalogExplorer({
       aria-labelledby={variant === "homepage" ? "catalog-title" : undefined}
     >
       <div className="catalog-browser-head">
-        <div>
-          {variant === "homepage" ? <p className="upgrade-eyebrow">Member catalog</p> : null}
-          {variant === "homepage" ? <h2 id="catalog-title">Choose your next service.</h2> : null}
-          <p>{services.length} services with local support and member-managed access.</p>
-        </div>
+        {variant === "homepage" ? <h2 id="catalog-title">Choose your next service.</h2> : null}
         {variant === "homepage" ? (
           <Link className="catalog-manage-link" href={isMember ? "/dashboard/subscriptions" : "/login"}>
-            {isMember ? "My subscriptions" : "Member sign in"} <span aria-hidden="true">→</span>
+            {isMember ? "My subscriptions" : "Member sign in"} <span aria-hidden="true">â†’</span>
           </Link>
         ) : null}
       </div>
@@ -120,7 +120,7 @@ export function CatalogExplorer({
           <span className="sr-only">Search services</span>
           <input
             type="search"
-            placeholder="Search Netflix, music, cloud…"
+            placeholder="Search Netflix, music, cloudâ€¦"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -168,7 +168,7 @@ export function CatalogExplorer({
 
       {variant === "homepage" && visible.length > displayedServices.length ? (
         <div className="catalog-view-all">
-          <Link href="/services">View all {visible.length} services <span aria-hidden="true">→</span></Link>
+          <Link href="/services">View all {visible.length} services <span aria-hidden="true">â†’</span></Link>
         </div>
       ) : null}
 
@@ -192,3 +192,4 @@ export function CatalogExplorer({
     </section>
   );
 }
+
