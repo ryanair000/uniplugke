@@ -41,6 +41,7 @@ body:has(.member-area) {
 .wallet-page-header > div > p:last-child { max-width: 680px; margin: 12px 0 0; color: var(--wallet-muted); font-size: .91rem; line-height: 1.55; }
 .wallet-page-header-compact { min-height: 120px; }
 .wallet-page-header-compact h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); }
+.wallet-page-header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
 .wallet-avatar { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; border: 1px solid #ded7e7; border-radius: 50%; background: #fff; color: var(--wallet-purple); font-weight: 850; box-shadow: 0 8px 24px rgba(33, 24, 51, .06); }
 .wallet-primary-button { border: 0; background: var(--wallet-purple); color: #fff; box-shadow: 0 8px 22px rgba(109, 40, 217, .2); }
 .wallet-primary-button:hover { background: var(--wallet-purple-dark); }
@@ -384,6 +385,9 @@ body:has(.member-area) {
   .wallet-page-header { min-height: 92px; gap: 14px; }
   .wallet-page-header h1 { font-size: clamp(2rem, 10vw, 2.65rem); }
   .wallet-page-header > div > p:last-child { font-size: .8rem; }
+  .wallet-dashboard-header { align-items: flex-start; flex-direction: column; }
+  .wallet-page-header-actions { width: 100%; }
+  .wallet-page-header-actions .button { flex: 1; }
   .wallet-avatar { width: 42px; height: 42px; flex-basis: 42px; }
   .wallet-attention { align-items: start; grid-template-columns: auto minmax(0, 1fr); padding: 17px; }
   .wallet-attention .button { grid-column: 1 / -1; width: 100%; }

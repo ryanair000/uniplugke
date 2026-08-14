@@ -88,9 +88,12 @@ export function TrackedClientDashboard({ name, subscriptions }: { name: string; 
 
   return (
     <section className="wallet-page">
-      <header className="wallet-page-header">
+      <header className="wallet-page-header wallet-dashboard-header">
         <div><p className="wallet-kicker">Your service wallet</p><h1>Welcome back, {name}.</h1><p>Access, renewals, payments, and help—together in one secure place.</p></div>
-        <Link className="wallet-avatar" href="/dashboard/settings" aria-label="Open account settings">{name.slice(0, 1).toUpperCase()}</Link>
+        <div className="wallet-page-header-actions">
+          <Link className="button wallet-secondary-button" href="/services">View catalog</Link>
+          <Link className="wallet-avatar" href="/dashboard/settings" aria-label="Open account settings">{name.slice(0, 1).toUpperCase()}</Link>
+        </div>
       </header>
 
       {urgent && upcoming ? (

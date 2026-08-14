@@ -83,7 +83,7 @@ export default async function DashboardPage() {
         </div>
         <div className="dashboard-heading-actions">
           <Link className="button button-light" href="/dashboard/settings">Account settings</Link>
-          <Link className="button button-dark" href="/services">Browse services</Link>
+          <Link className="button button-dark" href="/services">View catalog</Link>
         </div>
       </div>
 
