@@ -18,19 +18,10 @@
   <rect width="720" height="900" fill="url(#background)"/>
   <circle cx="650" cy="86" r="210" fill="#ffffff" opacity="0.08"/>
   <circle cx="45" cy="820" r="260" fill="#73000b" opacity="0.24"/>
-  <g fill="#fff">
-    <text x="64" y="95" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="4">ADOBE ACROBAT</text>
-    <text x="64" y="137" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" opacity="0.72" letter-spacing="3">PDF &amp; PRODUCTIVITY</text>
-  </g>
   <g filter="url(#shadow)">
     <path d="M170 245h292l100 100v350c0 30-24 54-54 54H170c-30 0-54-24-54-54V299c0-30 24-54 54-54Z" fill="url(#paper)"/>
     <path d="M462 245v74c0 15 12 27 27 27h73Z" fill="#ffc1b6"/>
     <path d="M265 618c65-106 106-203 95-245-7-29-42-22-41 9 2 54 81 176 142 214 43 27 66-1 42-25-43-43-180-20-265 32-44 28-26 62 3 50 30-12 61-73 74-106" fill="none" stroke="#d81727" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
     <rect x="194" y="681" width="192" height="13" rx="6.5" fill="#edc3bd"/>
-  </g>
-  <g transform="translate(64 790)">
-    <rect width="592" height="62" rx="18" fill="#49050b" opacity="0.38"/>
-    <circle cx="34" cy="31" r="13" fill="#c8f05c"/>
-    <text x="62" y="39" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Digital licence key</text>
   </g>
 </svg>

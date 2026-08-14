@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { formatDualPrice, formatUsd, kesToUsd } from "@/lib/currency";
+import { formatDualPrice, formatUsd, kesToUsd, usdToKes } from "@/lib/currency";
 import type { KeyProduct } from "@/lib/key-products";
 import type { CatalogService, MemberPlan } from "@/lib/types";
 
@@ -67,9 +67,9 @@ export function CatalogServiceCard({
 
         <div className="catalog-card-footer">
           <div>
-            {isMember && plan ? (
+            {isMember && (plan || service.startingPriceUsd) ? (
               <>
-                <strong>{formatDualPrice(plan.priceKes)}</strong>
+                <strong>{formatDualPrice(plan?.priceKes ?? usdToKes(service.startingPriceUsd!))}</strong>
                 <small>per month</small>
               </>
             ) : service.startingPriceUsd ? (
@@ -90,7 +90,7 @@ export function CatalogServiceCard({
   );
 }
 
-export function CatalogSoftwareCard({ product }: { product: KeyProduct }) {
+export function CatalogSoftwareCard({ product, isMember }: { product: KeyProduct; isMember: boolean }) {
   const href = `https://uniplug.shop/checkout?product=${product.slug}`;
 
   return (
@@ -121,7 +121,7 @@ export function CatalogSoftwareCard({ product }: { product: KeyProduct }) {
 
         <div className="catalog-card-footer">
           <div>
-            <strong>{formatUsd(kesToUsd(product.priceKes))}</strong>
+            <strong>{isMember ? formatDualPrice(product.priceKes) : formatUsd(kesToUsd(product.priceKes))}</strong>
             <small>per {product.term}</small>
           </div>
           <span className="catalog-card-action">

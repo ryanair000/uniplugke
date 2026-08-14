@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   KEY_PRODUCTS,
   keyProductEndOfTermDisclosure,
@@ -18,45 +18,35 @@ const products = Object.values(KEY_PRODUCTS);
 
 type CategoryFilter = "all" | KeyProduct["category"];
 
-const trustItems = [
-  { icon: "/key-store/icon-10.svg", title: "Software licences", copy: "Clear terms on every product" },
-  { icon: "/key-store/icon-02.svg", title: "Digital delivery", copy: "Sent to your order email" },
-  { icon: "/key-store/icon-06.svg", title: "Activation support", copy: "Help when you need it" },
-  { icon: "/key-store/icon-11.svg", title: "Secure payment", copy: "Protected Paystack checkout" }
-];
-
 const steps = [
-  { number: "01", title: "Choose your key", copy: "Select the software and licence term that fits your needs." },
-  { number: "02", title: "Checkout securely", copy: "Enter your delivery details and complete payment through Paystack." },
-  { number: "03", title: "Receive your key", copy: "Your order is prepared for digital delivery to the email you provide." },
-  { number: "04", title: "Activate", copy: "Follow the included instructions, with support available if you need it." }
+  { number: "01", title: "Review the licence", copy: "Check the edition, term, compatibility, and conditions on the product page." },
+  { number: "02", title: "Pay securely", copy: "Enter your delivery details and complete one local Paystack checkout." },
+  { number: "03", title: "Receive and activate", copy: "Use the supplied instructions, with activation help available if needed." }
 ];
 
 const keyFaqs = [
   {
-    question: "When will my software key arrive?",
-    answer: "Delivery is digital, but UniPlug has not yet published a guaranteed delivery window. After payment, keep the KEY reference shown on the payment page and use Order status to follow payment and fulfilment."
+    question: "How do I choose the right licence?",
+    answer: "Open the product page and review the edition, licence term, compatibility, device limits, and any conditions marked for confirmation. Contact support before payment if a material detail is not yet confirmed."
   },
   {
-    question: "What happens if payment is still pending?",
-    answer: "Do not pay again immediately. Keep the KEY reference and check Order status. If Paystack charged you but the order remains unconfirmed, email support@uniplug.shop with that reference."
+    question: "When will my software be delivered?",
+    answer: "Delivery is digital. Keep the KEY reference shown after checkout and use Order status to follow payment and fulfilment. A guaranteed delivery window is only shown when UniPlug has confirmed one."
   },
   {
     question: "What should I do if activation fails?",
     answer: "Check the supplied activation instructions, then contact support with the KEY reference and the exact error message. Never send passwords, payment credentials, or one-time codes. Replacement eligibility is confirmed case by case until a published policy is supplied."
   },
   {
-    question: "Can I move a key to another device?",
-    answer: "Device and activation limits differ by licence and have not yet been confirmed for these listings. Confirm compatibility and transfer rights before payment."
-  },
-  {
-    question: "Are refunds or cancellations available?",
-    answer: "UniPlug has not yet supplied a public software-key refund or cancellation policy. Confirm the applicable conditions before payment; do not assume a key can be returned after delivery or activation."
-  },
-  {
-    question: "Does the one-month or one-year term renew automatically?",
-    answer: "The current checkout creates one Paystack charge and does not create an automatic recurring charge. Access or renewal after the advertised term still requires confirmation before payment."
+    question: "What happens if payment is still pending?",
+    answer: "Do not pay again immediately. Keep the KEY reference and check Order status. If Paystack charged you but the order remains unconfirmed, email support@uniplug.shop with that reference."
   }
+];
+
+const heroProof = [
+  { icon: "/key-store/icon-09.svg", title: "Secure checkout", copy: "Protected by Paystack" },
+  { icon: "/key-store/icon-02.svg", title: "Digital fulfilment", copy: "Tracked with your order reference" },
+  { icon: "/key-store/icon-06.svg", title: "Activation help", copy: "Support when you need it" }
 ];
 
 function ProductImage({ product, priority = false }: { product: KeyProduct; priority?: boolean }) {
@@ -69,7 +59,6 @@ function ProductImage({ product, priority = false }: { product: KeyProduct; prio
         sizes="(max-width: 700px) calc(100vw - 32px), (max-width: 1000px) 220px, 240px"
         src={product.image}
       />
-      <span>{product.badge}</span>
     </div>
   );
 }
@@ -95,36 +84,33 @@ function ProductScopeNotice({ product }: { product: KeyProduct }) {
 function ProductCard({
   product,
   checkoutBase = "",
-  priority = false,
-  onDetails
+  priority = false
 }: {
   product: KeyProduct;
   checkoutBase?: string;
   priority?: boolean;
-  onDetails?: (product: KeyProduct) => void;
 }) {
   return (
     <article className="key-catalog-card">
       <ProductImage priority={priority} product={product} />
       <div className="key-catalog-card-body">
         <p className="key-card-category">{product.categoryLabel}</p>
-        <h3><Link href={`/keys/${product.slug}`}>{product.name}</Link></h3>
+        <h3><Link href={`${checkoutBase}/keys/${product.slug}`}>{product.name}</Link></h3>
         <p className="key-card-description">{product.description}</p>
-        <ProductFacts product={product} />
-        <ProductScopeNotice product={product} />
+        <dl className="key-card-specs">
+          <div><dt>Licence term</dt><dd>{product.termLabel}</dd></div>
+          <div><dt>Delivery</dt><dd>Digital</dd></div>
+          <div><dt>Support</dt><dd>Activation help</dd></div>
+        </dl>
+        <p className="key-card-review-note"><strong>Review before checkout</strong> Compatibility and licence conditions are listed on the product page.</p>
         <div className="key-card-purchase">
           <div className="key-price">
             <strong>KSh {money.format(product.priceKes)}</strong>
             <span>for {product.termLabel}</span>
           </div>
           <div className="key-card-actions">
-            {onDetails ? (
-              <button className="key-button key-button-outline" onClick={() => onDetails(product)} type="button">
-                Quick view
-              </button>
-            ) : null}
-            <Link aria-label={`Buy ${product.name} for KSh ${money.format(product.priceKes)} for ${product.termLabel}`} className="key-button key-button-dark" href={`${checkoutBase}/checkout?product=${product.slug}`}>
-              Buy now <span aria-hidden="true">→</span>
+            <Link aria-label={`Review ${product.name} licence details`} className="key-button key-button-dark" href={`${checkoutBase}/keys/${product.slug}`}>
+              View details <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -155,9 +141,6 @@ export function KeyShelf({ checkoutBase = "" }: { checkoutBase?: string }) {
 export function KeyStoreHome() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
-  const [activeProduct, setActiveProduct] = useState<KeyProduct | null>(null);
-  const dialogRef = useRef<HTMLElement>(null);
-  const detailsTriggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const initialQuery = new URLSearchParams(window.location.search).get("q")?.trim() || "";
@@ -167,77 +150,10 @@ export function KeyStoreHome() {
       if (initialCategory === "pdf" || initialCategory === "operating-system") setCategory(initialCategory);
     }, 0);
 
-    const handleHeaderSearch = (event: Event) => {
-      const value = (event as CustomEvent<string>).detail;
-      setQuery(value);
-    };
-    window.addEventListener("key-store-search", handleHeaderSearch);
     return () => {
       window.clearTimeout(initialQueryTimer);
-      window.removeEventListener("key-store-search", handleHeaderSearch);
     };
   }, []);
-
-  useEffect(() => {
-    if (!activeProduct) return;
-    const backgroundElements = Array.from(document.querySelectorAll<HTMLElement>(".key-store > :not(.key-modal-backdrop)"));
-    const backgroundState = backgroundElements.map((element) => ({
-      element,
-      ariaHidden: element.getAttribute("aria-hidden"),
-      inert: element.hasAttribute("inert")
-    }));
-    backgroundElements.forEach((element) => {
-      element.setAttribute("inert", "");
-      element.setAttribute("aria-hidden", "true");
-    });
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setActiveProduct(null);
-        return;
-      }
-      if (event.key !== "Tab") return;
-
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      ));
-      if (!focusable.length) {
-        event.preventDefault();
-        dialog.focus();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const focusIsOutsideDialog = !dialog.contains(document.activeElement);
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog || focusIsOutsideDialog)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog || focusIsOutsideDialog)) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    const focusTimer = window.setTimeout(() => {
-      dialogRef.current?.querySelector<HTMLElement>(".key-modal-close")?.focus();
-    }, 0);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-      backgroundState.forEach(({ element, ariaHidden, inert }) => {
-        if (!inert) element.removeAttribute("inert");
-        if (ariaHidden === null) element.removeAttribute("aria-hidden");
-        else element.setAttribute("aria-hidden", ariaHidden);
-      });
-      detailsTriggerRef.current?.focus();
-    };
-  }, [activeProduct]);
 
   const visibleProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -273,26 +189,50 @@ export function KeyStoreHome() {
     updateCatalogUrl("", "all");
   };
 
-  const openDetails = (product: KeyProduct) => {
-    detailsTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setActiveProduct(product);
-  };
-
   return (
     <div className="key-store">
+      <section className="key-hero" aria-labelledby="key-hero-title">
+        <div className="key-shell key-hero-grid">
+          <div className="key-hero-copy">
+            <p className="key-kicker">Software for work and study</p>
+            <h1 id="key-hero-title">Software licences, without the guesswork.</h1>
+            <p>Compare the advertised term and essential licence information before checkout, then pay locally and track fulfilment with one order reference.</p>
+            <div className="key-hero-actions">
+              <Link className="key-button key-button-dark" href="/#catalog">Browse software <span aria-hidden="true">→</span></Link>
+              <Link className="key-button key-button-outline" href="/#support">Request software</Link>
+            </div>
+          </div>
+          <aside className="key-hero-products" aria-label="Available software">
+            <p>Available now</p>
+            {products.map((product) => (
+              <Link href={`/keys/${product.slug}`} key={product.slug}>
+                <span><small>{product.categoryLabel}</small><strong>{product.name}</strong></span>
+                <b>KSh {money.format(product.priceKes)}</b>
+              </Link>
+            ))}
+          </aside>
+        </div>
+        <div className="key-shell key-hero-proof" aria-label="Store service information">
+          {heroProof.map((item) => (
+            <article key={item.title}><Image alt="" height={28} src={item.icon} width={28} /><span><strong>{item.title}</strong><small>{item.copy}</small></span></article>
+          ))}
+        </div>
+      </section>
+
       <section className="key-catalog key-shell" id="catalog" aria-labelledby="catalog-title">
         <div className="key-catalog-toolbar">
           <div>
-            <h1 id="catalog-title">Software keys</h1>
-            <p>Choose a software key with clear pricing, secure checkout, and digital delivery.</p>
+            <p className="key-kicker">Available software</p>
+            <h2 id="catalog-title">Choose the licence that fits.</h2>
+            <p>Open a product to review its compatibility and licence conditions before checkout.</p>
           </div>
-          <p aria-live="polite" className="key-result-count">{visibleProducts.length} {visibleProducts.length === 1 ? "product" : "products"}</p>
+          <p aria-live="polite" className="key-result-count">{visibleProducts.length} {visibleProducts.length === 1 ? "listing" : "listings"}</p>
         </div>
 
         <div className="key-category-chips" aria-label="Product categories">
-          <button className={category === "all" ? "is-active" : ""} onClick={() => selectCategory("all")} type="button">All keys <span>2</span></button>
-          <button className={category === "pdf" ? "is-active" : ""} onClick={() => selectCategory("pdf")} type="button">PDF tools <span>1</span></button>
-          <button className={category === "operating-system" ? "is-active" : ""} onClick={() => selectCategory("operating-system")} type="button">Windows <span>1</span></button>
+          <button className={category === "all" ? "is-active" : ""} onClick={() => selectCategory("all")} type="button">All keys</button>
+          <button className={category === "pdf" ? "is-active" : ""} onClick={() => selectCategory("pdf")} type="button">PDF tools</button>
+          <button className={category === "operating-system" ? "is-active" : ""} onClick={() => selectCategory("operating-system")} type="button">Windows</button>
         </div>
 
         <div className="key-catalog-results">
@@ -303,7 +243,7 @@ export function KeyStoreHome() {
               </div>
             ) : null}
             {visibleProducts.length ? visibleProducts.map((product, index) => (
-              <ProductCard key={product.slug} onDetails={openDetails} priority={index === 0} product={product} />
+              <ProductCard key={product.slug} priority={index === 0} product={product} />
             )) : (
               <div className="key-empty-state">
                 <span aria-hidden="true">⌕</span>
@@ -321,7 +261,7 @@ export function KeyStoreHome() {
 
       <section className="key-how" id="how-it-works" aria-labelledby="how-title">
         <div className="key-shell">
-          <div className="key-how-heading"><div><p className="key-kicker">Simple from start to finish</p><h2 id="how-title">How purchasing works</h2></div><p>Four clear steps from choosing your software to activation.</p></div>
+          <div className="key-how-heading"><div><p className="key-kicker">Simple from start to finish</p><h2 id="how-title">From licence review to activation.</h2></div><p>Three focused steps, with the material product conditions reviewed before payment.</p></div>
           <div className="key-steps">
             {steps.map((step) => (
               <article key={step.number}>
@@ -334,47 +274,14 @@ export function KeyStoreHome() {
         </div>
       </section>
 
-      <section className="key-trust-strip" aria-label="Why buy from UniPlug">
-        <div className="key-shell">
-          {trustItems.map((item) => (
-            <article key={item.title}>
-              <Image alt="" height={34} src={item.icon} width={34} />
-              <div><strong>{item.title}</strong><span>{item.copy}</span></div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="key-faq key-shell" aria-labelledby="key-faq-title">
-        <div className="key-faq-heading"><div><p className="key-kicker">Before and after payment</p><h2 id="key-faq-title">Software-key help</h2></div><p>Current answers use confirmed facts and clearly identify terms that still require confirmation.</p></div>
+        <div className="key-faq-heading"><div><p className="key-kicker">Before and after payment</p><h2 id="key-faq-title">Questions worth checking.</h2></div><p>Short answers covering licence review, checkout, delivery, and activation support.</p></div>
         <div className="key-faq-list">
           {keyFaqs.map((item) => <details key={item.question}><summary>{item.question}</summary><p>{item.answer}</p></details>)}
         </div>
         <div className="key-faq-support"><p>Need order-specific help? Keep your <strong>KEY reference</strong>.</p><div><Link href="/order-status">Check order status</Link><a href="mailto:support@uniplug.shop">Email support</a></div></div>
       </section>
 
-      {activeProduct ? (
-        <div className="key-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setActiveProduct(null)}>
-          <section aria-describedby="key-modal-description" aria-labelledby="key-modal-title" aria-modal="true" className="key-product-modal" ref={dialogRef} role="dialog" tabIndex={-1}>
-            <button aria-label="Close product details" className="key-modal-close" onClick={() => setActiveProduct(null)} type="button">×</button>
-            <ProductImage product={activeProduct} />
-            <div className="key-product-modal-content">
-              <p className="key-card-category">{activeProduct.categoryLabel}</p>
-              <h2 id="key-modal-title">{activeProduct.name}</h2>
-              <p id="key-modal-description">{activeProduct.details}</p>
-              <ProductFacts product={activeProduct} />
-              <ProductScopeNotice product={activeProduct} />
-              <div className="key-modal-disclosures">
-                <p>{keyProductPaymentDisclosure(activeProduct)}</p>
-                <p>{keyProductEndOfTermDisclosure(activeProduct)}</p>
-              </div>
-              <Link className="key-full-details-link" href={`/keys/${activeProduct.slug}`}>View full licence details</Link>
-              <div className="key-price"><strong>KSh {money.format(activeProduct.priceKes)}</strong><span>for {activeProduct.termLabel}</span></div>
-              <Link className="key-button key-button-dark" href={`/checkout?product=${activeProduct.slug}`}>Buy now <span aria-hidden="true">→</span></Link>
-            </div>
-          </section>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -453,39 +360,19 @@ export function KeyCheckout({ initialProduct }: { initialProduct: KeyProductSlug
 }
 
 export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
-  const [search, setSearch] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
-  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    window.history.replaceState(null, "", search.trim() ? `/?q=${encodeURIComponent(search.trim())}#catalog` : "/#catalog");
-    window.dispatchEvent(new CustomEvent("key-store-search", { detail: search.trim() }));
-    document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   return (
-    <>
-      <div className="key-utility-bar">
-        <div className="key-shell">
-          <span><Image alt="" height={22} src="/key-store/icon-08.svg" width={22} />Digital delivery</span>
-          <span><Image alt="" height={22} src="/key-store/icon-09.svg" width={22} />Secure Paystack checkout</span>
-          <span><Image alt="" height={22} src="/key-store/icon-01.svg" width={22} />Activation support</span>
-        </div>
-      </div>
-      <header className="key-header">
+    <header className="key-header">
       <div className="key-main-header key-shell">
         <Link aria-label="UniPlug software keys home" className="key-brand" href="/"><span>u</span><b>uniplug</b></Link>
-        <form className="key-header-search" onSubmit={submitSearch} role="search">
-          <Image alt="" height={22} src="/key-store/icon-04.svg" width={22} />
-          <input aria-label="Search software keys" onChange={(event) => setSearch(event.target.value)} placeholder="Search software keys" type="search" value={search} />
-          <button type="submit">Search</button>
-        </form>
         <nav aria-label="Store navigation">
-          <Link href="/#catalog">Categories</Link>
+          <Link href="/#catalog">Software</Link>
           <Link href="/#how-it-works">How it works</Link>
-          <Link href="/#support">Support</Link>
-          {!signedIn ? <Link href="/register">Register</Link> : null}
+          <Link href="/order-status">Order status</Link>
+          <Link href="/#support">Request a key</Link>
         </nav>
+        <Link className="key-mobile-catalog-link" href="/#catalog">Shop</Link>
         {signedIn ? (
           <button
             className="key-button key-button-member"
@@ -504,8 +391,7 @@ export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
           <Link className="key-button key-button-member" href="/login">Sign in <span aria-hidden="true">→</span></Link>
         )}
       </div>
-      </header>
-    </>
+    </header>
   );
 }
 
@@ -515,7 +401,7 @@ export function KeyStoreFooter() {
       <div className="key-shell key-footer-grid">
         <div className="key-footer-brand">
           <Link className="key-brand" href="/"><span>u</span><b>uniplug</b></Link>
-          <p>Software keys with clear pricing, secure local checkout, and helpful activation guidance.</p>
+          <p>Essential software with local checkout, order tracking, and activation guidance.</p>
           <a href="mailto:support@uniplug.shop">support@uniplug.shop</a>
         </div>
         <div><h2>Shop</h2><Link href="/#catalog">All software keys</Link><Link href="/?category=pdf#catalog">PDF & productivity</Link><Link href="/?category=operating-system#catalog">Operating systems</Link></div>

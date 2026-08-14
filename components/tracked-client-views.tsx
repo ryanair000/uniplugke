@@ -14,6 +14,12 @@ function serviceName(subscription: TrackedSubscription) {
   return lokimaxServiceDisplayName(subscription.service?.name || subscription.serviceIdentifier || "Digital service");
 }
 
+function serviceDescription(subscription: TrackedSubscription) {
+  return serviceName(subscription) === "Live Stream"
+    ? "Live channels and entertainment managed through your UniPlug account."
+    : subscription.service?.description || "Your UniPlug-managed digital service.";
+}
+
 function serviceSlug(subscription: TrackedSubscription) {
   return serviceName(subscription).toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
@@ -133,7 +139,7 @@ export function LegacyTrackedSubscriptionDetail({ subscription }: { subscription
       <Link className="wallet-back-link" href="/dashboard/subscriptions">← All services</Link>
       <header className="wallet-detail-header">
         <ServiceArtwork accentColor="#111111" className="wallet-detail-logo" descriptive logoText={name.slice(0, 2).toUpperCase()} name={name} slug={serviceSlug(subscription)} />
-        <div className="wallet-detail-title"><span className={`wallet-status status-${subscription.status}`}><i />{statusLabel(subscription.status)}</span><h1>{name}</h1><p>{subscription.service?.description || "Your UniPlug-managed digital service."}</p></div>
+        <div className="wallet-detail-title"><span className={`wallet-status status-${subscription.status}`}><i />{statusLabel(subscription.status)}</span><h1>{name}</h1><p>{serviceDescription(subscription)}</p></div>
         <div className="wallet-detail-price"><span>{subscription.billingCycle}</span><strong>{money(subscription)}</strong><small>{renewalCopy(subscription)}</small></div>
       </header>
 

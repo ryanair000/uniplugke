@@ -85,7 +85,9 @@ export function canonicalLokimaxCatalogKey(value: string) {
 export function lokimaxServiceDisplayName(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "Digital service";
-  return profiles[canonicalLokimaxCatalogKey(trimmed)]?.name ?? trimmed;
+  const key = canonicalLokimaxCatalogKey(trimmed);
+  if (key === "dstv" || key === "dstvcompact" || key === "dstvpremium") return "Live Stream";
+  return profiles[key]?.name ?? trimmed;
 }
 
 function slugify(value: string) {

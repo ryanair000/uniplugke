@@ -12,6 +12,16 @@ import {
 } from "@/lib/plan-durations";
 import type { CatalogService, MemberPlan, ServiceCategory } from "@/lib/types";
 
+const CUSTOMER_HIDDEN_SERVICE_SLUGS = new Set([
+  "dstv",
+  "dstv-compact",
+  "dstv-premium"
+]);
+
+function customerVisibleCatalog(services: CatalogService[]) {
+  return services.filter((service) => !CUSTOMER_HIDDEN_SERVICE_SLUGS.has(service.slug));
+}
+
 export const publicCatalogFallback: CatalogService[] = [
   {
     id: "10000000-0000-0000-0000-000000000001",
@@ -192,8 +202,8 @@ export const getPublicCatalog = cache(async function getPublicCatalog() {
     ? publicCatalogFallback
     : (curatedResult.data as Array<Record<string, unknown>>).map(normalizeService);
 
-  if (lokimaxResult.error || !lokimaxResult.data?.length) return curatedServices;
-  return buildLokimaxCatalog(lokimaxResult.data, curatedServices);
+  if (lokimaxResult.error || !lokimaxResult.data?.length) return customerVisibleCatalog(curatedServices);
+  return customerVisibleCatalog(buildLokimaxCatalog(lokimaxResult.data, curatedServices));
 });
 
 export async function getPublicService(slug: string) {

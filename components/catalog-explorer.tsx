@@ -180,7 +180,7 @@ export function CatalogExplorer({
       <div className="catalog-card-grid">
         {displayedEntries.map((entry) => {
           if (entry.kind === "software") {
-            return <CatalogSoftwareCard key={`software-${entry.product.slug}`} product={entry.product} />;
+            return <CatalogSoftwareCard isMember={isMember} key={`software-${entry.product.slug}`} product={entry.product} />;
           }
           const managed = findManagedService(entry.service, managedServices);
           return (

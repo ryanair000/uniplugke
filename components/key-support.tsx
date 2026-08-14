@@ -62,20 +62,21 @@ export function RequestKeyForm() {
   return (
     <form className="key-request-form" onSubmit={submit}>
       <div className="key-request-form-heading">
-        <div><p className="key-kicker">Can’t find your software?</p><h2>Request a key</h2></div>
-        <p>Your request is saved directly—no configured mail application required.</p>
+        <div><p className="key-kicker">Can’t find your software?</p><h2>Tell us what you need.</h2></div>
+        <p>We’ll confirm availability, price, and licence conditions before you pay.</p>
       </div>
       <div className="key-request-fields">
         <label>Software name<input autoComplete="off" maxLength={120} minLength={2} name="softwareName" placeholder="e.g. Microsoft Visio" required /></label>
         <label>Platform<select defaultValue="" name="platform" required><option disabled value="">Choose platform</option><option>Windows</option><option>macOS</option><option>Android</option><option>iOS / iPadOS</option><option>Linux</option><option>Web / browser</option><option>Other</option></select></label>
         <label>Email address<input autoComplete="email" maxLength={254} name="email" placeholder="you@example.com" required type="email" /></label>
         <label>Phone / WhatsApp<input autoComplete="tel" inputMode="tel" maxLength={20} name="phone" placeholder="0712 345 678" required /></label>
-        <label className="key-request-notes">Notes <span>(optional)</span><textarea maxLength={1000} name="notes" placeholder="Edition, version, device, or other details you already know." rows={4} /></label>
         <label className="key-honeypot" aria-hidden="true">Website<input autoComplete="off" name="website" tabIndex={-1} /></label>
       </div>
-      <p className="key-form-note">Never include passwords, payment credentials, activation codes, or one-time codes.</p>
+      <div className="key-request-submit-row">
+        <p className="key-form-note">Never include passwords, payment credentials, activation codes, or one-time codes.</p>
+        <button className="key-button key-button-lime" disabled={busy} type="submit">{busy ? "Saving request…" : "Request software"}</button>
+      </div>
       {error ? <p className="key-error" role="alert">{error}</p> : null}
-      <button className="key-button key-button-lime" disabled={busy} type="submit">{busy ? "Saving request…" : "Submit key request"}</button>
     </form>
   );
 }

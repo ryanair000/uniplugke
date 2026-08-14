@@ -18,10 +18,6 @@
   <rect width="720" height="900" fill="url(#background)"/>
   <circle cx="530" cy="410" r="350" fill="url(#glow)"/>
   <path d="M-50 700C145 535 248 744 432 574c101-93 180-105 338-44v370H-50Z" fill="#031a56" opacity="0.48"/>
-  <g fill="#fff">
-    <text x="64" y="95" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" letter-spacing="4">WINDOWS 11 PRO</text>
-    <text x="64" y="137" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" opacity="0.72" letter-spacing="3">OPERATING SYSTEM</text>
-  </g>
   <g transform="translate(126 238)" filter="url(#shadow)">
     <rect x="0" y="0" width="468" height="382" rx="34" fill="#041844" stroke="#71d8ff" stroke-width="7"/>
     <rect x="24" y="24" width="420" height="318" rx="16" fill="#0878e5"/>
@@ -34,10 +30,5 @@
     </g>
     <path d="M-42 382h552l42 51c10 12 1 31-15 31H-69c-16 0-25-19-15-31Z" fill="#061335"/>
     <rect x="170" y="401" width="128" height="12" rx="6" fill="#3f6a9a"/>
-  </g>
-  <g transform="translate(64 790)">
-    <rect width="592" height="62" rx="18" fill="#02123c" opacity="0.45"/>
-    <circle cx="34" cy="31" r="13" fill="#c8f05c"/>
-    <text x="62" y="39" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Digital licence key</text>
   </g>
 </svg>

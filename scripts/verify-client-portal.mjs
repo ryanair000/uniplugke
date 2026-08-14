@@ -26,7 +26,9 @@ const optionalPasswordMigration = read("supabase/migrations/20260813225101_make_
 const accountRouting = read("lib/account-routing.ts");
 const notifications = read("app/dashboard/notifications/page.tsx");
 const multiServiceMigration = read("supabase/migrations/20260813230218_normalize_lokimax_multi_service_subscriptions.sql");
+const renewalPrecedenceMigration = read("supabase/migrations/20260814013734_prefer_client_renewal_over_slot_expiry.sql");
 const clientPortal = read("lib/client-portal.ts");
+const lokimaxServices = read("lib/lokimax-services.ts");
 
 assert.match(migration, /revoke all on public\.accounts from anon/i);
 assert.match(migration, /Portal users read own subscriptions/);
@@ -87,8 +89,15 @@ assert.match(multiServiceMigration, /hub_live_sync_slots_to_portal/);
 assert.match(multiServiceMigration, /public\.slots as slot/);
 assert.match(multiServiceMigration, /portal_hidden/);
 assert.match(multiServiceMigration, /revoke all on function public\.hub_sync_subscription\(uuid\)/i);
+assert.match(renewalPrecedenceMigration, /v_item_renewal_date,\\n      v_slot_renewal_date/);
+assert.match(renewalPrecedenceMigration, /perform public\.hub_sync_subscription\(v_source\.id\)/);
+assert.match(renewalPrecedenceMigration, /hub\.next_renewal_date is distinct from expected\.renewal_date/);
 assert.match(clientPortal, /metadata\.portal_hidden === true/);
 assert.match(trackedViews, /bundle total/);
+assert.match(lokimaxServices, /return "Live Stream"/);
+assert.match(lokimaxServices, /key === "dstvcompact"/);
+assert.match(lokimaxServices, /key === "dstvpremium"/);
+assert.match(trackedViews, /Live channels and entertainment managed through your UniPlug account/);
 
-console.log("Verified 53 client portal, multi-service sync, optional password, notification, credential, Netflix Household, and replacement-approval invariants.");
+console.log("Verified 60 client portal, renewal precedence, multi-service sync, private DStv labelling, optional password, notification, credential, Netflix Household, and replacement-approval invariants.");
 

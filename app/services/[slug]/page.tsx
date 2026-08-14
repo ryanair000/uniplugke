@@ -6,7 +6,7 @@ import { ServiceArtwork } from "@/components/service-artwork";
 import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog, getPublicService } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
-import { formatDualPrice, formatUsd } from "@/lib/currency";
+import { formatDualPrice, formatUsd, usdToKes } from "@/lib/currency";
 import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
 
 export const dynamic = "force-dynamic";
@@ -96,10 +96,10 @@ export default async function ServiceDetailPage({
             <span>{service.fulfillmentLabel}</span>
           </div>
 
-          {isMember && primaryPlan ? (
+          {isMember && (primaryPlan || service.startingPriceUsd) ? (
             <div className="product-starting-price">
               <span>From</span>
-              <strong>{formatDualPrice(primaryPlan.priceKes)} <small>/ month</small></strong>
+              <strong>{formatDualPrice(primaryPlan?.priceKes ?? usdToKes(service.startingPriceUsd!))} <small>/ month</small></strong>
             </div>
           ) : service.startingPriceUsd ? (
             <div className="product-starting-price">

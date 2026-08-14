@@ -44,7 +44,11 @@ const checks = [
       '.eq("category", "entertainment")',
       'selling_price_1_month',
       "buildLokimaxCatalog",
-      "canonicalLokimaxCatalogKey"
+      "canonicalLokimaxCatalogKey",
+      "CUSTOMER_HIDDEN_SERVICE_SLUGS",
+      '"dstv-compact"',
+      '"dstv-premium"',
+      "customerVisibleCatalog(buildLokimaxCatalog"
     ]
   },
   {
@@ -53,13 +57,24 @@ const checks = [
     tokens: ["await getViewer()", "isMember"]
   },
   {
-    name: "guest catalog cards only expose services with public USD prices",
+    name: "catalog cards split guest USD and signed-in KSh prices",
     source: read("components/catalog-explorer.tsx") + read("components/service-card.tsx"),
     tokens: [
       "service.startingPriceUsd != null",
       "formatUsd(service.startingPriceUsd)",
+      "usdToKes(service.startingPriceUsd!)",
       "CatalogSoftwareCard",
-      "formatUsd(kesToUsd(product.priceKes))"
+      "isMember={isMember}",
+      "isMember ? formatDualPrice(product.priceKes) : formatUsd(kesToUsd(product.priceKes))"
+    ]
+  },
+  {
+    name: "signed-in service details use KSh even without a private plan",
+    source: read("app/services/[slug]/page.tsx"),
+    tokens: [
+      "isMember && (primaryPlan || service.startingPriceUsd)",
+      "usdToKes(service.startingPriceUsd!)",
+      "formatUsd(service.startingPriceUsd)"
     ]
   },
   {
