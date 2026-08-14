@@ -43,12 +43,6 @@ const keyFaqs = [
   }
 ];
 
-const heroProof = [
-  { icon: "/key-store/icon-09.svg", title: "Secure checkout", copy: "Protected by Paystack" },
-  { icon: "/key-store/icon-02.svg", title: "Digital fulfilment", copy: "Tracked with your order reference" },
-  { icon: "/key-store/icon-06.svg", title: "Activation help", copy: "Support when you need it" }
-];
-
 function ProductImage({ product, priority = false }: { product: KeyProduct; priority?: boolean }) {
   return (
     <div className={`key-product-art key-product-art-${product.slug}`}>
@@ -191,34 +185,6 @@ export function KeyStoreHome() {
 
   return (
     <div className="key-store">
-      <section className="key-hero" aria-labelledby="key-hero-title">
-        <div className="key-shell key-hero-grid">
-          <div className="key-hero-copy">
-            <p className="key-kicker">Software for work and study</p>
-            <h1 id="key-hero-title">Software licences, without the guesswork.</h1>
-            <p>Compare the advertised term and essential licence information before checkout, then pay locally and track fulfilment with one order reference.</p>
-            <div className="key-hero-actions">
-              <Link className="key-button key-button-dark" href="/#catalog">Browse software <span aria-hidden="true">→</span></Link>
-              <Link className="key-button key-button-outline" href="/#support">Request software</Link>
-            </div>
-          </div>
-          <aside className="key-hero-products" aria-label="Available software">
-            <p>Available now</p>
-            {products.map((product) => (
-              <Link href={`/keys/${product.slug}`} key={product.slug}>
-                <span><small>{product.categoryLabel}</small><strong>{product.name}</strong></span>
-                <b>KSh {money.format(product.priceKes)}</b>
-              </Link>
-            ))}
-          </aside>
-        </div>
-        <div className="key-shell key-hero-proof" aria-label="Store service information">
-          {heroProof.map((item) => (
-            <article key={item.title}><Image alt="" height={28} src={item.icon} width={28} /><span><strong>{item.title}</strong><small>{item.copy}</small></span></article>
-          ))}
-        </div>
-      </section>
-
       <section className="key-catalog key-shell" id="catalog" aria-labelledby="catalog-title">
         <div className="key-catalog-toolbar">
           <div>
