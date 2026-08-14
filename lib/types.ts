@@ -1,4 +1,4 @@
-import type { PlanDurationMonths } from "@/lib/plan-durations";
+import type { PlanDurationMonths, PlanDurationOffer } from "@/lib/plan-durations";
 
 export type ServiceCategory =
   | "streaming"
@@ -46,6 +46,7 @@ export type MemberPlan = {
   billingCycle: "monthly" | "quarterly" | "yearly";
   features: string[];
   availabilityStatus: "available" | "limited" | "unavailable";
+  durationOffers: PlanDurationOffer[];
 };
 
 export type MemberProfile = {

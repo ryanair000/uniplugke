@@ -37,9 +37,15 @@ const checks = [
     tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "final KSh amount"]
   },
   {
-    name: "Lokimax active services drive the UniPlug catalog",
+    name: "the priced Lokimax catalog drives the UniPlug catalog",
     source: read("lib/catalog.ts") + read("lib/lokimax-services.ts"),
-    tokens: ['.from("services")', '.eq("status", "active")', "buildLokimaxCatalog", "primevideo", "office365"]
+    tokens: [
+      '.from("catalog")',
+      '.eq("category", "entertainment")',
+      'selling_price_1_month',
+      "buildLokimaxCatalog",
+      "canonicalLokimaxCatalogKey"
+    ]
   },
   {
     name: "catalog pages support both visitors and members",
@@ -49,7 +55,17 @@ const checks = [
   {
     name: "guest catalog cards only expose services with public USD prices",
     source: read("components/catalog-explorer.tsx") + read("components/service-card.tsx"),
-    tokens: ["service.startingPriceUsd != null", "formatUsd(service.startingPriceUsd)"]
+    tokens: [
+      "service.startingPriceUsd != null",
+      "formatUsd(service.startingPriceUsd)",
+      "CatalogSoftwareCard",
+      "formatUsd(kesToUsd(product.priceKes))"
+    ]
+  },
+  {
+    name: "Lokimax prices become public USD prices without duplicate aliases",
+    source: read("lib/lokimax-services.ts"),
+    tokens: ["kesToUsd(monthlyPriceKes)", "seen.has(serviceSlug)", 'prime: "primevideo"']
   }
 ];
 

@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { formatDualPrice, formatUsd } from "@/lib/currency";
+import { formatDualPrice, formatUsd, kesToUsd } from "@/lib/currency";
+import type { KeyProduct } from "@/lib/key-products";
 import type { CatalogService, MemberPlan } from "@/lib/types";
 
 export const categoryLabels: Record<string, string> = {
@@ -70,7 +72,7 @@ export function CatalogServiceCard({
                 <strong>{formatDualPrice(plan.priceKes)}</strong>
                 <small>per month</small>
               </>
-            ) : !isMember && service.startingPriceUsd ? (
+            ) : service.startingPriceUsd ? (
               <>
                 <strong>{formatUsd(service.startingPriceUsd)}</strong>
                 <small>starting price</small>
@@ -80,7 +82,50 @@ export function CatalogServiceCard({
             )}
           </div>
           <span className="catalog-card-action">
-            {action} <span aria-hidden="true">â†’</span>
+            {action} <span aria-hidden="true">→</span>
+          </span>
+        </div>
+      </Link>
+    </article>
+  );
+}
+
+export function CatalogSoftwareCard({ product }: { product: KeyProduct }) {
+  const href = `https://uniplug.shop/checkout?product=${product.slug}`;
+
+  return (
+    <article className="catalog-card is-software">
+      <Link
+        aria-label={`Buy ${product.name} software`}
+        className="catalog-card-link"
+        href={href}
+      >
+        <div className="catalog-card-top">
+          <span className="catalog-card-logo catalog-software-logo">
+            <Image
+              alt=""
+              fill
+              sizes="46px"
+              src={product.image}
+            />
+          </span>
+          <span className="catalog-availability available">Available</span>
+        </div>
+
+        <div className="catalog-card-heading">
+          <span>Software</span>
+          <h3>{product.name}</h3>
+        </div>
+
+        <p className="catalog-card-description">{product.description}</p>
+
+        <div className="catalog-card-footer">
+          <div>
+            <strong>{formatUsd(kesToUsd(product.priceKes))}</strong>
+            <small>per {product.term}</small>
+          </div>
+          <span className="catalog-card-action">
+            Buy software <span aria-hidden="true">→</span>
           </span>
         </div>
       </Link>

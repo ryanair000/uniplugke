@@ -17,8 +17,8 @@ const checks = [
   },
   {
     name: "member portal routes require active membership",
-    source: read("app/dashboard/layout.tsx"),
-    tokens: ["requireMember()", "Member portal"]
+    source: read("app/dashboard/layout.tsx") + read("components/member-portal-shell.tsx"),
+    tokens: ["requireMember()", "MemberPortalShell"]
   },
   {
     name: "all non-auth storefront routes require an active invited client",
@@ -47,11 +47,13 @@ const checks = [
   },
   {
     name: "prepaid durations are priced and activated by the database",
-    source: read("supabase/migrations/20260728202332_add_extended_plan_durations.sql"),
+    source: read("supabase/migrations/20260813224645_duration_offers.sql") + read("supabase/migrations/20260728202332_add_extended_plan_durations.sql"),
     tokens: [
-      "duration_months in (1, 3, 6, 12, 36)",
+      "duration_months in (1, 3, 6, 12, 24)",
+      "uniplug_plan_duration_offers",
+      "discount_percent between 0 and 90",
       "uniplug_create_member_order_v2",
-      "p.price_kes * (item.value->>'durationMonths')::integer",
+      "plan.price_kes * offer.duration_months * (1 - offer.discount_percent / 100)",
       "make_interval(months => i.duration_months)",
       "from public, anon, authenticated"
     ]

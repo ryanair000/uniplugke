@@ -2,15 +2,16 @@
 
 One deployment serving two deliberately separated UniPlug experiences:
 
-- `uniplug.shop`: public software-key store for Adobe Acrobat and Windows 11 Pro.
-- `vip.uniplug.shop`: the existing invite-only digital services catalog and member portal.
+- `uniplug.shop`: public software-key store with registration and sign-in for regular customer accounts.
+- `vip.uniplug.shop`: the private digital-services portal for users linked to at least one Lokimax service.
 
 ## Storefront
 
-- Entire storefront restricted to invited clients with active memberships.
+- VIP service catalog and dashboard restricted to eligible clients with linked Lokimax services.
 - Member plans displayed in KSh with approximate USD equivalents.
 - Detailed service pages.
-- Invite-only email/password authentication using Supabase SSR cookies.
+- Email/password authentication using Supabase SSR cookies shared safely across the two UniPlug subdomains.
+- Post-login routing that keeps regular users on `uniplug.shop` and sends only Lokimax service users to `vip.uniplug.shop`.
 - Protected catalog, dashboard, cart, checkout, admin, and payment routes.
 - Server-side order repricing and Paystack initialization.
 - Supabase RLS that removes anonymous catalog access.
@@ -48,6 +49,6 @@ One deployment serving two deliberately separated UniPlug experiences:
 
 ## Security boundary
 
-The request proxy allows only login, invitation setup, the auth callback, and the Paystack webhook without an active member profile. Catalog RLS also rejects anonymous reads. KSh is authoritative for checkout; USD values are display-only equivalents derived from `NEXT_PUBLIC_KES_PER_USD`. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
+The request proxy keeps the public key shop separate from the VIP service portal. VIP routing requires a Lokimax portal link with at least one tracked service (administrators are the operational exception). Catalog RLS also rejects anonymous reads. KSh is authoritative for checkout; USD values are display-only equivalents derived from `NEXT_PUBLIC_KES_PER_USD`. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
 
 See `docs/PHASE_1.md` for the initial cutover and `docs/PHASE_2.md` for member-operations validation.

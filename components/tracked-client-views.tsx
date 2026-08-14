@@ -3,6 +3,7 @@ import { AccountAccess } from "@/components/account-access";
 import { ServiceArtwork } from "@/components/service-artwork";
 import type { TrackedSubscription } from "@/lib/client-portal";
 import { formatDualPrice, formatUsd } from "@/lib/currency";
+import { lokimaxServiceDisplayName } from "@/lib/lokimax-services";
 
 function statusLabel(status: string) {
   if (status === "due_soon") return "Renewal due soon";
@@ -10,7 +11,7 @@ function statusLabel(status: string) {
 }
 
 function serviceName(subscription: TrackedSubscription) {
-  return subscription.service?.name || subscription.serviceIdentifier || "Digital service";
+  return lokimaxServiceDisplayName(subscription.service?.name || subscription.serviceIdentifier || "Digital service");
 }
 
 function serviceSlug(subscription: TrackedSubscription) {
@@ -44,7 +45,9 @@ function renewalCopy(subscription: TrackedSubscription) {
 }
 
 function money(subscription: TrackedSubscription) {
-  return subscription.currency === "USD" ? formatUsd(subscription.amount) : formatDualPrice(subscription.amount);
+  const amount = subscription.bundleItemCount > 1 ? subscription.bundleTotalAmount : subscription.amount;
+  const formatted = subscription.currency === "USD" ? formatUsd(amount) : formatDualPrice(amount);
+  return subscription.bundleItemCount > 1 ? `${formatted} bundle total` : formatted;
 }
 
 function ServiceCard({ subscription }: { subscription: TrackedSubscription }) {

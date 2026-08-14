@@ -36,7 +36,6 @@ export default async function HomePage() {
           variant="homepage"
         />
       </div>
-
       <ProcessStrip />
     </div>
   );

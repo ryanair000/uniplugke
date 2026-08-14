@@ -7,8 +7,8 @@ import { getTrackedSubscriptions } from "@/lib/client-portal";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Services",
-  description: "Explore UniPlug streaming, creative, productivity, cloud, security, gaming, and learning services."
+  title: "Catalog",
+  description: "Explore UniPlug digital services and software with clear public USD pricing."
 };
 
 export default async function ServicesPage() {
@@ -30,9 +30,9 @@ export default async function ServicesPage() {
   return (
     <div className="catalog-page-minimal">
       <header className="upgrade-shell catalog-page-heading">
-        <p className="upgrade-eyebrow">All services</p>
+        <p className="upgrade-eyebrow">Full catalog</p>
         <h1>Find what fits.</h1>
-        <p>Search the member catalog, compare prices, and manage services already in your account.</p>
+        <p>Search services and software, compare prices, and manage services already in your account.</p>
       </header>
       <div className="upgrade-shell storefront-catalog-shell">
         <CatalogExplorer

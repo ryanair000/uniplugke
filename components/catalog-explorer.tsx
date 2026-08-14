@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CatalogServiceCard, categoryLabels } from "@/components/service-card";
+import {
+  CatalogServiceCard,
+  CatalogSoftwareCard,
+  categoryLabels
+} from "@/components/service-card";
+import { KEY_PRODUCTS } from "@/lib/key-products";
 import type { CatalogService, MemberPlan } from "@/lib/types";
 
 export type ManagedCatalogService = {
@@ -18,6 +23,8 @@ const featuredOrder = [
   "game-pass-ultimate",
   "icloud-plus-200"
 ];
+
+const softwareProducts = Object.values(KEY_PRODUCTS);
 
 function comparableName(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -64,10 +71,10 @@ export function CatalogExplorer({
 
   const categories = useMemo(() => {
     const available = Array.from(new Set(browsableServices.map((service) => service.category)));
-    return ["all", ...available];
+    return ["all", ...available, "software"];
   }, [browsableServices]);
 
-  const visible = useMemo(() => {
+  const visibleServices = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return browsableServices.filter((service) => {
       const categoryMatch = category === "all" || service.category === category;
@@ -82,19 +89,38 @@ export function CatalogExplorer({
     });
   }, [browsableServices, category, search]);
 
+  const visibleSoftware = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    if (category !== "all" && category !== "software") return [];
+    return softwareProducts.filter((product) => {
+      const searchableText = [
+        product.name,
+        product.categoryLabel,
+        product.description,
+        product.details,
+        ...product.facts.flatMap((fact) => [fact.label, fact.value]),
+        ...product.pendingTerms,
+        "software licence key"
+      ].join(" ").toLowerCase();
+      return !normalizedSearch || searchableText.includes(normalizedSearch);
+    });
+  }, [category, search]);
+
   const hasFilters = category !== "all" || search.trim().length > 0;
-  const orderedVisible = useMemo(() => {
-    if (variant !== "homepage") return visible;
-    return [...visible].sort((a, b) => {
+  const orderedServices = useMemo(() => {
+    if (variant !== "homepage") return visibleServices;
+    return [...visibleServices].sort((a, b) => {
       const aIndex = featuredOrder.indexOf(a.slug);
       const bIndex = featuredOrder.indexOf(b.slug);
       return (aIndex < 0 ? Number.MAX_SAFE_INTEGER : aIndex)
         - (bIndex < 0 ? Number.MAX_SAFE_INTEGER : bIndex);
     });
-  }, [variant, visible]);
-  const displayedServices = variant === "homepage" && !hasFilters
-    ? orderedVisible.slice(0, 9)
-    : orderedVisible;
+  }, [variant, visibleServices]);
+  const visibleEntries = useMemo(() => [
+    ...orderedServices.map((service) => ({ kind: "service" as const, service })),
+    ...visibleSoftware.map((product) => ({ kind: "software" as const, product }))
+  ], [orderedServices, visibleSoftware]);
+  const displayedEntries = visibleEntries;
 
   function resetFilters() {
     setCategory("all");
@@ -107,31 +133,31 @@ export function CatalogExplorer({
       aria-labelledby={variant === "homepage" ? "catalog-title" : undefined}
     >
       <div className="catalog-browser-head">
-        {variant === "homepage" ? <h2 id="catalog-title">Choose your next service.</h2> : null}
+        {variant === "homepage" ? <h2 id="catalog-title">Choose your next service or software.</h2> : null}
         {variant === "homepage" ? (
           <Link className="catalog-manage-link" href={isMember ? "/dashboard/subscriptions" : "/login"}>
-            {isMember ? "My subscriptions" : "Member sign in"} <span aria-hidden="true">â†’</span>
+            {isMember ? "My subscriptions" : "Member sign in"} <span aria-hidden="true">→</span>
           </Link>
         ) : null}
       </div>
 
       <div className="catalog-search-row">
         <label className="catalog-search">
-          <span className="sr-only">Search services</span>
+          <span className="sr-only">Search services and software</span>
           <input
             type="search"
-            placeholder="Search Netflix, music, cloudâ€¦"
+            placeholder="Search services and software…"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
         <p className="catalog-result-count" aria-live="polite">
-          {visible.length} result{visible.length === 1 ? "" : "s"}
+          {visibleEntries.length} result{visibleEntries.length === 1 ? "" : "s"}
         </p>
       </div>
 
       <div className="catalog-filter-row">
-        <div className="catalog-category-row" aria-label="Service categories">
+        <div className="catalog-category-row" aria-label="Catalog categories">
           {categories.map((key) => (
             <button
               type="button"
@@ -140,7 +166,7 @@ export function CatalogExplorer({
               aria-pressed={category === key}
               onClick={() => setCategory(key)}
             >
-              {categoryLabels[key] ?? key}
+              {key === "all" ? "All" : categoryLabels[key] ?? (key === "software" ? "Software" : key)}
             </button>
           ))}
         </div>
@@ -152,32 +178,35 @@ export function CatalogExplorer({
       </div>
 
       <div className="catalog-card-grid">
-        {displayedServices.map((service) => {
-          const managed = findManagedService(service, managedServices);
+        {displayedEntries.map((entry) => {
+          if (entry.kind === "software") {
+            return <CatalogSoftwareCard key={`software-${entry.product.slug}`} product={entry.product} />;
+          }
+          const managed = findManagedService(entry.service, managedServices);
           return (
             <CatalogServiceCard
               isMember={isMember}
-              key={service.id}
-              plan={planByService.get(service.id)}
-              service={service}
+              key={entry.service.id}
+              plan={planByService.get(entry.service.id)}
+              service={entry.service}
               managementHref={managed ? `/dashboard/subscriptions/${managed.id}` : undefined}
             />
           );
         })}
       </div>
 
-      {variant === "homepage" && visible.length > displayedServices.length ? (
+      {variant === "homepage" && visibleEntries.length > displayedEntries.length ? (
         <div className="catalog-view-all">
-          <Link href="/services">View all {visible.length} services <span aria-hidden="true">â†’</span></Link>
+          <Link href="/services">View all {visibleEntries.length} catalog items <span aria-hidden="true">→</span></Link>
         </div>
       ) : null}
 
-      {!visible.length ? (
+      {!visibleEntries.length ? (
         <div className="catalog-empty">
-          <h2>No matching services</h2>
+          <h2>No matching catalog items</h2>
           <p>Try another search or clear the active category.</p>
           <button className="button button-light" type="button" onClick={resetFilters}>
-            Show all services
+            Show everything
           </button>
         </div>
       ) : null}

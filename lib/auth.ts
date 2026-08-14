@@ -56,10 +56,18 @@ export const getViewer = cache(async () => {
 export async function requireMember() {
   const viewer = await getViewer();
   if (!viewer.user) redirect("/login");
+  if (viewer.profile && (viewer.profile.status === "pending" || viewer.profile.mustChangePassword)) {
+    const supabase = await createServerSupabaseClient();
+    const { error } = supabase
+      ? await supabase.rpc("uniplug_complete_onboarding")
+      : { error: new Error("Member access is not configured.") };
+    if (error) throw new Error(`Member dashboard onboarding failed: ${error.message}`);
+    viewer.profile.status = "active";
+    viewer.profile.mustChangePassword = false;
+  }
   if (!viewer.profile || viewer.profile.status !== "active") {
     redirect("/login?error=membership_required");
   }
-  if (viewer.profile.mustChangePassword) redirect("/set-password");
   return viewer as { user: NonNullable<typeof viewer.user>; profile: MemberProfile };
 }
 

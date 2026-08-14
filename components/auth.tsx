@@ -69,6 +69,64 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   );
 }
 
+export function RegisterForm() {
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    setSuccess(false);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName, email, password })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Registration failed");
+      if (body.signedIn) {
+        window.location.assign(body.next || "https://uniplug.shop");
+        return;
+      }
+      setSuccess(true);
+      setMessage(body.message || "Check your email to confirm your account, then sign in.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Registration failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="auth-form" onSubmit={submit}>
+      <label>
+        Your name
+        <input autoComplete="name" maxLength={80} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+      </label>
+      <label>
+        Email address
+        <input autoComplete="email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+      </label>
+      <label>
+        Password
+        <span className="password-field">
+          <input autoComplete="new-password" minLength={8} required type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? "Hide" : "Show"}</button>
+        </span>
+      </label>
+      {message ? <p className={success ? "form-success" : "form-error"} role="status">{message}</p> : null}
+      <button className="button button-dark" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
+    </form>
+  );
+}
+
 export function SignOutButton() {
   const [busy, setBusy] = useState(false);
   return (

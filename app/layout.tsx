@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: "UniPlug | Software keys, simply delivered", template: "%s | UniPlug" },
     description: "Buy Adobe Acrobat and Windows 11 Pro software keys in Kenya with secure local payment and activation support.",
     robots: { index: true, follow: true },
-    openGraph: { type: "website", siteName: "UniPlug", title: "Software keys, simply delivered", description: "Essential software keys with secure payment and activation support.", images: ["/og-uniplug.png"] }
+    openGraph: { type: "website", siteName: "UniPlug", title: "Software keys, simply delivered", description: "Essential software keys with secure payment and activation support.", images: ["/opengraph-image"] }
   };
   return {
   metadataBase: new URL(process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"),
@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "A clean catalog and private member portal for everyday digital services.",
     images: [
       {
-        url: "/og-uniplug.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "UniPlug — Digital services, simply managed."
@@ -48,14 +48,17 @@ export async function generateMetadata(): Promise<Metadata> {
     card: "summary_large_image",
     title: "UniPlug | Digital services, simply managed",
     description: "Discover digital services and manage orders, renewals, and support in one place.",
-    images: ["/og-uniplug.png"]
+    images: ["/opengraph-image"]
   }
   };
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const isKeysStore = await isKeysStoreRequest();
-  if (isKeysStore) return <html className={geist.variable} lang="en"><body><KeyStoreHeader /><main>{children}</main><KeyStoreFooter /></body></html>;
+  if (isKeysStore) {
+    const viewer = await getViewer();
+    return <html className={geist.variable} lang="en"><body><KeyStoreHeader signedIn={Boolean(viewer.user)} /><main>{children}</main><KeyStoreFooter /></body></html>;
+  }
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   return (

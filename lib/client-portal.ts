@@ -14,7 +14,16 @@ export type TrackedSubscription = {
   autoRenew: boolean;
   serviceIdentifier: string | null;
   hasAssignedAccount: boolean;
-  service: { id: string; name: string; category: string; description: string | null } | null;
+  bundleItemCount: number;
+  bundleTotalAmount: number;
+  service: {
+    id: string;
+    name: string;
+    category: string;
+    description: string | null;
+    verifyEnabled: boolean;
+    verifyProvider: string | null;
+  } | null;
 };
 
 export async function getTrackedSubscriptions(clientId: string) {
@@ -22,24 +31,47 @@ export async function getTrackedSubscriptions(clientId: string) {
   if (!supabase) return [] as TrackedSubscription[];
   const { data, error } = await supabase
     .from("client_subscriptions")
-    .select("id,status,start_date,end_date,next_renewal_date,billing_cycle,amount,currency,auto_renew,service_identifier,account_reference,metadata,service:client_services!client_subscriptions_service_id_fkey(id,name,category,description)")
+    .select("id,status,start_date,end_date,next_renewal_date,billing_cycle,amount,currency,auto_renew,service_identifier,account_reference,metadata,verify_enabled,service:client_services!client_subscriptions_service_id_fkey(id,name,category,description,verify_enabled,verify_provider)")
     .eq("client_id", clientId)
     .order("next_renewal_date", { ascending: true, nullsFirst: false });
   if (error) throw new Error(`Tracked subscriptions could not be loaded: ${error.message}`);
-  return (data || []).map((row) => ({
-    id: row.id,
-    status: row.status,
-    startDate: row.start_date,
-    endDate: row.end_date,
-    nextRenewalDate: row.next_renewal_date,
-    billingCycle: row.billing_cycle,
-    amount: Number(row.amount),
-    currency: String(row.currency).trim(),
-    autoRenew: row.auto_renew,
-    serviceIdentifier: row.service_identifier,
-    hasAssignedAccount: Boolean(row.account_reference || (row.metadata as Record<string, unknown> | null)?.assigned_account_id),
-    service: row.service as unknown as TrackedSubscription["service"]
-  }));
+  return (data || []).flatMap((row) => {
+    const metadata = (row.metadata || {}) as Record<string, unknown>;
+    if (metadata.portal_hidden === true) return [];
+    const relatedService = (Array.isArray(row.service) ? row.service[0] : row.service) as {
+      id: string;
+      name: string;
+      category: string;
+      description: string | null;
+      verify_enabled: boolean;
+      verify_provider: string | null;
+    } | null;
+    const bundleItemCount = Math.max(1, Number(metadata.bundle_item_count) || 1);
+    const bundleTotalAmount = Number(metadata.bundle_total_amount);
+    return [{
+      id: row.id,
+      status: row.status,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      nextRenewalDate: row.next_renewal_date,
+      billingCycle: row.billing_cycle,
+      amount: Number(row.amount),
+      currency: String(row.currency).trim(),
+      autoRenew: row.auto_renew,
+      serviceIdentifier: row.service_identifier,
+      hasAssignedAccount: Boolean(row.account_reference || metadata.assigned_account_id || metadata.assigned_slot_id),
+      bundleItemCount,
+      bundleTotalAmount: Number.isFinite(bundleTotalAmount) ? bundleTotalAmount : Number(row.amount),
+      service: relatedService ? {
+        id: relatedService.id,
+        name: relatedService.name,
+        category: relatedService.category,
+        description: relatedService.description,
+        verifyEnabled: Boolean(relatedService.verify_enabled && row.verify_enabled),
+        verifyProvider: relatedService.verify_provider
+      } : null
+    }];
+  });
 }
 
 export async function getTrackedSubscription(clientId: string, subscriptionId: string) {

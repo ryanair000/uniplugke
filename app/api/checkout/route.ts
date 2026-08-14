@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
-import { isPlanDurationMonths } from "@/lib/plan-durations";
+import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
           ? { planId, durationMonths }
           : null;
       })
-      .filter((selection): selection is { planId: string; durationMonths: 3 | 6 | 12 | 36 } => Boolean(selection))
+      .filter((selection): selection is { planId: string; durationMonths: PlanDurationMonths } => Boolean(selection))
       .filter((selection, index, all) => all.findIndex((item) => item.planId === selection.planId) === index)
       .slice(0, 20)
     : [];

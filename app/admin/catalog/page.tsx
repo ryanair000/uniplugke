@@ -104,7 +104,7 @@ export default async function AdminCatalogPage({
               <label className="field">Compare-at price ($)<input name="compareAtUsd" type="number" min="0.01" step="0.01" placeholder="Optional" /></label>
             </div>
             <div className="form-row">
-              <label className="field">Available durations<input value="3 months · 6 months · 12 months · 3 years" readOnly /></label>
+              <label className="field">Available durations<input value="1 month · 3 months · 6 months · 1 year · 2 years" readOnly /></label>
               <input name="billingCycle" type="hidden" value="monthly" />
               <label className="field">Purchase limit<input name="purchaseLimit" type="number" min="1" max="20" defaultValue="1" /></label>
             </div>

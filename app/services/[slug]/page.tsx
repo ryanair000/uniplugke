@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PlanOptions } from "@/components/catalog";
+import { PlanOptions, PublicPlanPreview } from "@/components/catalog";
 import { categoryLabels } from "@/components/service-card";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog, getPublicService } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
 import { formatDualPrice, formatUsd } from "@/lib/currency";
+import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,16 @@ function comparableName(value: string) {
 }
 
 export default async function ServiceDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ duration?: string }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+  const requestedDuration = Number(query.duration);
+  const initialDuration: PlanDurationMonths = isPlanDurationMonths(requestedDuration) ? requestedDuration : 1;
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();
@@ -95,7 +101,7 @@ export default async function ServiceDetailPage({
               <span>From</span>
               <strong>{formatDualPrice(primaryPlan.priceKes)} <small>/ month</small></strong>
             </div>
-          ) : !isMember && service.startingPriceUsd ? (
+          ) : service.startingPriceUsd ? (
             <div className="product-starting-price">
               <span>From</span>
               <strong>{formatUsd(service.startingPriceUsd)} <small>/ month</small></strong>
@@ -117,17 +123,25 @@ export default async function ServiceDetailPage({
             </div>
           ) : isMember ? (
             <>
-              <p className="upgrade-eyebrow">Member plan</p>
+              <p className="upgrade-eyebrow">Prepaid member plan</p>
               <h2>Choose your duration</h2>
-              <p className="purchase-card-intro">Select a prepaid term. Your total updates below.</p>
-              <PlanOptions plans={plans} service={service} />
+              <p className="purchase-card-intro">Compare every prepaid term, then continue securely with your preferred offer.</p>
+              <PlanOptions plans={plans} service={service} initialDuration={initialDuration} />
             </>
           ) : (
             <div className="product-managed-state">
-              <span className="managed-kicker">Member purchase</span>
-              <h2>Sign in to choose a plan</h2>
-              <p>Member prices and checkout are available after you sign in.</p>
-              <Link className="button button-dark" href={`/login?next=${encodeURIComponent(`/services/${service.slug}`)}`}>Member sign in</Link>
+              <span className="managed-kicker">Prepaid member plan</span>
+              <h2>Choose your duration</h2>
+              <p>Compare public USD offers now. Sign in only when you are ready to continue with secure member checkout.</p>
+              {service.startingPriceUsd ? (
+                <PublicPlanPreview
+                  initialDuration={initialDuration}
+                  monthlyPriceUsd={service.startingPriceUsd}
+                  serviceSlug={service.slug}
+                />
+              ) : (
+                <Link className="button button-dark" href={`/login?next=${encodeURIComponent(`/services/${service.slug}`)}`}>Sign in to view available plans</Link>
+              )}
             </div>
           )}
         </aside>

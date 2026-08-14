@@ -1,9 +1,15 @@
 import "server-only";
 
 import { cache } from "react";
-import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
 import { buildLokimaxCatalog } from "@/lib/lokimax-services";
+import {
+  PLAN_DURATIONS,
+  defaultPlanDurationOffer,
+  isPlanDurationMonths,
+  type PlanDurationOffer
+} from "@/lib/plan-durations";
 import type { CatalogService, MemberPlan, ServiceCategory } from "@/lib/types";
 
 export const publicCatalogFallback: CatalogService[] = [
@@ -168,27 +174,26 @@ export const getPublicCatalog = cache(async function getPublicCatalog() {
   const supabase = await createServerSupabaseClient();
   if (!supabase) return publicCatalogFallback;
 
-  const { data, error } = await supabase
-    .from("uniplug_catalog_services")
-    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured,starting_price_usd")
-    .eq("is_active", true)
-    .order("sort_order");
+  const [curatedResult, lokimaxResult] = await Promise.all([
+    supabase
+      .from("uniplug_catalog_services")
+      .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured,starting_price_usd")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("catalog")
+      .select("id,name,selling_price_1_month,selling_price_3_months,selling_price_1_year,stock_quantity,created_at")
+      .eq("category", "entertainment")
+      .gt("selling_price_1_month", 0)
+      .order("created_at", { ascending: false })
+  ]);
 
-  const curatedServices = error || !data?.length
+  const curatedServices = curatedResult.error || !curatedResult.data?.length
     ? publicCatalogFallback
-    : (data as Array<Record<string, unknown>>).map(normalizeService);
+    : (curatedResult.data as Array<Record<string, unknown>>).map(normalizeService);
 
-  const admin = createAdminSupabaseClient();
-  if (!admin) return curatedServices;
-
-  const { data: lokimaxServices, error: lokimaxError } = await admin
-    .from("services")
-    .select("id,service_name")
-    .eq("status", "active")
-    .order("service_name");
-
-  if (lokimaxError || !lokimaxServices?.length) return curatedServices;
-  return buildLokimaxCatalog(lokimaxServices, curatedServices);
+  if (lokimaxResult.error || !lokimaxResult.data?.length) return curatedServices;
+  return buildLokimaxCatalog(lokimaxResult.data, curatedServices);
 });
 
 export async function getPublicService(slug: string) {
@@ -205,7 +210,7 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
 
   let query = supabase
     .from("uniplug_member_plans")
-    .select("id,service_id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status,service:uniplug_catalog_services(slug,name)")
+    .select("id,service_id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status,service:uniplug_catalog_services(slug,name),duration_offers:uniplug_plan_duration_offers(duration_months,discount_percent,badge,is_active)")
     .eq("is_active", true)
     .order("sort_order");
 
@@ -215,6 +220,17 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
 
   return (data as unknown as Array<Record<string, unknown>>).map((row) => {
     const service = row.service as { slug?: string; name?: string } | null;
+    const storedOffers = Array.isArray(row.duration_offers)
+      ? (row.duration_offers as Array<Record<string, unknown>>)
+        .filter((offer) => isPlanDurationMonths(offer.duration_months) && offer.is_active !== false)
+        .map((offer): PlanDurationOffer => ({
+          durationMonths: Number(offer.duration_months) as PlanDurationOffer["durationMonths"],
+          discountPercent: Math.max(0, Math.min(90, Number(offer.discount_percent) || 0)),
+          badge: offer.badge == null ? null : String(offer.badge),
+          isActive: true
+        }))
+      : [];
+    const offersByDuration = new Map(storedOffers.map((offer) => [offer.durationMonths, offer]));
     return {
       id: String(row.id),
       serviceId: String(row.service_id),
@@ -226,7 +242,13 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
       compareAtKes: row.compare_at_kes == null ? null : Number(row.compare_at_kes),
       billingCycle: String(row.billing_cycle) as MemberPlan["billingCycle"],
       features: textArray(row.plan_features),
-      availabilityStatus: String(row.availability_status) as MemberPlan["availabilityStatus"]
+      availabilityStatus: String(row.availability_status) as MemberPlan["availabilityStatus"],
+      durationOffers: storedOffers.length
+        ? PLAN_DURATIONS.flatMap((duration) => {
+            const offer = offersByDuration.get(duration.months);
+            return offer ? [offer] : [];
+          })
+        : PLAN_DURATIONS.map((duration) => defaultPlanDurationOffer(duration.months))
     };
   });
 }

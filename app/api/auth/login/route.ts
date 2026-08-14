@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeKenyanPhone } from "@/lib/phone";
+import {
+  getLokimaxVipAccess,
+  storeAccountDestination,
+  vipAccountDestination
+} from "@/lib/account-routing";
 
 function safeNext(value: unknown) {
   const path = String(value || "/dashboard");
@@ -72,7 +77,7 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("uniplug_profiles")
-    .select("status")
+    .select("status,role")
     .eq("user_id", data.user.id)
     .maybeSingle();
 
@@ -81,22 +86,30 @@ export async function POST(request: Request) {
     return genericFailure();
   }
 
-  let mustChangePassword = false;
+  let vipAccess = await getLokimaxVipAccess(supabase, data.user.id);
+  const firstLogin = profile.status === "pending" || vipAccess.mustChangePassword;
+  if (firstLogin) {
+    const { error: onboardingError } = await supabase.rpc("uniplug_complete_onboarding");
+    if (onboardingError) {
+      return NextResponse.json(
+        { error: "Your account is signed in, but the dashboard could not be prepared. Please try again." },
+        { status: 500, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    vipAccess = await getLokimaxVipAccess(supabase, data.user.id);
+  }
+
   if (admin) {
-    const { data: portal } = await admin
-      .from("client_portal_accounts")
-      .select("must_change_password")
-      .eq("user_id", data.user.id)
-      .maybeSingle();
-    mustChangePassword = Boolean(portal?.must_change_password);
     await admin.from("client_portal_accounts")
       .update({ last_login_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq("user_id", data.user.id);
   }
 
-  const destination = profile?.status === "pending" || mustChangePassword
-    ? "/set-password"
-    : safeNext(body.next);
+  const requestedPath = safeNext(body.next);
+  const isAdmin = profile.role === "admin";
+  const destination = vipAccess.hasService || isAdmin
+    ? vipAccountDestination(false, firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath)
+    : storeAccountDestination(requestedPath);
   return NextResponse.json(
     { next: destination },
     { headers: { "Cache-Control": "no-store" } }

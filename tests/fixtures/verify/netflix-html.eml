@@ -1,0 +1,6 @@
+From: Netflix <info@mailer.netflix.com>
+To: member@example.test
+Subject: Complete your sign in
+Content-Type: text/html; charset=UTF-8
+
+<html><body><p>Your verification code is <strong>5730</strong>.</p></body></html>

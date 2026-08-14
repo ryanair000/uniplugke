@@ -8,7 +8,7 @@ export const metadata = { title: "Subscription requests" };
 export default async function AdminRequestsPage({
   searchParams
 }: {
-  searchParams: Promise<{ success?: string }>;
+  searchParams: Promise<{ success?: string; verifyProvider?: string; verifyCategory?: string }>;
 }) {
   const query = await searchParams;
   const supabase = await createServerSupabaseClient();
@@ -47,6 +47,7 @@ export default async function AdminRequestsPage({
         <div><p className="eyebrow">Member care</p><h1>Tickets & subscription requests</h1><p>Review support tickets, pause requests, and cancellations from one queue.</p></div>
       </div>
       {query.success ? <p className="form-success page-notice">Subscription request updated.</p> : null}
+      {query.verifyProvider ? <p className="form-success page-notice">VeriFy support context: provider <strong>{query.verifyProvider}</strong> · safe category <strong>{(query.verifyCategory || "configuration_missing").replaceAll("_", " ")}</strong>. Never request a password or verification code from the member.</p> : null}
 
       <div className="dashboard-stats compact-stats">
         <article><span>Open tickets</span><strong>{openTickets.length}</strong><small>Needs a response</small></article>
@@ -99,7 +100,7 @@ export default async function AdminRequestsPage({
               <div className="request-admin-main">
                 <span className="status-pill">{request.request_type === "pause" ? "Pause" : "Cancellation"}</span>
                 <strong>{request.subscription?.service?.name || "Digital service"}</strong>
-                <span>{request.profile?.display_name || `@${request.profile?.username || "member"}`} Â· {request.profile?.email || "No email"}</span>
+                <span>{request.profile?.display_name || `@${request.profile?.username || "member"}`} · {request.profile?.email || "No email"}</span>
                 <small>{new Date(request.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small>
                 <p>{request.reason || "No reason supplied."}</p>
               </div>
@@ -142,7 +143,7 @@ export default async function AdminRequestsPage({
         <div className="admin-list">
           {resolved.slice(0, 30).map((request) => (
             <div key={request.id}>
-              <div><strong>{request.subscription?.service?.name || "Service"} Â· {request.request_type}</strong><span>@{request.profile?.username || "member"} Â· {request.admin_note || "No admin note"}</span></div>
+              <div><strong>{request.subscription?.service?.name || "Service"} · {request.request_type}</strong><span>@{request.profile?.username || "member"} · {request.admin_note || "No admin note"}</span></div>
               <span className={`status-pill status-${request.status}`}>{request.status}</span>
             </div>
           ))}

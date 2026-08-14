@@ -5,8 +5,10 @@ const adminNavigation: PortalNavItem[] = [
   { href: "/admin", label: "Overview", shortLabel: "O" },
   { href: "/admin/orders", label: "Orders", shortLabel: "R" },
   { href: "/admin/requests", label: "Requests", shortLabel: "Q" },
+  { href: "/admin/key-requests", label: "Key sourcing", shortLabel: "K" },
   { href: "/admin/members", label: "Members", shortLabel: "M" },
   { href: "/admin/catalog", label: "Catalog & plans", shortLabel: "C" },
+  { href: "/admin/mailboxes", label: "VeriFy ops", shortLabel: "Y" },
   { href: "/dashboard", label: "Member view", shortLabel: "V" }
 ];
 

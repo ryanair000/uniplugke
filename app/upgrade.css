@@ -2594,6 +2594,10 @@ body:has(.member-area) main {
   background: linear-gradient(145deg, #fff 55%, #f0fbf7 100%);
 }
 
+.catalog-browser .catalog-card.is-software {
+  background: linear-gradient(145deg, #fff 62%, #f7f3ff 100%);
+}
+
 .catalog-browser .catalog-card-link {
   min-height: 214px;
   padding: 16px;
@@ -2604,6 +2608,17 @@ body:has(.member-area) main {
   height: 46px;
   flex-basis: 46px;
   border-radius: 13px;
+}
+
+.catalog-browser .catalog-software-logo {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--upgrade-line);
+  background: #f2eef8;
+}
+
+.catalog-browser .catalog-software-logo img {
+  object-fit: cover;
 }
 
 .catalog-browser .catalog-availability {
@@ -3018,6 +3033,124 @@ body:has(.member-area) main {
 .product-purchase-card .plan-card > .button {
   width: 100%;
   margin-top: 18px;
+}
+
+.public-plan-preview {
+  margin-top: 18px;
+}
+
+.product-purchase-card .offer-duration-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+  margin-top: 14px;
+}
+
+.product-purchase-card .offer-duration-list button {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--upgrade-line);
+  border-radius: 13px;
+  background: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.product-purchase-card .offer-duration-list button:hover,
+.product-purchase-card .offer-duration-list button.active {
+  border-color: var(--upgrade-purple);
+  background: #f8f5ff;
+  box-shadow: inset 0 0 0 1px rgba(109, 40, 217, 0.08);
+}
+
+.product-purchase-card .offer-duration-list button:focus-visible {
+  outline: 3px solid rgba(109, 40, 217, 0.24);
+  outline-offset: 2px;
+}
+
+.product-purchase-card .offer-duration-name,
+.product-purchase-card .offer-duration-price {
+  display: grid;
+  gap: 3px;
+  color: var(--upgrade-ink);
+}
+
+.product-purchase-card .offer-duration-price {
+  justify-items: end;
+  text-align: right;
+}
+
+.product-purchase-card .offer-duration-name > small {
+  color: var(--upgrade-purple);
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.product-purchase-card .offer-duration-price > strong {
+  font-size: 0.84rem;
+}
+
+.product-purchase-card .offer-duration-price > small {
+  color: var(--upgrade-green);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.public-plan-preview > .button {
+  width: 100%;
+  margin-top: 18px;
+  padding-inline: 14px;
+  text-align: center;
+}
+
+.public-price-disclaimer,
+.purchase-terms-link {
+  margin: 9px 0 0;
+  color: #817a89;
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.purchase-terms-link {
+  text-align: center;
+}
+
+.purchase-terms-link a {
+  color: var(--upgrade-purple);
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.purchase-assurances {
+  display: grid;
+  gap: 7px;
+  margin-top: 15px;
+  color: #5f5967;
+  font-size: 0.68rem;
+  font-weight: 650;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  text-align: center;
+}
+
+.purchase-assurances span {
+  position: relative;
+  padding-top: 15px;
+}
+
+.purchase-assurances span::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  color: var(--upgrade-green);
+  content: "✓";
+  font-weight: 900;
+  transform: translateX(-50%);
 }
 
 .managed-kicker {

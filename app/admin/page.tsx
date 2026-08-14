@@ -114,7 +114,8 @@ export default async function AdminPage() {
         <Link href="/admin/requests"><span>02</span><strong>Requests</strong><p>Resolve pause and cancellation requests.</p></Link>
         <Link href="/admin/members"><span>03</span><strong>Members</strong><p>Invite people and control account access.</p></Link>
         <Link href="/admin/catalog"><span>04</span><strong>Catalog</strong><p>Publish services and manage private plans.</p></Link>
-        <Link href="/admin/mailboxes"><span>05</span><strong>Netflix mailboxes</strong><p>Connect Gmail for temporary Household access codes.</p></Link>
+        <Link href="/admin/mailboxes"><span>05</span><strong>VeriFy operations</strong><p>Monitor mailbox health, alerts, and subscription controls.</p></Link>
+        <Link href="/admin/verify/providers"><span>06</span><strong>Provider gates</strong><p>Control authorization, readiness, pilots, and instant shutdown.</p></Link>
       </div>
     </section>
   );

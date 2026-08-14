@@ -13,14 +13,25 @@ export async function GET(request: Request) {
   const amountColumn = isKeyOrder ? "amount_kes" : "total_kes";
   const { data: order } = await admin.from(table).select(`id,${amountColumn},payment_status`).eq("paystack_reference", reference).maybeSingle();
   if (!order) return NextResponse.json({ paid: false, error: "Order not found" }, { status: 404 });
-  if (order.payment_status === "paid") return NextResponse.json({ paid: true });
+  if (order.payment_status === "paid") return NextResponse.json({ paid: true, state: "paid", reference });
 
   const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, { headers: { Authorization: `Bearer ${paystackSecret}` }, cache: "no-store" });
   const result = await response.json().catch(() => ({}));
   const expectedKes = Number("amount_kes" in order ? order.amount_kes : order.total_kes);
-  const paid = response.ok && result?.data?.status === "success" && Number(result.data.amount) === Math.round(expectedKes * 100);
-  if (!paid) return NextResponse.json({ paid: false, error: "Payment has not been confirmed" }, { status: 400 });
+  const providerStatus = String(result?.data?.status || "").toLowerCase();
+  const amountMatches = Number(result?.data?.amount) === Math.round(expectedKes * 100);
+  const paid = response.ok && providerStatus === "success" && amountMatches;
+  if (!paid) {
+    if (providerStatus === "success" && !amountMatches) {
+      await admin.from(table).update({ payment_status: "amount_mismatch", fulfillment_status: "manual_review" }).eq("id", order.id);
+      return NextResponse.json({ paid: false, state: "failed", reference, error: "The paid amount needs manual review. Contact support with this reference." }, { status: 409 });
+    }
+    if (["pending", "processing", "ongoing", "queued"].includes(providerStatus) || (response.ok && !providerStatus)) {
+      return NextResponse.json({ paid: false, state: "pending", reference, error: "Payment is still pending confirmation. Do not pay again yet." }, { status: 202 });
+    }
+    return NextResponse.json({ paid: false, state: "failed", reference, error: "Payment was not completed or could not be confirmed." }, { status: 400 });
+  }
 
   await admin.from(table).update({ payment_status: "paid", fulfillment_status: isKeyOrder ? "pending_delivery" : "pending_activation", paid_at: new Date().toISOString() }).eq("id", order.id);
-  return NextResponse.json({ paid: true });
+  return NextResponse.json({ paid: true, state: "paid", reference });
 }

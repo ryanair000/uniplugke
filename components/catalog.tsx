@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -14,12 +15,14 @@ import {
 import { ServiceArtwork } from "@/components/service-artwork";
 import {
   PLAN_DURATIONS,
+  defaultPlanDurationOffer,
   isPlanDurationMonths,
   planDurationLabel,
   planPriceForDuration,
+  planSavingsForDuration,
   type PlanDurationMonths
 } from "@/lib/plan-durations";
-import { formatDualPrice } from "@/lib/currency";
+import { formatDualPrice, formatUsd } from "@/lib/currency";
 import type { CartItem, CatalogService, MemberPlan } from "@/lib/types";
 
 const categoryLabels: Record<string, string> = {
@@ -385,15 +388,41 @@ export function CatalogExplorer({
   );
 }
 
-function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogService }) {
+function PlanOptionCard({
+  plan,
+  service,
+  initialDuration = 1
+}: {
+  plan: MemberPlan;
+  service: CatalogService;
+  initialDuration?: PlanDurationMonths;
+}) {
   const { add, items } = useCart();
-  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(3);
+  const router = useRouter();
+  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(initialDuration);
   const existingItem = items.find((item) => item.planId === plan.id);
-  const totalPrice = planPriceForDuration(plan.priceKes, durationMonths);
-  const compareAtPrice = plan.compareAtKes
-    ? planPriceForDuration(plan.compareAtKes, durationMonths)
-    : null;
+  const activeOffers = plan.durationOffers.filter((offer) => offer.isActive);
+  const selectedOffer = activeOffers.find((offer) => offer.durationMonths === durationMonths)
+    ?? defaultPlanDurationOffer(durationMonths);
+  const totalPrice = planPriceForDuration(plan.priceKes, durationMonths, selectedOffer.discountPercent);
+  const compareAtPrice = plan.priceKes * durationMonths;
+  const savings = planSavingsForDuration(plan.priceKes, durationMonths, selectedOffer.discountPercent);
+  const effectiveMonthlyPrice = totalPrice / durationMonths;
   const selectedIsInCart = existingItem?.durationMonths === durationMonths;
+
+  function continueToCheckout() {
+    add({
+      planId: plan.id,
+      serviceSlug: service.slug,
+      serviceName: service.name,
+      planName: plan.planName,
+      monthlyPriceKes: plan.priceKes,
+      priceKes: totalPrice,
+      billingCycle: plan.billingCycle,
+      durationMonths
+    });
+    router.push("/checkout");
+  }
 
   return (
     <div className="plan-card">
@@ -404,8 +433,12 @@ function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogS
         </div>
         <span>Flexible prepaid access</span>
       </div>
-      <div className="plan-duration-grid" aria-label={`Duration for ${plan.planName}`}>
-        {PLAN_DURATIONS.map((duration) => (
+      <div className="plan-duration-grid offer-duration-list" aria-label={`Duration for ${plan.planName}`}>
+        {activeOffers.map((offer) => {
+          const duration = PLAN_DURATIONS.find((candidate) => candidate.months === offer.durationMonths)!;
+          const offerTotal = planPriceForDuration(plan.priceKes, duration.months, offer.discountPercent);
+          const offerSavings = planSavingsForDuration(plan.priceKes, duration.months, offer.discountPercent);
+          return (
           <button
             type="button"
             key={duration.months}
@@ -413,41 +446,44 @@ function PlanOptionCard({ plan, service }: { plan: MemberPlan; service: CatalogS
             aria-pressed={durationMonths === duration.months}
             onClick={() => setDurationMonths(duration.months)}
           >
-            <span>{duration.label}</span>
+            <span className="offer-duration-name">{duration.label}{offer.badge ? <small>{offer.badge}</small> : null}</span>
+            <span className="offer-duration-price"><strong>{formatDualPrice(offerTotal)}</strong>{offerSavings > 0 ? <small>Save {formatDualPrice(offerSavings)}</small> : <small>Pay monthly</small>}</span>
           </button>
-        ))}
+        );})}
       </div>
       <div className="plan-selected-price" aria-live="polite">
-        <span>Total for {planDurationLabel(durationMonths)}</span>
+        <span>Pay today for {planDurationLabel(durationMonths)}</span>
         <strong>{formatDualPrice(totalPrice)}</strong>
-        {compareAtPrice ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
+        {savings > 0 ? <small>{formatDualPrice(effectiveMonthlyPrice)} per month · Save {formatDualPrice(savings)}</small> : <small>{formatDualPrice(effectiveMonthlyPrice)} per month</small>}
+        {savings > 0 ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
       </div>
-      <p className="plan-price-note">
-        {formatDualPrice(plan.priceKes)} per month
-      </p>
+      <p className="plan-price-note">One prepaid payment · Manual renewal · No automatic charges</p>
       <button
         type="button"
         className="button button-dark"
         data-testid="add-plan-to-cart"
         disabled={plan.availabilityStatus === "unavailable"}
-        onClick={() => add({
-          planId: plan.id,
-          serviceSlug: service.slug,
-          serviceName: service.name,
-          planName: plan.planName,
-          monthlyPriceKes: plan.priceKes,
-          priceKes: totalPrice,
-          billingCycle: plan.billingCycle,
-          durationMonths
-        })}
+        onClick={continueToCheckout}
       >
-        {selectedIsInCart ? "Added to cart" : existingItem ? "Update cart" : "Add to cart"}
+        {selectedIsInCart ? "Continue to checkout" : existingItem ? "Update plan and checkout" : `Continue with ${planDurationLabel(durationMonths)}`}
       </button>
+      <div className="purchase-assurances" aria-label="Purchase assurances">
+        <span>Secure checkout</span><span>Dashboard support</span><span>Renewal reminders</span>
+      </div>
+      <p className="purchase-terms-link">By continuing, you agree to the <Link href="/terms">purchase terms</Link>.</p>
     </div>
   );
 }
 
-export function PlanOptions({ plans, service }: { plans: MemberPlan[]; service: CatalogService }) {
+export function PlanOptions({
+  plans,
+  service,
+  initialDuration = 1
+}: {
+  plans: MemberPlan[];
+  service: CatalogService;
+  initialDuration?: PlanDurationMonths;
+}) {
   if (!plans.length) return <div className="member-lock"><h3>Member pricing</h3><p>No active member plan is currently available for this service.</p></div>;
 
   return (
@@ -457,8 +493,63 @@ export function PlanOptions({ plans, service }: { plans: MemberPlan[]; service: 
           key={plan.id}
           plan={plan}
           service={service}
+          initialDuration={initialDuration}
         />
       ))}
+    </div>
+  );
+}
+
+export function PublicPlanPreview({
+  serviceSlug,
+  monthlyPriceUsd,
+  initialDuration = 1
+}: {
+  serviceSlug: string;
+  monthlyPriceUsd: number;
+  initialDuration?: PlanDurationMonths;
+}) {
+  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(initialDuration);
+  const offer = defaultPlanDurationOffer(durationMonths);
+  const total = planPriceForDuration(monthlyPriceUsd, durationMonths, offer.discountPercent);
+  const savings = planSavingsForDuration(monthlyPriceUsd, durationMonths, offer.discountPercent);
+  const effectiveMonthly = total / durationMonths;
+  const nextPath = `/services/${serviceSlug}?duration=${durationMonths}`;
+
+  return (
+    <div className="public-plan-preview">
+      <div className="plan-duration-grid offer-duration-list" aria-label="Available prepaid durations">
+        {PLAN_DURATIONS.map((duration) => {
+          const durationTotal = planPriceForDuration(monthlyPriceUsd, duration.months, duration.discountPercent);
+          const durationSavings = planSavingsForDuration(monthlyPriceUsd, duration.months, duration.discountPercent);
+          return (
+            <button
+              type="button"
+              key={duration.months}
+              className={durationMonths === duration.months ? "active" : ""}
+              aria-pressed={durationMonths === duration.months}
+              onClick={() => setDurationMonths(duration.months)}
+            >
+              <span className="offer-duration-name">{duration.label}{duration.badge ? <small>{duration.badge}</small> : null}</span>
+              <span className="offer-duration-price"><strong>{formatUsd(durationTotal)}</strong>{durationSavings > 0 ? <small>Save {formatUsd(durationSavings)}</small> : <small>Pay monthly</small>}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="plan-selected-price" aria-live="polite">
+        <span>Selected prepaid term</span>
+        <strong>{formatUsd(total)}</strong>
+        <small>{formatUsd(effectiveMonthly)} per month{savings > 0 ? ` · Save ${formatUsd(savings)}` : ""}</small>
+      </div>
+      <p className="plan-price-note">One prepaid payment · Manual renewal · No automatic charges</p>
+      <p className="public-price-disclaimer">Public USD estimates use the advertised starting price. Your final KSh member total is confirmed after sign-in.</p>
+      <Link className="button button-dark" href={`/login?next=${encodeURIComponent(nextPath)}`}>
+        Sign in to continue with {planDurationLabel(durationMonths)}
+      </Link>
+      <div className="purchase-assurances" aria-label="Purchase assurances">
+        <span>Secure checkout</span><span>Dashboard support</span><span>Renewal reminders</span>
+      </div>
+      <p className="purchase-terms-link">By continuing, you agree to the <Link href="/terms">purchase terms</Link>.</p>
     </div>
   );
 }

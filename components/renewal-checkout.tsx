@@ -61,7 +61,7 @@ export function RenewalCheckout({
       <aside className="summary-card">
         <p className="eyebrow">Renewal summary</p>
         <div><span>{planDurationLabel(durationMonths)}</span><strong>{formatDualPrice(priceKes)}</strong></div>
-        <p>The final dollar amount and plan eligibility are recalculated securely before Paystack opens.</p>
+        <p>The final KSh amount and plan eligibility are recalculated securely before Paystack opens.</p>
         {error ? <p className="form-error">{error}</p> : null}
         <button type="button" className="button button-mint" disabled={busy || phone.replace(/\D/g, "").length < 9} onClick={startRenewal}>{busy ? "Starting renewal…" : "Pay renewal securely"}</button>
       </aside>
