@@ -115,11 +115,8 @@ export function buildLokimaxCatalog(sources: LokimaxCatalogSource[], curatedServ
       : Number(source.stock_quantity) <= 5
         ? "limited" as const
         : "available" as const;
-    const curated = curatedBySlug.get(serviceSlug);
-    if (curated) return [{ ...curated, startingPriceUsd, availabilityStatus }];
-
     const shortDescription = serviceProfile?.shortDescription ?? `${name} access with activation tracking and local member support.`;
-    return [{
+    const generatedService: CatalogService = {
       id: source.id,
       slug: serviceSlug,
       category: serviceProfile?.category ?? "productivity",
@@ -138,6 +135,16 @@ export function buildLokimaxCatalog(sources: LokimaxCatalogSource[], curatedServ
       availabilityStatus,
       featured: false,
       startingPriceUsd
-    }];
+    };
+    const curated = curatedBySlug.get(serviceSlug);
+
+    // Backfilled catalog rows deliberately retain the Lokimax source ID so
+    // their private member plans can reference the same service. Keep using
+    // the richer in-code profile for those rows; genuinely curated services
+    // such as Netflix continue to use their editorial database content.
+    if (curated && curated.id !== source.id) {
+      return [{ ...curated, startingPriceUsd, availabilityStatus }];
+    }
+    return [generatedService];
   });
 }

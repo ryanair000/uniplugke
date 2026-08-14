@@ -81,6 +81,22 @@ const checks = [
     name: "Lokimax prices become public USD prices without duplicate aliases",
     source: read("lib/lokimax-services.ts"),
     tokens: ["kesToUsd(monthlyPriceKes)", "seen.has(serviceSlug)", 'prime: "primevideo"']
+  },
+  {
+    name: "every visible priced Lokimax service receives a purchasable member plan",
+    source: read("supabase/migrations/20260814021112_make_all_priced_services_purchasable.sql"),
+    tokens: [
+      "catalog.selling_price_1_month > 0",
+      "row_number() over",
+      "source.slug || '-member'",
+      "source.monthly_price_kes",
+      "uniplug_plan_duration_offers",
+      "(1, 0::numeric",
+      "(3, 3::numeric",
+      "(6, 8::numeric",
+      "(12, 13::numeric",
+      "(24, 17::numeric"
+    ]
   }
 ];
 
