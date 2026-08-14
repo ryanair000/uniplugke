@@ -15,4 +15,8 @@ supabase/.temp/
 .playwright-cli/
 output/
 
+# Independent repositories kept beside this project
+lokimax-top/
+lokimax-top-rejected-backup/
+
 .env*.local
