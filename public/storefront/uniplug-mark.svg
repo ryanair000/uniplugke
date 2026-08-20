@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="13" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">UniPlug mark</title>
   <path fill="#155EEF" d="M9 22h13v20a10 10 0 0 0 20 0V22h13v20a23 23 0 0 1-46 0V22Z"/>
   <rect width="10" height="18" x="14" y="3" rx="2" fill="#155EEF"/>
   <rect width="10" height="18" x="40" y="3" rx="2" fill="#155EEF"/>

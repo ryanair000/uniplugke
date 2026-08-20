@@ -1,3 +1,7 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="34" viewBox="0 0 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path id="mark" d="M12 0L24 17L12 34L0 17L12 0Z" fill="#6D28D9"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+<title id="title">UniPlug mark</title>
+<path fill="#155EEF" d="M9 22h13v20a10 10 0 0 0 20 0V22h13v20a23 23 0 0 1-46 0V22Z"/>
+<rect width="10" height="18" x="14" y="3" rx="2" fill="#155EEF"/>
+<rect width="10" height="18" x="40" y="3" rx="2" fill="#155EEF"/>
+<rect width="16" height="7" x="24" y="22" rx="2" fill="#B8F500"/>
 </svg>

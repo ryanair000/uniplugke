@@ -5,6 +5,9 @@ import "@/app/phase2.css";
 import "@/app/upgrade.css";
 import "@/app/member-wallet.css";
 import "@/app/key-store.css";
+import "@/app/storefront-header.css";
+import "@/app/store-commerce.css";
+import "@/app/brand.css";
 import { CartProvider } from "@/components/catalog";
 import { SiteFooter, SiteHeader } from "@/components/site";
 import { getViewer } from "@/lib/auth";
@@ -20,10 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const isKeysStore = await isKeysStoreRequest();
   if (isKeysStore) return {
     metadataBase: new URL("https://uniplug.shop"),
-    title: { default: "UniPlug | Software keys, simply delivered", template: "%s | UniPlug" },
-    description: "Buy Adobe Acrobat and Windows 11 Pro software keys in Kenya with secure local payment and activation support.",
+    title: { default: "UniPlug | Software, devices and accessories", template: "%s | UniPlug" },
+    description: "Shop software, devices and accessories in Kenya with secure local payment, nationwide delivery and local support.",
     robots: { index: true, follow: true },
-    openGraph: { type: "website", siteName: "UniPlug", title: "Software keys, simply delivered", description: "Essential software keys with secure payment and activation support.", images: ["/opengraph-image"] }
+    openGraph: { type: "website", siteName: "UniPlug", title: "Everything your setup needs", description: "Software, devices and accessories with secure local payment and support.", images: ["/opengraph-image"] }
   };
   return {
   metadataBase: new URL(process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"),

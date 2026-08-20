@@ -11,10 +11,13 @@ export function Brand({ tone = "light" }: { tone?: "light" | "dark" }) {
       className={`brand brand-${tone}`}
       aria-label="UniPlug home"
     >
-      <span className="brand-mark" aria-hidden="true">
-        <Image src="/figma/uniplug-mark.svg" alt="" width={24} height={34} />
-      </span>
-      <span>uniplug</span>
+      <Image
+        alt="UniPlug"
+        className="uniplug-wordmark"
+        height={39}
+        src={tone === "dark" ? "/storefront/uniplug-logo-light.svg" : "/storefront/uniplug-logo.svg"}
+        width={148}
+      />
     </Link>
   );
 }

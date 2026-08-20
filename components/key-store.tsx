@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Menu, Search, UserRound } from "lucide-react";
 import {
   KEY_PRODUCTS,
   keyProductEndOfTermDisclosure,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/key-products";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { RequestKeyForm } from "@/components/key-support";
+import { StoreCartIndicator } from "@/components/store-cart";
 
 const money = new Intl.NumberFormat("en-KE");
 const products = Object.values(KEY_PRODUCTS);
@@ -330,18 +332,49 @@ export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
 
   return (
     <header className="key-header">
+      <div className="key-delivery-bar">
+        <span aria-hidden="true">●</span>
+        Free Nairobi delivery over KSh 10,000
+      </div>
       <div className="key-main-header key-shell">
-        <Link aria-label="UniPlug software keys home" className="key-brand" href="/"><span>u</span><b>uniplug</b></Link>
+        <Link aria-label="UniPlug home" className="key-brand" href="/">
+          <Image alt="UniPlug" className="uniplug-wordmark" height={40} priority src="/storefront/uniplug-logo.svg" width={152} />
+        </Link>
         <nav aria-label="Store navigation">
-          <Link href="/#catalog">Software</Link>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/order-status">Order status</Link>
-          <Link href="/#support">Request a key</Link>
+          <Link href="/#popular">Shop</Link>
+          <Link href="/?category=software#popular">Software</Link>
+          <Link href="/?category=games#popular">Games</Link>
+          <Link href="/?category=gaming#popular">Gaming</Link>
+          <Link href="/?category=audio#popular">Audio</Link>
+          <Link href="/?category=accessories#popular">Accessories</Link>
+          <Link href="/help">Support</Link>
         </nav>
-        <Link className="key-mobile-catalog-link" href="/#catalog">Shop</Link>
+        <form action="/" className="key-global-search" role="search">
+          <label className="sr-only" htmlFor="key-global-search">Search products</label>
+          <input id="key-global-search" name="q" placeholder="Search products" type="search" />
+          <button aria-label="Search" type="submit"><Search aria-hidden="true" /></button>
+        </form>
+        <div className="key-header-tools">
+          <Link aria-label={signedIn ? "Open account settings" : "Sign in"} href={signedIn ? "/settings" : "/login"}>
+            <UserRound aria-hidden="true" />
+          </Link>
+          <StoreCartIndicator />
+        </div>
+        <details className="key-mobile-menu">
+          <summary aria-label="Open store navigation"><Menu aria-hidden="true" /></summary>
+          <nav aria-label="Mobile store navigation">
+            <Link href="/#popular">Shop</Link>
+            <Link href="/?category=software#popular">Software</Link>
+            <Link href="/?category=games#popular">Games</Link>
+            <Link href="/?category=gaming#popular">Gaming</Link>
+            <Link href="/?category=audio#popular">Audio</Link>
+            <Link href="/?category=accessories#popular">Accessories</Link>
+            <Link href="/help">Support</Link>
+          </nav>
+        </details>
         {signedIn ? (
           <button
-            className="key-button key-button-member"
+            className="sr-only"
             disabled={signingOut}
             onClick={async () => {
               setSigningOut(true);
@@ -353,9 +386,7 @@ export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
           >
             {signingOut ? "Signing out…" : "Sign out"}
           </button>
-        ) : (
-          <Link className="key-button key-button-member" href="/login">Sign in <span aria-hidden="true">→</span></Link>
-        )}
+        ) : null}
       </div>
     </header>
   );
@@ -366,12 +397,12 @@ export function KeyStoreFooter() {
     <footer className="key-footer">
       <div className="key-shell key-footer-grid">
         <div className="key-footer-brand">
-          <Link className="key-brand" href="/"><span>u</span><b>uniplug</b></Link>
-          <p>Essential software with local checkout, order tracking, and activation guidance.</p>
+          <Link aria-label="UniPlug home" className="key-brand" href="/"><Image alt="UniPlug" className="uniplug-wordmark" height={37} src="/storefront/uniplug-logo-light.svg" width={142} /></Link>
+          <p>Software, devices and accessories with secure local payment and support.</p>
           <a href="mailto:support@uniplug.shop">support@uniplug.shop</a>
         </div>
-        <div><h2>Shop</h2><Link href="/#catalog">All software keys</Link><Link href="/?category=pdf#catalog">PDF & productivity</Link><Link href="/?category=operating-system#catalog">Operating systems</Link></div>
-        <div><h2>Help</h2><Link href="/#how-it-works">How it works</Link><Link href="/order-status">Order status</Link><Link href="/#support">Request a key</Link><a href="mailto:support@uniplug.shop">Email support</a></div>
+        <div><h2>Shop</h2><Link href="/#popular">All products</Link><Link href="/?category=software#popular">Software</Link><Link href="/?category=games#popular">Physical games</Link><Link href="/?category=gaming#popular">Gaming gear</Link></div>
+        <div><h2>Help</h2><Link href="/help">Help centre</Link><Link href="/order-status">Software order status</Link><a href="mailto:support@uniplug.shop">Email support</a></div>
         <div><h2>Accounts</h2><Link href="/register">Create account</Link><Link href="/login">Sign in</Link><a href="https://vip.uniplug.shop">VIP client portal</a></div>
       </div>
       <div className="key-shell key-footer-bottom"><p>© 2026 UniPlug Kenya. All rights reserved.</p><p>Prices shown in Kenyan shillings (KSh).</p></div>

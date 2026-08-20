@@ -2,11 +2,13 @@
 
 One deployment serving two deliberately separated UniPlug experiences:
 
-- `uniplug.shop`: public software-key store with registration and sign-in for regular customer accounts.
+- `uniplug.shop`: public software, gaming, devices, and accessories store with physical delivery, digital fulfilment, registration, and sign-in.
 - `vip.uniplug.shop`: the private digital-services portal for users linked to at least one Lokimax service.
 
 ## Storefront
 
+- Unified software and physical-product catalog with category browsing, search, pagination, and owned UniPlug branding.
+- Physical cart and server-priced Paystack checkout with Nairobi and nationwide delivery rules.
 - VIP service catalog and dashboard restricted to eligible clients with linked Lokimax services.
 - Member plans displayed in KSh with approximate USD equivalents.
 - Detailed service pages.

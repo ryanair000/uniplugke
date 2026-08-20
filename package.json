@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs && node scripts/verify-client-portal.mjs && node scripts/verify-key-store.mjs && node scripts/verify-verify-phase-two.mjs && node scripts/verify-verify-phase-three.mjs && node scripts/verify-verify-phase-four.mjs && node --no-warnings scripts/verify-provider-parsers.mjs",
+    "test": "node scripts/verify-public-pricing.mjs && node scripts/verify-phase2-boundaries.mjs && node scripts/verify-client-portal.mjs && node scripts/verify-key-store.mjs && node scripts/verify-storefront-home.mjs && node scripts/verify-verify-phase-two.mjs && node scripts/verify-verify-phase-three.mjs && node scripts/verify-verify-phase-four.mjs && node --no-warnings scripts/verify-provider-parsers.mjs",
     "test:db": "supabase test db",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
@@ -19,6 +19,7 @@
     "@supabase/ssr": "0.12.3",
     "@supabase/supabase-js": "2.110.8",
     "imapflow": "^1.7.0",
+    "lucide-react": "1.33.0",
     "next": "16.2.11",
     "react": "19.2.7",
     "react-dom": "19.2.7",

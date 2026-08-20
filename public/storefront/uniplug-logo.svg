@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 244 64" role="img" aria-labelledby="title">
+  <title id="title">UniPlug</title>
+  <g>
+    <path fill="#155EEF" d="M9 22h13v20a10 10 0 0 0 20 0V22h13v20a23 23 0 0 1-46 0V22Z"/>
+    <rect width="10" height="18" x="14" y="3" rx="2" fill="#155EEF"/>
+    <rect width="10" height="18" x="40" y="3" rx="2" fill="#155EEF"/>
+    <rect width="16" height="7" x="24" y="22" rx="2" fill="#B8F500"/>
+  </g>
+  <text x="75" y="46" fill="#111820" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="800">uniplug</text>
+</svg>

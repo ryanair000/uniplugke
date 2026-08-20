@@ -3,13 +3,36 @@ import { ProcessStrip } from "@/components/home-sections";
 import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
-import { KeyStoreHome } from "@/components/key-store";
 import { isKeysStoreRequest } from "@/lib/site-mode";
+import { StorefrontHome } from "@/components/storefront-home";
+import { getStorefrontProducts, type StorefrontCategory } from "@/lib/storefront-products";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  if (await isKeysStoreRequest()) return <KeyStoreHome />;
+  if (await isKeysStoreRequest()) {
+    const products = await getStorefrontProducts();
+    const categoryCounts = products.reduce((counts, product) => {
+      counts[product.category] += 1;
+      return counts;
+    }, {
+      software: 0,
+      games: 0,
+      gaming: 0,
+      audio: 0,
+      power: 0,
+      peripherals: 0,
+      storage: 0,
+      accessories: 0
+    } satisfies Record<StorefrontCategory, number>);
+    return (
+      <StorefrontHome
+        categoryCounts={categoryCounts}
+        initialProducts={products.slice(0, 24)}
+        initialTotal={products.length}
+      />
+    );
+  }
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();

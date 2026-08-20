@@ -12,5 +12,6 @@ export default async function PaymentReturnPage({
   const query = await searchParams;
   const reference = query.reference || query.trxref || null;
   const keyOrder = await isKeysStoreRequest();
-  return <section className="auth-page"><PaymentStatus reference={reference} keyOrder={keyOrder} /></section>;
+  const storeOrder = Boolean(reference?.startsWith("ST-"));
+  return <section className="auth-page"><PaymentStatus reference={reference} keyOrder={keyOrder && !storeOrder} storeOrder={storeOrder} /></section>;
 }

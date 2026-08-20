@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getPaymentOrderConfig } from "@/lib/payment-orders";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 function signaturesMatch(received: string, expected: string) {
@@ -29,12 +30,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const isKeyOrder = event.data.reference.startsWith("KEY-");
-  const table = isKeyOrder ? "uniplug_key_orders" : "uniplug_member_orders";
-  const amountColumn = isKeyOrder ? "amount_kes" : "total_kes";
+  const { table, paidFulfillmentStatus } = getPaymentOrderConfig(event.data.reference);
   const { data: order } = await admin
     .from(table)
-    .select(`id,${amountColumn},payment_status`)
+    .select("*")
     .eq("paystack_reference", event.data.reference)
     .maybeSingle();
 
@@ -49,8 +48,9 @@ export async function POST(request: Request) {
   if (order.payment_status !== "paid") {
     await admin.from(table).update({
       payment_status: "paid",
-      fulfillment_status: isKeyOrder ? "pending_delivery" : "pending_activation",
-      paid_at: event.data.paid_at || new Date().toISOString()
+      fulfillment_status: paidFulfillmentStatus,
+      paid_at: event.data.paid_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }).eq("id", order.id);
   }
 

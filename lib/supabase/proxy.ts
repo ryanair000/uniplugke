@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     if (pathname === "/tools/verify") {
       return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, vipAccountDestination(false, pathname)));
     }
-    const allowed = pathname === "/" || pathname.startsWith("/keys/") || pathname === "/order-status" || pathname === "/login" || pathname === "/register" || pathname === "/auth/callback" || pathname === "/checkout" || pathname === "/payment-return" || pathname === "/opengraph-image" || pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/api/auth/login" || pathname === "/api/auth/register" || pathname === "/api/keys/checkout" || pathname === "/api/keys/requests" || pathname === "/api/keys/order-status" || pathname === "/api/payments/verify" || pathname === "/api/payments/webhook";
+    const allowed = pathname === "/" || pathname.startsWith("/keys/") || pathname.startsWith("/products/") || pathname === "/cart" || pathname === "/order-status" || pathname === "/login" || pathname === "/register" || pathname === "/auth/callback" || pathname === "/checkout" || pathname === "/payment-return" || pathname === "/opengraph-image" || pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/api/auth/login" || pathname === "/api/auth/register" || pathname === "/api/store/products" || pathname === "/api/store/checkout" || pathname === "/api/keys/checkout" || pathname === "/api/keys/requests" || pathname === "/api/keys/order-status" || pathname === "/api/payments/verify" || pathname === "/api/payments/webhook";
     if (!allowed) {
       const storeUrl = request.nextUrl.clone(); storeUrl.pathname = "/"; storeUrl.search = "";
       return NextResponse.redirect(storeUrl);
