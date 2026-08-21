@@ -5,6 +5,7 @@ on:
     branches:
       - fix/phase-2-hardening
 
+# Temporary packaging workflow for the production handoff.
 jobs:
   package-source:
     runs-on: ubuntu-latest
