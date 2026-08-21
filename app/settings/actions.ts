@@ -6,7 +6,7 @@ import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function settingsUrl(type: "success" | "error", message: string) {
-  return `/settings?${type}=${encodeURIComponent(message)}`;
+  return `/dashboard/account?${type}=${encodeURIComponent(message)}`;
 }
 
 export async function updateMemberProfile(formData: FormData) {
@@ -29,9 +29,10 @@ export async function updateMemberProfile(formData: FormData) {
   if (error) redirect(settingsUrl("error", error.message));
 
   revalidatePath("/settings");
+  revalidatePath("/dashboard/account");
   revalidatePath("/dashboard");
   revalidatePath("/admin");
-  redirect(settingsUrl("success", "Profile settings updated."));
+  redirect(settingsUrl("success", "Account settings updated."));
 }
 
 export async function updateMemberPassword(formData: FormData) {
