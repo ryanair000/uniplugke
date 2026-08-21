@@ -50,8 +50,8 @@ export default async function AdminMembersPage({
         .select("user_id,client_id")
         .in("user_id", profiles.map((profile) => profile.user_id))).data || [])
     : [];
-  const clientIdByUser = new Map(
-    (portalRows as Array<{ user_id: string; client_id: string }>).map((row) => [row.user_id, row.client_id])
+  const clientIdByUser = new Map<string, string>(
+    (portalRows as Array<{ user_id: string; client_id: string }>).map((row) => [row.user_id, row.client_id] as const)
   );
   const clientIds = [...new Set(Array.from(clientIdByUser.values()))];
   const subscriptionRows = admin && clientIds.length
@@ -76,7 +76,7 @@ export default async function AdminMembersPage({
     current.push({ id: row.id, name: relatedService?.name || "Digital service", status: row.status });
     subscriptionsByClient.set(row.client_id, current);
   }
-  const statusOrder = new Map([["active", 0], ["due_soon", 1], ["trial", 2], ["past_due", 3], ["expired", 4], ["cancelled", 5]]);
+  const statusOrder = new Map<string, number>([["active", 0], ["due_soon", 1], ["trial", 2], ["past_due", 3], ["expired", 4], ["cancelled", 5]]);
   for (const subscriptions of subscriptionsByClient.values()) {
     subscriptions.sort((a, b) => (statusOrder.get(a.status) ?? 9) - (statusOrder.get(b.status) ?? 9));
   }
