@@ -3,17 +3,10 @@ import { notFound } from "next/navigation";
 import { RenewPlanButton } from "@/components/renew-plan-button";
 import { requestSubscriptionAction } from "@/app/dashboard/subscriptions/actions";
 import { requireMember } from "@/lib/auth";
+import { formatDateKe, formatDateTimeKe, formatKes, statusClassName, statusLabel } from "@/lib/dashboard-ui";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
-
-function readableStatus(value: string) {
-  return value.replaceAll("_", " ");
-}
 
 export default async function SubscriptionDetailPage({
   params,
@@ -79,26 +72,29 @@ export default async function SubscriptionDetailPage({
   const canPause = ["active", "past_due"].includes(subscription.status) && !pendingPause;
   const canCancel = ["pending_activation", "active", "past_due", "paused"].includes(subscription.status) && !pendingCancel;
   const canRenew = Boolean(plan && service && plan.availability_status !== "unavailable" && ["active", "past_due", "paused", "expired"].includes(subscription.status));
+  const periodLabel = subscription.auto_renew ? "Renews on" : "Access until";
+  const requestErrorMessage = query.error ? "We could not submit that request. Please try again, or contact UniPlug support if the problem continues." : null;
 
   return (
     <section className="section shell page-top">
-      <Link className="back-link" href="/dashboard">← Back to My UniPlug</Link>
+      <Link className="back-link" href="/dashboard#my-services">← Back to My services</Link>
       {query.success === "request_submitted" ? <p className="form-success page-notice">Your request was submitted for review.</p> : null}
-      {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
+      {requestErrorMessage ? <p className="form-error page-notice">{requestErrorMessage}</p> : null}
 
       <div className="subscription-detail-hero">
         <div className="service-logo detail-service-logo" style={{ background: service?.accent_color || "#6957ff" }}>{service?.logo_text || "UP"}</div>
-        <div><p className="eyebrow">My subscription</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span>{readableStatus(subscription.status)}</span><span>{plan?.billing_cycle || "Billing cycle pending"}</span></div></div>
+        <div><p className="eyebrow">My service</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span className={statusClassName(subscription.status)}>{statusLabel(subscription.status)}</span><span>{plan?.billing_cycle || "Billing cycle pending"}</span></div></div>
       </div>
 
       <div className="subscription-detail-grid">
         <div className="detail-main">
           <section className="panel">
-            <div className="section-heading compact"><div><p className="eyebrow">Plan</p><h2>Membership details</h2></div></div>
+            <div className="section-heading compact"><div><p className="eyebrow">Plan</p><h2>Service details</h2></div></div>
             <dl className="detail-list">
-              <div><dt>Current status</dt><dd>{readableStatus(subscription.status)}</dd></div>
-              <div><dt>Started</dt><dd>{subscription.start_at ? new Date(subscription.start_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Activation pending"}</dd></div>
-              <div><dt>Current period ends</dt><dd>{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Not scheduled"}</dd></div>
+              <div><dt>Current status</dt><dd><span className={statusClassName(subscription.status)}>{statusLabel(subscription.status)}</span></dd></div>
+              <div><dt>Started</dt><dd>{subscription.start_at ? formatDateKe(subscription.start_at, { dateStyle: "long" }) : "Activation pending"}</dd></div>
+              <div><dt>{periodLabel}</dt><dd>{subscription.current_period_end ? formatDateKe(subscription.current_period_end, { dateStyle: "long" }) : "Not scheduled"}</dd></div>
+              <div><dt>Auto-renew</dt><dd>{subscription.auto_renew ? "On" : "Off"}</dd></div>
               <div><dt>Fulfilment</dt><dd>{service?.fulfillment_label || "Managed through UniPlug"}</dd></div>
               <div><dt>Activation window</dt><dd>{service?.activation_window || "Shown after verification"}</dd></div>
             </dl>
@@ -110,8 +106,8 @@ export default async function SubscriptionDetailPage({
             <div className="request-history">
               {actionRequests.map((request) => (
                 <article key={request.id}>
-                  <div><strong>{request.request_type === "pause" ? "Pause request" : "Cancellation request"}</strong><span>{new Date(request.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
-                  <span className="status-pill">{request.status}</span>
+                  <div><strong>{request.request_type === "pause" ? "Pause request" : "Cancellation request"}</strong><span>{formatDateTimeKe(request.created_at)}</span></div>
+                  <span className={statusClassName(request.status)}>{statusLabel(request.status)}</span>
                   {request.reason ? <p>{request.reason}</p> : null}
                   {request.admin_note ? <p><b>UniPlug:</b> {request.admin_note}</p> : null}
                 </article>
@@ -126,7 +122,7 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Renewal</p>
             <h2>{plan?.plan_name || "Member plan"}</h2>
             {plan ? <div className="plan-price">{formatKes(Number(plan.price_kes))}<span>/ {plan.billing_cycle}</span></div> : null}
-            <p>A renewal creates a dedicated order and extends this subscription after payment and activation.</p>
+            <p>{subscription.auto_renew ? "This service is set to renew automatically. You can still extend it manually when eligible." : "Renewing extends your existing service after payment and activation."}</p>
             {plan && service ? <RenewPlanButton subscriptionId={subscription.id} disabled={!canRenew} /> : null}
             {!canRenew ? <small>This plan is not currently available for renewal.</small> : null}
           </section>
