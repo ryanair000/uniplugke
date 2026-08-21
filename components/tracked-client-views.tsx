@@ -33,6 +33,10 @@ function renewalLabel(subscription: TrackedSubscription) {
   return date ? new Date(`${date}T12:00:00`).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" }) : "Not scheduled";
 }
 
+function renewalHeading(subscription: TrackedSubscription) {
+  return subscription.autoRenew ? "Next renewal" : "Renewal due";
+}
+
 function daysUntilRenewal(subscription: TrackedSubscription) {
   const date = renewalDate(subscription);
   if (!date) return null;
@@ -45,9 +49,10 @@ function renewalCopy(subscription: TrackedSubscription) {
   const days = daysUntilRenewal(subscription);
   if (days === null) return "No renewal scheduled";
   if (days < 0) return `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
-  if (days === 0) return "Renews today";
-  if (days === 1) return "Renews tomorrow";
-  return `Renews in ${days} days`;
+  const verb = subscription.autoRenew ? "Renews" : "Due";
+  if (days === 0) return `${verb} today`;
+  if (days === 1) return `${verb} tomorrow`;
+  return `${verb} in ${days} days`;
 }
 
 function money(subscription: TrackedSubscription) {
@@ -68,7 +73,7 @@ function ServiceCard({ subscription }: { subscription: TrackedSubscription }) {
         </div>
       </div>
       <div className="wallet-service-renewal">
-        <small>Next renewal</small>
+        <small>{renewalHeading(subscription)}</small>
         <strong>{renewalLabel(subscription)}</strong>
         <span>{renewalCopy(subscription)}</span>
       </div>
@@ -106,7 +111,7 @@ export function TrackedClientDashboard({ name, subscriptions }: { name: string; 
 
       <div className="wallet-overview-bar">
         <div><span>Active services</span><strong>{active.length}</strong></div>
-        <div><span>Next renewal</span><strong>{upcoming ? renewalLabel(upcoming) : "None"}</strong></div>
+        <div><span>Next service date</span><strong>{upcoming ? renewalLabel(upcoming) : "None"}</strong></div>
         <div><span>Account access</span><strong>{subscriptions.some((item) => item.hasAssignedAccount) ? "Ready" : "Pending"}</strong></div>
       </div>
 
@@ -148,11 +153,11 @@ export function LegacyTrackedSubscriptionDetail({ subscription }: { subscription
 
       <nav className="wallet-detail-tabs" aria-label="Service sections"><a href="#overview" className="active">Overview</a><a href="#access">Login details</a><a href="#billing">Billing</a><a href="#support">Support</a></nav>
 
-      <section className="wallet-renewal-banner" id="billing"><div><p className="wallet-kicker">Next renewal</p><h2>{renewalLabel(subscription)}</h2><span>{renewalCopy(subscription)} · {money(subscription)}</span></div><Link className="button wallet-primary-button" href={`/dashboard/support?topic=renewal&service=${encodeURIComponent(name)}`}>Renew service</Link></section>
+      <section className="wallet-renewal-banner" id="billing"><div><p className="wallet-kicker">{renewalHeading(subscription)}</p><h2>{renewalLabel(subscription)}</h2><span>{renewalCopy(subscription)} · {money(subscription)}</span></div><Link className="button wallet-primary-button" href={`/dashboard/support?topic=renewal&service=${encodeURIComponent(name)}`}>Renew service</Link></section>
 
       <div className="wallet-detail-grid" id="overview">
         <div className="wallet-detail-main">
-          <section className="wallet-card"><div className="wallet-card-heading"><div><p className="wallet-kicker">Plan overview</p><h2>Service details</h2></div><span className={`wallet-status status-${subscription.status}`}><i />{statusLabel(subscription.status)}</span></div><dl className="wallet-detail-list"><div><dt>Plan</dt><dd>{subscription.billingCycle}</dd></div><div><dt>Price</dt><dd>{money(subscription)}</dd></div><div><dt>Started</dt><dd>{subscription.startDate ? new Date(`${subscription.startDate}T12:00:00`).toLocaleDateString("en-KE", { dateStyle: "medium" }) : "Not recorded"}</dd></div><div><dt>Renewal</dt><dd>{renewalLabel(subscription)}</dd></div><div><dt>Payment</dt><dd>{subscription.autoRenew ? "Automatic renewal" : "Manual renewal"}</dd></div></dl></section>
+          <section className="wallet-card"><div className="wallet-card-heading"><div><p className="wallet-kicker">Plan overview</p><h2>Service details</h2></div><span className={`wallet-status status-${subscription.status}`}><i />{statusLabel(subscription.status)}</span></div><dl className="wallet-detail-list"><div><dt>Plan</dt><dd>{subscription.billingCycle}</dd></div><div><dt>Price</dt><dd>{money(subscription)}</dd></div><div><dt>Started</dt><dd>{subscription.startDate ? new Date(`${subscription.startDate}T12:00:00`).toLocaleDateString("en-KE", { dateStyle: "medium" }) : "Not recorded"}</dd></div><div><dt>{subscription.autoRenew ? "Renewal" : "Renewal due"}</dt><dd>{renewalLabel(subscription)}</dd></div><div><dt>Payment</dt><dd>{subscription.autoRenew ? "Automatic renewal" : "Manual renewal"}</dd></div></dl></section>
           <section id="access"><AccountAccess subscriptionId={subscription.id} canReplace={active} /></section>
         </div>
         <aside className="wallet-detail-side" id="support"><section className="wallet-card wallet-support-card"><span className="wallet-support-icon" aria-hidden="true">?</span><p className="wallet-kicker">Support</p><h2>Something not working?</h2><p>Create a ticket with this service already identified. Never include passwords or one-time codes.</p><Link className="button wallet-secondary-button" href={`/dashboard/support?service=${encodeURIComponent(name)}`}>Create a ticket</Link></section><section className="wallet-card wallet-security-card"><strong>Protected access</strong><p>Login details are fetched only when you request them and automatically hidden again.</p></section></aside>
@@ -175,7 +180,7 @@ export function TrackedSubscriptionDetail({ subscription }: { subscription: Trac
           <ServiceArtwork accentColor="#111111" className="wallet-detail-logo" descriptive logoText={name.slice(0, 2).toUpperCase()} name={name} slug={serviceSlug(subscription)} />
           <div><span className={`wallet-status status-${subscription.status}`}><i />{statusLabel(subscription.status)}</span><h1>{name}</h1><p>Your access is ready below.</p></div>
         </div>
-        <div className="service-console-renewal-summary"><span>Next renewal</span><strong>{renewalLabel(subscription)}</strong><small>{money(subscription)} · {renewalCopy(subscription)}</small></div>
+        <div className="service-console-renewal-summary"><span>{renewalHeading(subscription)}</span><strong>{renewalLabel(subscription)}</strong><small>{money(subscription)} · {renewalCopy(subscription)}</small></div>
       </header>
 
       <div className="service-console-layout">
