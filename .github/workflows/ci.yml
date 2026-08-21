@@ -11,6 +11,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  package-source:
+    name: Package live source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create source archive
+        run: tar --exclude=.git --exclude=node_modules --exclude=.next -czf /tmp/uniplug-live-source.tgz .
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: uniplug-live-source
+          path: /tmp/uniplug-live-source.tgz
+          retention-days: 1
+          if-no-files-found: error
+
   quality:
     name: Lint, type-check, source invariants, and build
     runs-on: ubuntu-latest
