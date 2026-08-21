@@ -1,21 +1,20 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { DashboardNavigation } from "@/components/dashboard-navigation";
 import { requireMember } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false }
+};
 
 export default async function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const viewer = await requireMember();
 
   return (
-    <div className="member-area">
-      <div className="shell member-nav-wrap">
-        <nav className="member-nav" aria-label="Member portal">
-          <Link href="/dashboard">Overview</Link>
-          <Link href="/dashboard/orders">Orders</Link>
-          <Link href="/settings">Profile & security</Link>
-          {viewer.profile.role === "admin" ? <Link href="/admin">Administration</Link> : null}
-        </nav>
-        <span className="member-identity">@{viewer.profile.username}</span>
+    <div className="member-area dashboard-v2-area">
+      <div className="dashboard-app-shell">
+        <DashboardNavigation username={viewer.profile.username} isAdmin={viewer.profile.role === "admin"} />
+        <div className="dashboard-content">{children}</div>
       </div>
-      {children}
     </div>
   );
 }
