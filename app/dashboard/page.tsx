@@ -88,16 +88,16 @@ export default async function DashboardPage() {
   const events = (eventsResult.data || []) as Event[];
   const hasLoadError = Boolean(subscriptionsResult.error || ordersResult.error || requestsResult.error || eventsResult.error);
 
-  const now = Date.now();
+  const referenceTime = new Date().getTime();
   const activeServices = subscriptions.filter((item) => item.status === "active");
   const pendingRequests = requests.filter((request) => request.status === "pending");
   const needsAttention = subscriptions.filter((item) => ["past_due", "pending_activation"].includes(item.status)).length + pendingRequests.length;
   const renewalEligible = subscriptions
     .filter((item) => ["active", "past_due"].includes(item.status))
-    .filter((item) => item.current_period_end && new Date(item.current_period_end).getTime() >= now)
+    .filter((item) => item.current_period_end && new Date(item.current_period_end).getTime() >= referenceTime)
     .sort((a, b) => new Date(a.current_period_end!).getTime() - new Date(b.current_period_end!).getTime());
   const nextRenewal = renewalEligible[0];
-  const renewalDays = daysUntil(nextRenewal?.current_period_end);
+  const renewalDays = daysUntil(nextRenewal?.current_period_end, referenceTime);
   const pastDue = subscriptions.find((item) => item.status === "past_due");
   const pendingActivation = subscriptions.find((item) => item.status === "pending_activation");
 
@@ -130,7 +130,7 @@ export default async function DashboardPage() {
       ) : pendingActivation ? (
         <DashboardNotice tone="info" title={`${pendingActivation.service?.name || "Your service"} is being activated`} body="We have your order. You can follow the service status from its management page." href={`/dashboard/subscriptions/${pendingActivation.id}`} action="Track activation" />
       ) : nextRenewal && renewalDays != null && renewalDays <= 7 ? (
-        <DashboardNotice tone="warning" title={`${nextRenewal.service?.name || "Your service"} renews soon`} body={`${renewalLabel(nextRenewal.current_period_end)} for ${formatKes(nextRenewal.plan?.price_kes)}.`} href={`/dashboard/subscriptions/${nextRenewal.id}`} action="Review renewal" />
+        <DashboardNotice tone="warning" title={`${nextRenewal.service?.name || "Your service"} renews soon`} body={`${renewalLabel(nextRenewal.current_period_end, referenceTime)} for ${formatKes(nextRenewal.plan?.price_kes)}.`} href={`/dashboard/subscriptions/${nextRenewal.id}`} action="Review renewal" />
       ) : pendingRequests.length ? (
         <DashboardNotice tone="info" title={`${pendingRequests.length} request${pendingRequests.length === 1 ? " is" : "s are"} under review`} body="Your access stays unchanged while UniPlug reviews pause or cancellation requests." href="/dashboard/subscriptions" action="View services" />
       ) : (
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
                   <span>{item.plan?.plan_name || "Member plan"}{item.plan ? ` · ${formatKes(item.plan.price_kes)}/${item.plan.billing_cycle}` : ""}</span>
                 </div>
                 <StatusBadge status={item.status} />
-                <div className="service-renewal-copy"><strong>{renewalLabel(item.current_period_end)}</strong><span>{item.current_period_end ? formatDate(item.current_period_end) : "Activation date pending"}</span></div>
+                <div className="service-renewal-copy"><strong>{renewalLabel(item.current_period_end, referenceTime)}</strong><span>{item.current_period_end ? formatDate(item.current_period_end) : "Activation date pending"}</span></div>
                 <b className="row-action">Manage →</b>
               </Link>
             ))}
