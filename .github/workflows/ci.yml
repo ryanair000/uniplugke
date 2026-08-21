@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, phase-1-foundation, phase-2-member-operations, fix/phase-2-hardening, feat/dashboard-v2-live-sprint1]
   pull_request:
-    branches: [main]
+    branches: [main, fix/phase-2-hardening]
 
 concurrency:
   group: ci-${{ github.ref }}
