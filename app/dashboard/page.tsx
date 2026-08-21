@@ -10,6 +10,7 @@ import {
 } from "@/components/member-dashboard";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { serverNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My UniPlug" };
@@ -88,7 +89,7 @@ export default async function DashboardPage() {
   const events = (eventsResult.data || []) as Event[];
   const hasLoadError = Boolean(subscriptionsResult.error || ordersResult.error || requestsResult.error || eventsResult.error);
 
-  const referenceTime = new Date().getTime();
+  const referenceTime = serverNow();
   const activeServices = subscriptions.filter((item) => item.status === "active");
   const pendingRequests = requests.filter((request) => request.status === "pending");
   const needsAttention = subscriptions.filter((item) => ["past_due", "pending_activation"].includes(item.status)).length + pendingRequests.length;
