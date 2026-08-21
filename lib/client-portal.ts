@@ -83,7 +83,7 @@ export async function getAuthorizedAccessDetails(userId: string, subscriptionId:
   void userId;
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { error: "Account access is not configured." } as const;
-  const { data, error } = await supabase.rpc("uniplug_get_client_account_access_v2", {
+  const { data, error } = await (supabase as any).rpc("uniplug_get_client_account_access_v2", {
     p_client_subscription_id: subscriptionId
   });
   if (error) return { error: error.message } as const;
