@@ -26,6 +26,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A valid subscription and phone number are required" }, { status: 400 });
   }
 
+  const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
+  if (!paystackSecret) return NextResponse.json({ error: "Payment provider is not configured" }, { status: 503 });
+
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
   const { data, error } = await supabase.rpc("uniplug_create_renewal_order", {
@@ -34,9 +37,6 @@ export async function POST(request: Request) {
   });
   const order = Array.isArray(data) ? data[0] : data;
   if (error || !order) return NextResponse.json({ error: error?.message || "Renewal order could not be created" }, { status: 400 });
-
-  const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
-  if (!paystackSecret) return NextResponse.json({ error: "Payment provider is not configured" }, { status: 503 });
 
   const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop"}/payment-return`;
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
