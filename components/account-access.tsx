@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 
 type AccessDetails = { serviceName: string; accountEmail: string; accountPassword: string; verificationCode: string | null; profileName: string | null };
-type CodeResult = { code: string; expiresAt: string; receivedAt: string };
+type CodeResult = { code: string };
+
+type IssueReason = "no_subscription" | "household_issue" | "incorrect_password" | "many_users_streaming" | "";
 
 function VaultRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -15,10 +17,12 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   const [details, setDetails] = useState<AccessDetails | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"reveal" | "replace" | "code" | null>("reveal");
-  const [householdOpen, setHouseholdOpen] = useState(false);
-  const [replacementReason, setReplacementReason] = useState<string | null>(null);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationStartedAt, setVerificationStartedAt] = useState<number | null>(null);
+  const [verificationTimedOut, setVerificationTimedOut] = useState(false);
+  const [codeNote, setCodeNote] = useState("");
+  const [replacementReason, setReplacementReason] = useState<IssueReason | null>(null);
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -40,51 +44,108 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   }, [subscriptionId]);
 
   useEffect(() => {
-    if (!codeResult) return;
-    const update = () => setSecondsLeft(Math.max(0, Math.floor((new Date(codeResult.expiresAt).getTime() - Date.now()) / 1000)));
-    update();
-    const timer = window.setInterval(update, 1000);
-    return () => window.clearInterval(timer);
-  }, [codeResult]);
+    if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut) return;
+    const remaining = 300_000 - (Date.now() - verificationStartedAt);
+    if (remaining <= 0) {
+      setVerificationTimedOut(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setVerificationTimedOut(true), remaining);
+    return () => window.clearTimeout(timer);
+  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut]);
 
-  async function replace() {
+  useEffect(() => {
+    if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut) return;
+    const timer = window.setInterval(() => {
+      if (Date.now() - verificationStartedAt >= 300_000) return;
+      if (busy !== "code") void getLatestCode(true);
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy]);
+
+  async function reportIssue() {
     if (!replacementReason) return;
+    const reason = replacementReason;
     setBusy("replace"); setMessage("");
     try {
-      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/replace`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason: replacementReason }) });
+      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/replace`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason })
+      });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Replacement could not be completed.");
-      if (body.status === "approval_required") {
+      if (!response.ok) throw new Error(body.error || "Your account issue could not be submitted.");
+
+      if (body.status === "admin_alerted") {
         setReplacementReason(null);
-        setMessage(body.message || "Admin approval is required before another replacement.");
+        setMessage(body.message || "Admin has been alerted and will review the account.");
         return;
       }
+
       if (body.details) setDetails(body.details);
-      setReplacementReason(null); setHouseholdOpen(false); setCodeResult(null);
-      setMessage("Replacement completed. Your new login details are ready.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Replacement could not be completed."); }
-    finally { setBusy(null); }
+      setReplacementReason(null);
+      setVerificationOpen(false);
+      setVerificationStartedAt(null);
+      setVerificationTimedOut(false);
+      setCodeResult(null);
+      setCodeNote("");
+      setMessage(body.message || "New slot assigned. Please log in using the new slot details shown above.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Your account issue could not be submitted.");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  async function getLatestCode() {
-    setBusy("code"); setMessage(""); setCodeResult(null);
+  async function getLatestCode(silent = false) {
+    setBusy("code");
+    if (!silent) setMessage("");
+    setCodeNote("Checking Netflix for your verification code…");
     try {
       const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "No current Netflix code was found.");
-      setCodeResult(body);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No current Netflix code was found."); }
-    finally { setBusy(null); }
+      if (!response.ok) {
+        if (body.status === "not_found") {
+          setCodeNote("Still waiting for the Netflix verification code…");
+          return;
+        }
+        throw new Error(body.error || "The Netflix verification code could not be loaded.");
+      }
+      if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
+      setCodeResult({ code: String(body.code) });
+      setCodeNote("");
+    } catch (error) {
+      setCodeNote("");
+      setMessage(error instanceof Error ? error.message : "The Netflix verification code could not be loaded.");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  async function copyCode() {
-    if (!codeResult) return;
-    await navigator.clipboard.writeText(codeResult.code);
-    setMessage("Temporary code copied.");
+  function openVerificationCode() {
+    const startedAt = Date.now();
+    setVerificationOpen(true);
+    setVerificationStartedAt(startedAt);
+    setVerificationTimedOut(false);
+    setReplacementReason(null);
+    setCodeResult(null);
+    setCodeNote("Checking Netflix for your verification code…");
+    setMessage("");
+    void getLatestCode();
   }
 
-  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  function openAccountIssue(reason: IssueReason = "") {
+    setReplacementReason(reason);
+    setVerificationOpen(false);
+    setVerificationStartedAt(null);
+    setVerificationTimedOut(false);
+    setCodeResult(null);
+    setCodeNote("");
+    setMessage("");
+  }
+
+  const issueActionLabel = replacementReason === "household_issue" ? "Replace slot" : "Alert admin";
+  const isSuccessMessage = /assigned|alerted|ready|completed|copied|approval/i.test(message);
 
   return (
     <section className="wallet-card access-console">
@@ -92,21 +153,37 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       {!details ? <div className="access-console-locked"><p>{busy === "reveal" ? "Loading your login details…" : "Login details are currently unavailable."}</p></div> : <dl className="wallet-vault access-console-vault"><VaultRow label="Email" value={details.accountEmail}/><VaultRow label="Password" value={details.accountPassword}/>{details.profileName ? <VaultRow label="Profile" value={details.profileName}/> : null}<p>Keep these login details private and use them only for your assigned service.</p></dl>}
 
       <div className="access-console-actions">
-        {isNetflix ? <button className="button household-button" type="button" onClick={() => { setHouseholdOpen((current) => !current); setReplacementReason(null); setMessage(""); }}>Household help</button> : null}
-        {canReplace ? <button className="button replace-button" type="button" onClick={() => { setReplacementReason(""); setHouseholdOpen(false); setMessage(""); }}>Replace account</button> : null}
+        {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code"}>Need Verification Code</button> : null}
+        {canReplace ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div>
 
-      {isNetflix && householdOpen ? <div className="household-assistant">
-        <div className="household-heading"><span aria-hidden="true">TV</span><div><p className="wallet-kicker">Netflix Household help</p><h3>Watching away from home?</h3></div></div>
-        <ol><li><b>On your TV</b><span>Choose <strong>I’m Traveling</strong>. On mobile or computer choose <strong>Watch Temporarily</strong>.</span></li><li><b>Request the email</b><span>Choose <strong>Send Email</strong> on Netflix, then return here.</span></li><li><b>Get the code</b><span>Temporary codes expire after 15 minutes.</span></li></ol>
-        <button className="button wallet-primary-button household-code-button" type="button" onClick={getLatestCode} disabled={Boolean(busy)}>{busy === "code" ? "Checking Netflix email…" : "Get latest Netflix code"}</button>
-        {codeResult ? <div className="temporary-code" aria-live="polite"><div><span>Latest code</span><strong>{codeResult.code.split("").join(" ")}</strong></div><div><span>Expires in</span><b>{minutes}:{seconds}</b></div><button type="button" onClick={copyCode}>Copy code</button></div> : null}
-        <div className="household-fallback"><strong>Don’t see “I’m Traveling” or “Watch Temporarily”?</strong><p>Netflix may have reached the temporary-code limit for this device. If an eligible slot is available, UniPlug can replace this access.</p><button type="button" onClick={() => setReplacementReason("household_issue")}>I don’t see that option</button></div>
-        <small>For authorized household or travelling access only.</small>
+      {isNetflix && verificationOpen ? <div className="household-assistant" aria-live="polite">
+        <div className="household-heading"><span aria-hidden="true">#</span><div><p className="wallet-kicker">Netflix verification</p><h3>Verification code</h3></div></div>
+        {!codeResult ? <p>{verificationTimedOut ? "The code is taking longer than expected." : (codeNote || "Checking Netflix for your verification code…")}</p> : null}
+        {codeResult ? <div className="temporary-code"><strong>{codeResult.code.split("").join(" ")}</strong></div> : null}
+        <small>This should usually take less than 2 minutes. If it takes more than 5 minutes, click Account not working.</small>
+        {verificationTimedOut && !codeResult ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div> : null}
 
-      {replacementReason !== null ? <div className="replacement-confirm" role="region" aria-live="polite" aria-labelledby="replacement-title"><div className="replacement-reason-field"><strong id="replacement-title">Why do you need a replacement?</strong><p>Your first replacement is instant. Any replacement after that requires admin approval.</p><label htmlFor={`replacement-reason-${subscriptionId}`}>Issue</label><select id={`replacement-reason-${subscriptionId}`} value={replacementReason} onChange={(event) => setReplacementReason(event.target.value)}><option value="">Choose an issue</option><option value="incorrect_password">Incorrect password</option><option value="no_subscription">No active subscription</option><option value="vpn_issue">VPN or location issue</option>{isNetflix ? <option value="household_issue">Netflix Household issue</option> : null}<option value="other">Other login problem</option></select></div><div><button className="button replace-button" type="button" onClick={replace} disabled={Boolean(busy) || !replacementReason}>{busy === "replace" ? "Finding a slot…" : "Confirm replacement"}</button><button className="button wallet-ghost-button" type="button" onClick={() => setReplacementReason(null)} disabled={Boolean(busy)}>Cancel</button></div></div> : null}
-      {message ? <p className={message.includes("completed") || message.includes("copied") || message.toLowerCase().includes("approval") ? "form-success" : "form-error"} role="status">{message}</p> : null}
+      {replacementReason !== null ? <div className="replacement-confirm" role="region" aria-live="polite" aria-labelledby="replacement-title">
+        <div className="replacement-reason-field">
+          <strong id="replacement-title">What is wrong with this account?</strong>
+          <p>Choose the issue below. Household issues get a new slot automatically; the other issues alert admin for review.</p>
+          <label htmlFor={`replacement-reason-${subscriptionId}`}>Issue</label>
+          <select id={`replacement-reason-${subscriptionId}`} value={replacementReason} onChange={(event) => setReplacementReason(event.target.value as IssueReason)}>
+            <option value="">Choose an issue</option>
+            <option value="no_subscription">No subscription</option>
+            {isNetflix ? <option value="household_issue">Household issues</option> : null}
+            <option value="incorrect_password">Incorrect Pass</option>
+            <option value="many_users_streaming">Many users streaming</option>
+          </select>
+        </div>
+        <div>
+          <button className="button replace-button" type="button" onClick={reportIssue} disabled={Boolean(busy) || !replacementReason}>{busy === "replace" ? (replacementReason === "household_issue" ? "Finding a new slot…" : "Alerting admin…") : issueActionLabel}</button>
+          <button className="button wallet-ghost-button" type="button" onClick={() => setReplacementReason(null)} disabled={Boolean(busy)}>Cancel</button>
+        </div>
+      </div> : null}
+      {message ? <p className={isSuccessMessage ? "form-success" : "form-error"} role="status">{message}</p> : null}
     </section>
   );
 }
