@@ -42,6 +42,14 @@ type Event = {
   created_at: string;
 };
 
+const servicePriority: Record<string, number> = {
+  past_due: 0,
+  pending_activation: 1,
+  active: 2,
+  paused: 3,
+  expired: 4
+};
+
 export default async function DashboardPage() {
   const viewer = await requireMember();
   const supabase = await createServerSupabaseClient();
@@ -95,8 +103,7 @@ export default async function DashboardPage() {
 
   const previewServices = [...subscriptions]
     .sort((a, b) => {
-      const priority = (status: string) => ({ past_due: 0, pending_activation: 1, active: 2, paused: 3, expired: 4 }[status] ?? 5);
-      const byStatus = priority(a.status) - priority(b.status);
+      const byStatus = (servicePriority[a.status] ?? 5) - (servicePriority[b.status] ?? 5);
       if (byStatus !== 0) return byStatus;
       return (a.current_period_end ? new Date(a.current_period_end).getTime() : Number.MAX_SAFE_INTEGER) - (b.current_period_end ? new Date(b.current_period_end).getTime() : Number.MAX_SAFE_INTEGER);
     })
