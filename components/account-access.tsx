@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type AccessDetails = { serviceName: string; accountEmail: string; accountPassword: string; verificationCode: string | null; profileName: string | null };
+type AccessDetails = { serviceName: string; accountEmail: string; accountPassword: string; verificationCode: string | null; profileName: string | null; profilePin: string | null };
 type CodeResult = { code: string };
 
 type IssueReason = "no_subscription" | "household_issue" | "incorrect_password" | "many_users_streaming" | "";
@@ -150,7 +150,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   return (
     <section className="wallet-card access-console">
       <div className="wallet-card-heading"><div><p className="wallet-kicker">Account access</p><h2>Login details</h2></div><span className="wallet-lock" aria-hidden="true">⌁</span></div>
-      {!details ? <div className="access-console-locked"><p>{busy === "reveal" ? "Loading your login details…" : "Login details are currently unavailable."}</p></div> : <dl className="wallet-vault access-console-vault"><VaultRow label="Email" value={details.accountEmail}/><VaultRow label="Password" value={details.accountPassword}/>{details.profileName ? <VaultRow label="Profile" value={details.profileName}/> : null}<p>Keep these login details private and use them only for your assigned service.</p></dl>}
+      {!details ? <div className="access-console-locked"><p>{busy === "reveal" ? "Loading your login details…" : "Login details are currently unavailable."}</p></div> : <dl className="wallet-vault access-console-vault"><VaultRow label="Email" value={details.accountEmail}/><VaultRow label="Password" value={details.accountPassword}/>{details.profileName ? <VaultRow label="Profile" value={details.profileName}/> : null}{details.profilePin ? <VaultRow label="Profile PIN" value={details.profilePin}/> : null}<p>Keep these login details private and use them only for your assigned service.</p></dl>}
 
       <div className="access-console-actions">
         {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code"}>Need Verification Code</button> : null}

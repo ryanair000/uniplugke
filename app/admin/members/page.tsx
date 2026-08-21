@@ -1,6 +1,7 @@
 import { updateMemberStatus } from "@/app/admin/actions";
 import { AdminInvitationForm } from "@/components/admin-invitations";
 import { AdminMemberAccess } from "@/components/admin-member-access";
+import { AdminMemberServiceAccess } from "@/components/admin-member-service-access";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
@@ -129,6 +130,7 @@ export default async function AdminMembersPage({
                     status={profile.status}
                     subscriptions={deliverySubscriptions}
                   />
+                  <AdminMemberServiceAccess subscriptions={deliverySubscriptions} />
                   <form action={updateMemberStatus}>
                     <input name="userId" type="hidden" value={profile.user_id} />
                     <label className="sr-only" htmlFor={`status-${profile.user_id}`}>
