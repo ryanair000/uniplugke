@@ -14,10 +14,11 @@ export function formatDate(value: string | null | undefined, options?: Intl.Date
   return new Date(value).toLocaleDateString("en-KE", options || { dateStyle: "medium" });
 }
 
-export function daysUntil(value: string | null | undefined) {
+export function daysUntil(value: string | null | undefined, referenceTime?: number) {
   if (!value) return null;
   const target = new Date(value).getTime();
-  return Math.ceil((target - Date.now()) / 86_400_000);
+  const now = referenceTime ?? new Date().getTime();
+  return Math.ceil((target - now) / 86_400_000);
 }
 
 function statusTone(status: string) {
@@ -33,9 +34,9 @@ export function StatusBadge({ status, label }: { status: string; label?: string 
   return <span className={`status-pill status-${statusTone(status)}`}>{label || readableStatus(status)}</span>;
 }
 
-export function renewalLabel(date: string | null | undefined) {
+export function renewalLabel(date: string | null | undefined, referenceTime?: number) {
   if (!date) return "No renewal scheduled";
-  const days = daysUntil(date);
+  const days = daysUntil(date, referenceTime);
   if (days == null) return formatDate(date);
   if (days < 0) return `Ended ${formatDate(date)}`;
   if (days === 0) return "Renews today";
