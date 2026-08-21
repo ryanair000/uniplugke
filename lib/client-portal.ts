@@ -26,6 +26,19 @@ export type TrackedSubscription = {
   } | null;
 };
 
+type RpcResult = { data: unknown; error: { message: string } | null };
+type RpcClient = {
+  rpc: (functionName: string, args?: Record<string, unknown>) => PromiseLike<RpcResult>;
+};
+type AccountAccessRow = {
+  service_name?: string | null;
+  account_email?: string | null;
+  account_password?: string | null;
+  verification_code?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
+};
+
 export async function getTrackedSubscriptions(clientId: string) {
   const supabase = await createServerSupabaseClient();
   if (!supabase) return [] as TrackedSubscription[];
@@ -83,20 +96,21 @@ export async function getAuthorizedAccessDetails(userId: string, subscriptionId:
   void userId;
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { error: "Account access is not configured." } as const;
-  const { data, error } = await (supabase as any).rpc("uniplug_get_client_account_access_v2", {
+  const rpcClient = supabase as unknown as RpcClient;
+  const { data, error } = await rpcClient.rpc("uniplug_get_client_account_access_v2", {
     p_client_subscription_id: subscriptionId
   });
   if (error) return { error: error.message } as const;
-  const account = Array.isArray(data) ? data[0] : null;
+  const account = (Array.isArray(data) ? data[0] : null) as AccountAccessRow | null;
   if (!account) return { error: "Access details are not assigned yet. Create a support ticket." } as const;
   return {
     details: {
       serviceName: account.service_name || "Tracked service",
-      accountEmail: account.account_email,
-      accountPassword: account.account_password,
-      verificationCode: account.verification_code,
-      profileName: account.profile_name,
-      profilePin: account.profile_pin
+      accountEmail: account.account_email || "",
+      accountPassword: account.account_password || "",
+      verificationCode: account.verification_code || null,
+      profileName: account.profile_name || null,
+      profilePin: account.profile_pin || null
     }
   } as const;
 }
