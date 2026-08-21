@@ -10,14 +10,16 @@ export function Brand() {
 export async function SiteHeader() {
   const viewer = await getViewer();
   const isMember = Boolean(viewer.profile?.status === "active");
-  const isAdmin = isMember && viewer.profile?.role === "admin";
   return (
     <header className="site-header">
       <div className="shell header-inner">
         <Brand />
-        <nav className="desktop-nav"><Link href="/services">Services</Link><Link href="/#how-it-works">How it works</Link><Link href="/#support">Support</Link></nav>
+        <nav className="desktop-nav">
+          <Link href="/services">Services</Link>
+          {isMember ? <Link href="/dashboard/support">Support</Link> : <><Link href="/#how-it-works">How it works</Link><Link href="/#support">Support</Link></>}
+        </nav>
         <div className="header-actions">
-          {isMember ? <>{isAdmin && <Link href="/admin">Operations</Link>}<Link href="/dashboard">My UniPlug</Link><Link href="/settings">Settings</Link><CartLink /><SignOutButton /></> : <Link className="button button-dark small" href="/login">Member sign in</Link>}
+          {isMember ? <><Link href="/dashboard">My UniPlug</Link><CartLink /><SignOutButton /></> : <Link className="button button-dark small" href="/login">Member sign in</Link>}
         </div>
       </div>
     </header>
