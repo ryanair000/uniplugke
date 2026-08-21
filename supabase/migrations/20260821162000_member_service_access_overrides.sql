@@ -102,6 +102,18 @@ begin
     limit 1;
   end if;
 
+  if v_base_email is null and nullif(btrim(v_account_reference), '') is not null then
+    select
+      account.account_mail,
+      coalesce(secret.decrypted_secret, account.account_password),
+      account.profile_name
+    into v_base_email, v_base_password, v_base_profile
+    from public.accounts account
+    left join vault.decrypted_secrets secret on secret.id = account.password_secret_id
+    where lower(account.account_mail) = lower(v_account_reference)
+    limit 1;
+  end if;
+
   insert into private.uniplug_client_service_access_log(client_subscription_id, actor_user_id, action)
   values (p_client_subscription_id, auth.uid(), 'admin_read');
 
