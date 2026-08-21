@@ -1,15 +1,32 @@
 .dashboard-order-row .status-badge.status-success,
-.order-history-list .status-badge.status-success { color: #147052; }
+.order-history-list .status-badge.status-success,
+.request-history .status-badge.status-success,
+.tag-row .status-badge.status-success { color: #147052; }
 .dashboard-order-row .status-badge.status-warning,
-.order-history-list .status-badge.status-warning { color: #8a5b00; }
+.order-history-list .status-badge.status-warning,
+.request-history .status-badge.status-warning,
+.tag-row .status-badge.status-warning { color: #8a5b00; }
 .dashboard-order-row .status-badge.status-danger,
-.order-history-list .status-badge.status-danger { color: #bc2e40; }
+.order-history-list .status-badge.status-danger,
+.request-history .status-badge.status-danger,
+.tag-row .status-badge.status-danger { color: #bc2e40; }
 .dashboard-order-row .status-badge.status-info,
-.order-history-list .status-badge.status-info { color: var(--purple); }
+.order-history-list .status-badge.status-info,
+.request-history .status-badge.status-info,
+.tag-row .status-badge.status-info { color: var(--purple); }
 .dashboard-order-row .status-badge.status-neutral,
-.order-history-list .status-badge.status-neutral { color: #676773; }
+.order-history-list .status-badge.status-neutral,
+.request-history .status-badge.status-neutral,
+.tag-row .status-badge.status-neutral { color: #676773; }
 
-.receipt-summary dd .status-badge {
+.tag-row .status-badge,
+.request-history .status-badge {
+  width: max-content;
+  padding: 6px 9px;
+}
+
+.receipt-summary dd .status-badge,
+.detail-list dd .status-badge {
   margin-left: auto;
 }
 
