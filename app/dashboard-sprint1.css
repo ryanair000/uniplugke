@@ -1,0 +1,93 @@
+.activity-list > a {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+  padding-block: 14px;
+}
+
+.activity-list > a:first-child {
+  border-top: 0;
+}
+
+.activity-list > a > div {
+  display: grid;
+  gap: 5px;
+}
+
+.activity-list > a:hover strong {
+  color: var(--purple);
+}
+
+.status-pill.status-active,
+.status-pill.status-paid,
+.status-pill.status-completed {
+  background: #eaf8f2;
+  color: #147052;
+}
+
+.status-pill.status-pending,
+.status-pill.status-pending_activation,
+.status-pill.status-pending_payment,
+.status-pill.status-processing,
+.status-pill.status-past_due {
+  background: #fff4d7;
+  color: #8a5b00;
+}
+
+.status-pill.status-failed,
+.status-pill.status-initialization_failed,
+.status-pill.status-amount_mismatch {
+  background: #fff0f2;
+  color: #bc2e40;
+}
+
+.status-pill.status-manual_review {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.status-pill.status-paused,
+.status-pill.status-cancelled,
+.status-pill.status-expired,
+.status-pill.status-refunded,
+.status-pill.status-declined {
+  background: #f0f0f4;
+  color: #676773;
+}
+
+.member-list .status-pill,
+.request-history .status-pill,
+.tag-row .status-pill {
+  width: max-content;
+  color: inherit;
+}
+
+.member-list .status-pill.status-active,
+.request-history .status-pill.status-active,
+.tag-row .status-pill.status-active,
+.member-list .status-pill.status-paid {
+  color: #147052;
+}
+
+.member-list .status-pill.status-pending,
+.member-list .status-pill.status-pending_activation,
+.member-list .status-pill.status-pending_payment,
+.member-list .status-pill.status-processing,
+.member-list .status-pill.status-past_due,
+.request-history .status-pill.status-pending,
+.tag-row .status-pill.status-pending_activation,
+.tag-row .status-pill.status-past_due {
+  color: #8a5b00;
+}
+
+.member-list .status-pill.status-failed,
+.member-list .status-pill.status-initialization_failed,
+.member-list .status-pill.status-amount_mismatch {
+  color: #bc2e40;
+}
+
+.receipt-summary dd .status-pill,
+.detail-list dd .status-pill {
+  margin-left: auto;
+}
