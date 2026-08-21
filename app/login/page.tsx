@@ -75,6 +75,8 @@ export default async function LoginPage({
         ) : (
           <LoginForm nextPath={nextPath} />
         )}
+        {query.error === "vip_link_invalid" && <p className="form-error">This VIP access link is invalid for this account or subscription. Ask UniPlug for a fresh link.</p>}
+        {query.error === "vip_link_expired" && <p className="form-error">This VIP access link has expired or was already used. Ask UniPlug for a fresh link.</p>}
         {query.error === "membership_required" && <p className="form-error">VIP access requires a service linked to your Lokimax client account.</p>}
         {query.error === "not_configured" && <p className="form-error">Member access is temporarily unavailable. Please contact UniPlug support.</p>}
         <small>{isMainShop ? <>New to UniPlug? <a href="/register">Create an account</a>.</> : "VIP access is reserved for clients with a service in Lokimax."}</small>
