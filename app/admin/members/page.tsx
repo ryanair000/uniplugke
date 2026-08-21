@@ -130,10 +130,7 @@ export default async function AdminMembersPage({
                     status={profile.status}
                     subscriptions={deliverySubscriptions}
                   />
-                  <AdminMemberServiceAccess
-                    userId={profile.user_id}
-                    subscriptions={deliverySubscriptions}
-                  />
+                  <AdminMemberServiceAccess subscriptions={deliverySubscriptions} />
                   <form action={updateMemberStatus}>
                     <input name="userId" type="hidden" value={profile.user_id} />
                     <label className="sr-only" htmlFor={`status-${profile.user_id}`}>
