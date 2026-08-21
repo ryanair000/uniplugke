@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@/app/globals.css";
 import "@/app/phase2.css";
+import "@/app/dashboard-v2.css";
 import { CartProvider } from "@/components/catalog";
 import { SiteFooter, SiteHeader } from "@/components/site";
 import { getViewer } from "@/lib/auth";
