@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/auth";
+import { formatMemberDateTime, memberEventHref } from "@/lib/member-dashboard";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,30 +15,19 @@ type Notification = {
   created_at: string;
 };
 
-function notificationHref(notification: Notification) {
-  if (notification.entity_type === "order" && notification.entity_id) {
-    return `/dashboard/orders/${notification.entity_id}`;
-  }
-  if (notification.entity_type === "subscription" && notification.entity_id) {
-    return `/dashboard/subscriptions/${notification.entity_id}`;
-  }
-  if (notification.entity_type === "request") return "/dashboard/support";
-  if (notification.entity_type === "profile") return "/dashboard/settings";
-  return null;
-}
-
 export default async function NotificationsPage() {
   const viewer = await requireMember();
   const supabase = await createServerSupabaseClient();
-  const { data } = supabase
+  const result = supabase
     ? await supabase
         .from("uniplug_member_events")
         .select("id,title,detail,entity_type,entity_id,created_at")
         .eq("user_id", viewer.user.id)
         .order("created_at", { ascending: false })
         .limit(100)
-    : { data: [] };
-  const notifications = (data || []) as Notification[];
+    : null;
+  const notifications = (result?.data || []) as Notification[];
+  const unavailable = !supabase || Boolean(result?.error);
 
   return (
     <section className="section shell page-top portal-page">
@@ -49,27 +39,29 @@ export default async function NotificationsPage() {
         </div>
       </div>
 
+      {unavailable ? <p className="form-error page-notice">Notifications could not be loaded. Refresh this page to try again.</p> : null}
+
       <section className="panel">
         <div className="section-heading compact">
           <div><p className="eyebrow">Latest</p><h2>Account updates</h2></div>
         </div>
-        <div className="activity-list">
+        {unavailable ? <div className="empty-state"><h3>We could not load your notifications</h3><p>Refresh this page to try again.</p><Link className="button button-light" href="/dashboard/notifications">Retry</Link></div> : <div className="activity-list">
           {notifications.map((notification) => {
-            const href = notificationHref(notification);
+            const href = memberEventHref(notification.entity_type, notification.entity_id);
             return (
               <article key={notification.id}>
                 <span className="activity-dot" aria-hidden="true" />
                 <div>
                   <strong>{notification.title}</strong>
                   {notification.detail ? <p>{notification.detail}</p> : null}
-                  <small>{new Date(notification.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small>
+                  <small>{formatMemberDateTime(notification.created_at)}</small>
                   {href ? <p><Link className="wallet-text-link" href={href}>View details →</Link></p> : null}
                 </div>
               </article>
             );
           })}
           {!notifications.length ? <p className="muted-copy">You do not have any notifications yet.</p> : null}
-        </div>
+        </div>}
       </section>
     </section>
   );
