@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title description">
+  <title id="title">Product image coming soon</title>
+  <desc id="description">A simple package outline used when a catalog image is unavailable.</desc>
+  <rect width="600" height="600" fill="#F5F7FA"/>
+  <path d="m300 135 145 74v181l-145 75-145-75V209l145-74Z" fill="#fff" stroke="#DDE2E8" stroke-width="16"/>
+  <path d="m155 209 145 75 145-75M300 284v181" fill="none" stroke="#155EEF" stroke-width="16"/>
+</svg>

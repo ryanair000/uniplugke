@@ -1,22 +1,36 @@
 import { NextResponse } from "next/server";
+import { getPaymentOrderConfig } from "@/lib/payment-orders";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const reference = new URL(request.url).searchParams.get("reference")?.trim() || "";
-  if (!/^UP-[A-Z0-9-]{12,80}$/.test(reference)) return NextResponse.json({ paid: false, error: "Invalid payment reference" }, { status: 400 });
+  if (!/^(?:UP|KEY|ST)-[A-Z0-9-]{12,80}$/.test(reference)) return NextResponse.json({ paid: false, error: "Invalid payment reference" }, { status: 400 });
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY;
   const admin = createAdminSupabaseClient();
   if (!paystackSecret || !admin) return NextResponse.json({ paid: false, error: "Payment verification is not configured" }, { status: 503 });
 
-  const { data: order } = await admin.from("uniplug_member_orders").select("id,total_kes,payment_status").eq("paystack_reference", reference).maybeSingle();
+  const { table, paidFulfillmentStatus } = getPaymentOrderConfig(reference);
+  const { data: order } = await admin.from(table).select("*").eq("paystack_reference", reference).maybeSingle();
   if (!order) return NextResponse.json({ paid: false, error: "Order not found" }, { status: 404 });
-  if (order.payment_status === "paid") return NextResponse.json({ paid: true });
+  if (order.payment_status === "paid") return NextResponse.json({ paid: true, state: "paid", reference });
 
   const response = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, { headers: { Authorization: `Bearer ${paystackSecret}` }, cache: "no-store" });
   const result = await response.json().catch(() => ({}));
-  const paid = response.ok && result?.data?.status === "success" && Number(result.data.amount) === Math.round(Number(order.total_kes) * 100);
-  if (!paid) return NextResponse.json({ paid: false, error: "Payment has not been confirmed" }, { status: 400 });
+  const expectedKes = Number("amount_kes" in order ? order.amount_kes : order.total_kes);
+  const providerStatus = String(result?.data?.status || "").toLowerCase();
+  const amountMatches = Number(result?.data?.amount) === Math.round(expectedKes * 100);
+  const paid = response.ok && providerStatus === "success" && amountMatches;
+  if (!paid) {
+    if (providerStatus === "success" && !amountMatches) {
+      await admin.from(table).update({ payment_status: "amount_mismatch", fulfillment_status: "manual_review" }).eq("id", order.id);
+      return NextResponse.json({ paid: false, state: "failed", reference, error: "The paid amount needs manual review. Contact support with this reference." }, { status: 409 });
+    }
+    if (["pending", "processing", "ongoing", "queued"].includes(providerStatus) || (response.ok && !providerStatus)) {
+      return NextResponse.json({ paid: false, state: "pending", reference, error: "Payment is still pending confirmation. Do not pay again yet." }, { status: 202 });
+    }
+    return NextResponse.json({ paid: false, state: "failed", reference, error: "Payment was not completed or could not be confirmed." }, { status: 400 });
+  }
 
-  await admin.from("uniplug_member_orders").update({ payment_status: "paid", fulfillment_status: "pending_activation", paid_at: new Date().toISOString() }).eq("id", order.id);
-  return NextResponse.json({ paid: true });
+  await admin.from(table).update({ payment_status: "paid", fulfillment_status: paidFulfillmentStatus, paid_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", order.id);
+  return NextResponse.json({ paid: true, state: "paid", reference });
 }

@@ -1,16 +1,22 @@
 # UniPlug Kenya
 
-Standalone, invite-only digital services catalog and member portal for `uniplug.shop`.
+One deployment serving two deliberately separated UniPlug experiences:
 
-## Phase 1 included
+- `uniplug.shop`: public software, gaming, devices, and accessories store with physical delivery, digital fulfilment, registration, and sign-in.
+- `vip.uniplug.shop`: the private digital-services portal for users linked to at least one Lokimax service.
 
-- Public catalog with no prices in guest HTML, payloads, or fallback data.
-- Authenticated member plans and pricing.
+## Storefront
+
+- Unified software and physical-product catalog with category browsing, search, pagination, and owned UniPlug branding.
+- Physical cart and server-priced Paystack checkout with Nairobi and nationwide delivery rules.
+- VIP service catalog and dashboard restricted to eligible clients with linked Lokimax services.
+- Member plans displayed in KSh with approximate USD equivalents.
 - Detailed service pages.
-- Invite-only email/password authentication using Supabase SSR cookies.
-- Protected dashboard, cart, checkout, admin, and payment routes.
+- Email/password authentication using Supabase SSR cookies shared safely across the two UniPlug subdomains.
+- Post-login routing that keeps regular users on `uniplug.shop` and sends only Lokimax service users to `vip.uniplug.shop`.
+- Protected catalog, dashboard, cart, checkout, admin, and payment routes.
 - Server-side order repricing and Paystack initialization.
-- Supabase migration that separates public catalog content from private plan pricing.
+- Supabase RLS that removes anonymous catalog access.
 - Admin forms for catalog services and member plans.
 
 ## Phase 2 included
@@ -23,7 +29,7 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 - Admin member directory and controlled status changes.
 - Reviewed pause and cancellation requests.
 - Member activity events for orders, payments, subscriptions, requests, and account changes.
-- Automated tests for guest-pricing, cart privacy, route protection, and renewal boundaries.
+- Automated tests for invitation boundaries, dual pricing, cart privacy, route protection, and renewals.
 
 ## Local setup
 
@@ -40,9 +46,11 @@ Standalone, invite-only digital services catalog and member portal for `uniplug.
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PAYSTACK_SECRET_KEY`
 - `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_VIP_SITE_URL` (use `https://vip.uniplug.shop`)
+- `NEXT_PUBLIC_KES_PER_USD` (display conversion rate; defaults to `130`)
 
 ## Security boundary
 
-Guest-facing code reads only `uniplug_catalog_services`. Prices live in `uniplug_member_plans`, whose RLS policy requires an active UniPlug profile. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
+The request proxy keeps the public key shop separate from the VIP service portal. VIP routing requires a Lokimax portal link with at least one tracked service (administrators are the operational exception). Catalog RLS also rejects anonymous reads. KSh is authoritative for checkout; USD values are display-only equivalents derived from `NEXT_PUBLIC_KES_PER_USD`. Checkout and renewals ignore browser totals and create orders using server-side database prices. Member orders, subscriptions, requests, and activity are protected by ownership policies.
 
 See `docs/PHASE_1.md` for the initial cutover and `docs/PHASE_2.md` for member-operations validation.

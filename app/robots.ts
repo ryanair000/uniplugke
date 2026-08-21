@@ -1,11 +1,9 @@
 import type { MetadataRoute } from "next";
+import { isKeysStoreRequest } from "@/lib/site-mode";
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop";
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  if (await isKeysStoreRequest()) return { rules: [{ userAgent: "*", allow: "/", disallow: ["/checkout", "/payment-return", "/api/"] }], sitemap: "https://uniplug.shop/sitemap.xml" };
   return {
-    rules: [
-      { userAgent: "*", allow: ["/", "/services/"], disallow: ["/dashboard", "/checkout", "/admin", "/api/"] }
-    ],
-    sitemap: `${baseUrl}/sitemap.xml`
+    rules: [{ userAgent: "*", disallow: "/" }]
   };
 }

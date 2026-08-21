@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getPaymentOrderConfig } from "@/lib/payment-orders";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 function signaturesMatch(received: string, expected: string) {
@@ -29,24 +30,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
+  const { table, paidFulfillmentStatus } = getPaymentOrderConfig(event.data.reference);
   const { data: order } = await admin
-    .from("uniplug_member_orders")
-    .select("id,total_kes,payment_status")
+    .from(table)
+    .select("*")
     .eq("paystack_reference", event.data.reference)
     .maybeSingle();
 
   if (!order) return NextResponse.json({ received: true });
-  const expectedAmount = Math.round(Number(order.total_kes) * 100);
+  const expectedKes = Number("amount_kes" in order ? order.amount_kes : order.total_kes);
+  const expectedAmount = Math.round(expectedKes * 100);
   if (event.data.status !== "success" || Number(event.data.amount) !== expectedAmount) {
-    await admin.from("uniplug_member_orders").update({ payment_status: "amount_mismatch", fulfillment_status: "manual_review" }).eq("id", order.id);
+    await admin.from(table).update({ payment_status: "amount_mismatch", fulfillment_status: "manual_review" }).eq("id", order.id);
     return NextResponse.json({ received: true });
   }
 
   if (order.payment_status !== "paid") {
-    await admin.from("uniplug_member_orders").update({
+    await admin.from(table).update({
       payment_status: "paid",
-      fulfillment_status: "pending_activation",
-      paid_at: event.data.paid_at || new Date().toISOString()
+      fulfillment_status: paidFulfillmentStatus,
+      paid_at: event.data.paid_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }).eq("id", order.id);
   }
 

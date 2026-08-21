@@ -1,0 +1,6 @@
+From: Netflix <info@mailer.netflix.com>
+To: member@example.test
+Subject: Get your temporary code
+Content-Type: text/html; charset=UTF-8
+
+<html><body><a href="https://www.netflix.com/account/travel/verify?token=sanitized">Get code</a></body></html>

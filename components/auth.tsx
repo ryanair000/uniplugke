@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
-  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -23,8 +22,9 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Sign-in failed");
-      router.replace(body.next || "/dashboard");
-      router.refresh();
+      // A hard navigation guarantees that the newly written auth cookies are
+      // available to protected Server Components on the first destination render.
+      window.location.assign(body.next || "/dashboard");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign-in failed");
       setBusy(false);
@@ -34,19 +34,34 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   return (
     <form className="auth-form" onSubmit={submit}>
       <label>
-        Username or email
+        Phone number, username or email
         <input
           type="text"
           autoComplete="username"
           required
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
-          placeholder="your.username or name@example.com"
+          placeholder="0712 345 678"
         />
       </label>
       <label>
         Private password
-        <input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+        <span className="password-field">
+          <input
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <button
+            type="button"
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </span>
       </label>
       {message && <p className="form-error" role="alert">{message}</p>}
       <button className="button button-dark" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
@@ -54,8 +69,65 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
   );
 }
 
+export function RegisterForm() {
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    setSuccess(false);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName, email, password })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Registration failed");
+      if (body.signedIn) {
+        window.location.assign(body.next || "https://uniplug.shop");
+        return;
+      }
+      setSuccess(true);
+      setMessage(body.message || "Check your email to confirm your account, then sign in.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Registration failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="auth-form" onSubmit={submit}>
+      <label>
+        Your name
+        <input autoComplete="name" maxLength={80} required value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+      </label>
+      <label>
+        Email address
+        <input autoComplete="email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+      </label>
+      <label>
+        Password
+        <span className="password-field">
+          <input autoComplete="new-password" minLength={8} required type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+          <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? "Hide" : "Show"}</button>
+        </span>
+      </label>
+      {message ? <p className={success ? "form-success" : "form-error"} role="status">{message}</p> : null}
+      <button className="button button-dark" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
+    </form>
+  );
+}
+
 export function SignOutButton() {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -66,8 +138,7 @@ export function SignOutButton() {
         localStorage.removeItem("uniplug-member-cart");
         const supabase = createBrowserSupabaseClient();
         await supabase.auth.signOut();
-        router.replace("/");
-        router.refresh();
+        window.location.assign("/login");
       }}
     >
       {busy ? "Signing out…" : "Sign out"}

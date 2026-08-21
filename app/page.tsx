@@ -1,21 +1,65 @@
-import Link from "next/link";
-import { CatalogExplorer } from "@/components/catalog";
-import { getPublicCatalog, getMemberPlans } from "@/lib/catalog";
+import { CatalogExplorer } from "@/components/catalog-explorer";
+import { ProcessStrip } from "@/components/home-sections";
 import { getViewer } from "@/lib/auth";
+import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
+import { getTrackedSubscriptions } from "@/lib/client-portal";
+import { isKeysStoreRequest } from "@/lib/site-mode";
+import { StorefrontHome } from "@/components/storefront-home";
+import { getStorefrontProducts, type StorefrontCategory } from "@/lib/storefront-products";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const services = await getPublicCatalog();
+  if (await isKeysStoreRequest()) {
+    const products = await getStorefrontProducts();
+    const categoryCounts = products.reduce((counts, product) => {
+      counts[product.category] += 1;
+      return counts;
+    }, {
+      software: 0,
+      games: 0,
+      gaming: 0,
+      audio: 0,
+      power: 0,
+      peripherals: 0,
+      storage: 0,
+      accessories: 0
+    } satisfies Record<StorefrontCategory, number>);
+    return (
+      <StorefrontHome
+        categoryCounts={categoryCounts}
+        initialProducts={products.slice(0, 24)}
+        initialTotal={products.length}
+      />
+    );
+  }
   const viewer = await getViewer();
-  const isMember = Boolean(viewer.profile?.status === "active");
-  const plans = isMember ? await getMemberPlans(services.map((service) => service.id)) : [];
+  const isMember = viewer.profile?.status === "active";
+  const services = await getPublicCatalog();
+  const plans = await getMemberPlans(services.map((service) => service.id));
+  const subscriptions = isMember && viewer.profile?.clientId
+    ? await getTrackedSubscriptions(viewer.profile.clientId)
+    : [];
+  const managedServices = subscriptions
+    .filter((subscription) => ["active", "due_soon", "trial"].includes(subscription.status))
+    .map((subscription) => ({
+      id: subscription.id,
+      serviceName: subscription.service?.name || subscription.serviceIdentifier || ""
+    }))
+    .filter((subscription) => subscription.serviceName);
 
   return (
-    <>
-      <section className="hero"><div className="shell hero-grid"><div><p className="eyebrow">One digital membership hub</p><h1>Everything digital.<br /><span>One simple account.</span></h1><p className="hero-copy">Browse a carefully arranged catalog, then sign in to unlock member plans, purchasing, renewals, and service management.</p><div className="hero-actions"><Link className="button button-dark" href="/services">Browse services</Link><Link className="button button-light" href={isMember ? "/dashboard" : "/login"}>{isMember ? "Open dashboard" : "Member sign in"}</Link></div></div><div className="hero-orbit"><div className="orbit-card main"><span>⚡</span><strong>My UniPlug</strong><small>Services, renewals and support</small></div><div className="orbit-card one">Streaming</div><div className="orbit-card two">Creative</div><div className="orbit-card three">Gaming</div></div></div></section>
-      <section className="section shell"><div className="section-heading"><div><p className="eyebrow">Service catalog</p><h2>Pick what powers your day</h2></div><Link href="/services">View all services →</Link></div><CatalogExplorer services={services} plans={plans} isMember={isMember} /></section>
-      <section id="how-it-works" className="steps-section"><div className="shell"><div className="section-heading centered"><div><p className="eyebrow">Straightforward from day one</p><h2>Discover first. Manage everything after sign-in.</h2></div></div><div className="steps-grid"><article><span>01</span><h3>Browse cleanly</h3><p>Guests can explore service details without a crowded public price list.</p></article><article><span>02</span><h3>Unlock member plans</h3><p>Invited members sign in to see private pricing and available plans.</p></article><article><span>03</span><h3>Manage in one place</h3><p>Track purchases, activations, renewals, and support from My UniPlug.</p></article></div></div></section>
-    </>
+    <div className="storefront-home">
+      <div className="upgrade-shell storefront-catalog-shell">
+        <CatalogExplorer
+          services={services}
+          plans={plans}
+          isMember={isMember}
+          managedServices={managedServices}
+          variant="homepage"
+        />
+      </div>
+      <ProcessStrip />
+    </div>
   );
 }

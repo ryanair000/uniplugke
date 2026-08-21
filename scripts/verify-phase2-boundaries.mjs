@@ -17,8 +17,13 @@ const checks = [
   },
   {
     name: "member portal routes require active membership",
-    source: read("app/dashboard/layout.tsx"),
-    tokens: ["requireMember()", "Member portal"]
+    source: read("app/dashboard/layout.tsx") + read("components/member-portal-shell.tsx"),
+    tokens: ["requireMember()", "MemberPortalShell"]
+  },
+  {
+    name: "all non-auth storefront routes require an active invited client",
+    source: read("lib/supabase/proxy.ts"),
+    tokens: ['const publicPaths = new Set([', "if (!data.user)", 'profile?.status !== "active"', 'loginUrl.pathname = "/login"']
   },
   {
     name: "renewal checkout authenticates and reprices through the database",
@@ -34,6 +39,48 @@ const checks = [
     name: "subscription requests are protected by ownership RLS",
     source: read("supabase/migrations/20260725203000_phase2_member_operations.sql"),
     tokens: ["members read own subscription requests", "user_id = (select auth.uid())", "uniplug_request_subscription_action"]
+  },
+  {
+    name: "paid-order activation retries are no-ops",
+    source: read("supabase/migrations/20260725210000_phase2_hardening.sql"),
+    tokens: ["for update", "fulfillment_status in ('active', 'completed')", "then return 0"]
+  },
+  {
+    name: "prepaid durations are priced and activated by the database",
+    source: read("supabase/migrations/20260813224645_duration_offers.sql") + read("supabase/migrations/20260728202332_add_extended_plan_durations.sql"),
+    tokens: [
+      "duration_months in (1, 3, 6, 12, 24)",
+      "uniplug_plan_duration_offers",
+      "discount_percent between 0 and 90",
+      "uniplug_create_member_order_v2",
+      "plan.price_kes * offer.duration_months * (1 - offer.discount_percent / 100)",
+      "make_interval(months => i.duration_months)",
+      "from public, anon, authenticated"
+    ]
+  },
+  {
+    name: "privileged member RPCs are removed from the anonymous API surface",
+    source: read("supabase/migrations/20260725210000_phase2_hardening.sql"),
+    tokens: [
+      "uniplug_update_member_profile(text,text,text,boolean,boolean) from public, anon",
+      "uniplug_set_member_status(uuid,text) from public, anon",
+      "uniplug_record_password_update() from public, anon"
+    ]
+  },
+  {
+    name: "all remaining member and trigger RPCs have explicit API grants",
+    source: read("supabase/migrations/20260725214549_phase2_rpc_surface_hardening.sql"),
+    tokens: [
+      "is_uniplug_member() from public, anon, authenticated",
+      "uniplug_create_member_order(uuid[], text) from public, anon, authenticated",
+      "uniplug_create_renewal_order(uuid, text) from public, anon, authenticated",
+      "uniplug_log_subscription_event() from public, anon, authenticated"
+    ]
+  },
+  {
+    name: "profile writes are routed through the validated RPC",
+    source: read("supabase/migrations/20260725210000_phase2_hardening.sql"),
+    tokens: ["revoke update on public.uniplug_profiles from authenticated"]
   }
 ];
 
@@ -42,4 +89,4 @@ if (failed.length) {
   for (const check of failed) console.error(`Phase 2 boundary check failed: ${check.name}`);
   process.exit(1);
 }
-console.log(`Verified ${checks.length} Phase 2 member and renewal boundaries.`);
+console.log(`Verified ${checks.length} Phase 2 source invariants. Database behavior is covered by the pgTAP suite.`);

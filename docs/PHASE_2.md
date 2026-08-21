@@ -2,7 +2,7 @@
 
 ## Objective
 
-Turn My UniPlug into a complete member portal for account settings, order history, subscription details, secure renewals, and reviewed pause or cancellation requests. The public catalog and private pricing boundary from Phase 1 remains unchanged.
+Turn My UniPlug into a complete member portal for account settings, order history, subscription details, secure renewals, and reviewed pause or cancellation requests. The public catalog exposes USD starting prices while exact KSh plan pricing remains protected.
 
 ## Member experience
 
@@ -32,12 +32,14 @@ Apply these after the Phase 1 migration, in filename order:
 4. `20260725204500_phase2_request_profile_relation.sql`
 5. `20260725205000_phase2_renewal_orders.sql`
 6. `20260725205500_phase2_service_role_grants.sql`
+7. `20260725210000_phase2_hardening.sql`
+8. `20260725214549_phase2_rpc_surface_hardening.sql`
 
 Apply them to a Supabase preview branch first. Do not apply them to the shared production database until Phase 1 cutover testing is complete.
 
 ## Required validation
 
-- Guest catalog HTML and React payloads still contain no private prices.
+- Guest catalog HTML and React payloads contain only public USD starting prices, never exact KSh plan data.
 - Guest sessions cannot retain a member cart after sign-out.
 - `/dashboard`, `/dashboard/orders`, `/settings`, and renewal routes reject guests.
 - Members can read only their own orders, subscriptions, requests, and activity.
@@ -47,6 +49,12 @@ Apply them to a Supabase preview branch first. Do not apply them to the shared p
 - An admin cannot suspend their own account through the status form.
 - Pause and cancellation requests require ownership of the subscription.
 - Payment verification still rejects amount mismatches.
+- Repeating activation for the same paid order is a no-op.
+- Anonymous callers cannot execute privileged Phase 2 RPCs.
+- Profile changes must use the validated, activity-recording RPC.
+
+Run the source invariants with `npm test`. Run the behavioral database suite
+against an isolated local Supabase stack with `npm run test:db`.
 
 ## Production gate
 

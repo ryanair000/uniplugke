@@ -1,0 +1,43 @@
+.key-brand > img.uniplug-wordmark {
+  width: 152px;
+  height: 40px;
+  display: block;
+  object-fit: contain;
+}
+
+.key-footer .key-brand > img.uniplug-wordmark {
+  width: 142px;
+  height: 37px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand .uniplug-wordmark {
+  width: 148px;
+}
+
+@media (max-width: 680px) {
+  .uniplug-wordmark {
+    width: 130px;
+  }
+
+  .key-brand > img.uniplug-wordmark {
+    width: 130px;
+    height: 35px;
+  }
+
+  .brand .uniplug-wordmark {
+    width: 132px;
+  }
+}
+
+@media (max-width: 390px) {
+  .key-brand > img.uniplug-wordmark {
+    width: 120px;
+    height: 33px;
+  }
+}

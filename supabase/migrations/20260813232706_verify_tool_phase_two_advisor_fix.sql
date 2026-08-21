@@ -1,0 +1,2 @@
+create index if not exists uniplug_verify_message_receipts_subscription_idx
+  on public.uniplug_verify_message_receipts(client_subscription_id);

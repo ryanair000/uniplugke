@@ -1,3 +1,5 @@
+import type { PlanDurationMonths, PlanDurationOffer } from "@/lib/plan-durations";
+
 export type ServiceCategory =
   | "streaming"
   | "music"
@@ -29,6 +31,7 @@ export type CatalogService = {
   faqs: CatalogFaq[];
   availabilityStatus: "available" | "limited" | "coming_soon";
   featured: boolean;
+  startingPriceUsd?: number | null;
 };
 
 export type MemberPlan = {
@@ -43,6 +46,7 @@ export type MemberPlan = {
   billingCycle: "monthly" | "quarterly" | "yearly";
   features: string[];
   availabilityStatus: "available" | "limited" | "unavailable";
+  durationOffers: PlanDurationOffer[];
 };
 
 export type MemberProfile = {
@@ -55,6 +59,8 @@ export type MemberProfile = {
   status: "active" | "suspended" | "pending";
   renewalRemindersEnabled: boolean;
   marketingOptIn: boolean;
+  clientId: string | null;
+  mustChangePassword: boolean;
 };
 
 export type CartItem = {
@@ -62,8 +68,10 @@ export type CartItem = {
   serviceSlug: string;
   serviceName: string;
   planName: string;
+  monthlyPriceKes: number;
   priceKes: number;
   billingCycle: MemberPlan["billingCycle"];
+  durationMonths: PlanDurationMonths;
 };
 
 export type MemberOrderSummary = {

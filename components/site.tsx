@@ -1,24 +1,79 @@
+import Image from "next/image";
 import Link from "next/link";
-import { getViewer } from "@/lib/auth";
-import { CartLink } from "@/components/catalog";
 import { SignOutButton } from "@/components/auth";
+import { CartLink } from "@/components/catalog";
+import { getViewer } from "@/lib/auth";
 
-export function Brand() {
-  return <Link href="/" className="brand" aria-label="UniPlug home"><span className="brand-mark">⚡</span><span>uni<b>plug</b></span></Link>;
+export function Brand({ tone = "light" }: { tone?: "light" | "dark" }) {
+  return (
+    <Link
+      href="/"
+      className={`brand brand-${tone}`}
+      aria-label="UniPlug home"
+    >
+      <Image
+        alt="UniPlug"
+        className="uniplug-wordmark"
+        height={39}
+        src={tone === "dark" ? "/storefront/uniplug-logo-light.svg" : "/storefront/uniplug-logo.svg"}
+        width={148}
+      />
+    </Link>
+  );
 }
 
 export async function SiteHeader() {
   const viewer = await getViewer();
-  const isMember = Boolean(viewer.profile?.status === "active");
+  const isMember = viewer.profile?.status === "active";
   const isAdmin = isMember && viewer.profile?.role === "admin";
+
   return (
     <header className="site-header">
-      <div className="shell header-inner">
+      <div className="header-inner">
         <Brand />
-        <nav className="desktop-nav"><Link href="/services">Services</Link><Link href="/#how-it-works">How it works</Link><Link href="/#support">Support</Link></nav>
+        {isMember ? (
+          <nav className="desktop-nav" aria-label="Primary navigation">
+            <Link href="/services">Catalog</Link>
+            <Link href="/dashboard/subscriptions">My subscriptions</Link>
+            <Link href="/help">Support</Link>
+          </nav>
+        ) : <nav className="desktop-nav" aria-label="Primary navigation"><Link href="/services">Catalog</Link></nav>}
         <div className="header-actions">
-          {isMember ? <>{isAdmin && <Link href="/admin">Operations</Link>}<Link href="/dashboard">My UniPlug</Link><Link href="/settings">Settings</Link><CartLink /><SignOutButton /></> : <Link className="button button-dark small" href="/login">Member sign in</Link>}
+          {isMember ? (
+            <>
+              {isAdmin && <Link href="/admin">Operations</Link>}
+              <Link href="/dashboard">My UniPlug</Link>
+              <CartLink />
+              <SignOutButton />
+            </>
+          ) : (
+            <Link className="button button-dark small" href="/login">
+              Member sign in
+            </Link>
+          )}
         </div>
+        {isMember ? <details className="mobile-menu">
+          <summary role="button" aria-label="Open member menu">
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+            <span aria-hidden="true" />
+          </summary>
+          <div className="mobile-menu-panel">
+            <nav aria-label="Mobile navigation">
+              <Link href="/services">Catalog</Link>
+              <Link href="/dashboard/subscriptions">My subscriptions</Link>
+              <Link href="/help">Help centre</Link>
+              <Link href="/contact">Contact</Link>
+            </nav>
+            <div className="mobile-menu-account">
+              <Link href="/dashboard">Open My UniPlug</Link>
+              <Link href="/dashboard/settings">Settings</Link>
+              {isAdmin ? <Link href="/admin">Administration</Link> : null}
+              <CartLink />
+              <SignOutButton />
+            </div>
+          </div>
+        </details> : null}
       </div>
     </header>
   );
@@ -27,10 +82,17 @@ export async function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer id="support" className="site-footer">
-      <div className="shell footer-grid">
-        <div><Brand /><p>Discover and manage digital services through one clean member portal.</p></div>
-        <div><h4>Explore</h4><Link href="/services">All services</Link><Link href="/login">Member sign in</Link></div>
-        <div><h4>Support</h4><a href="https://wa.me/254113033475">WhatsApp support</a><a href="mailto:support@uniplug.shop">support@uniplug.shop</a></div>
+      <div className="footer-shell footer-simple">
+        <div className="footer-simple-brand">
+          <Brand tone="dark" />
+          <span>Digital services, simply managed.</span>
+        </div>
+        <nav className="footer-simple-links" aria-label="Footer links">
+          <Link href="/help">Help</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </nav>
+        <p className="footer-simple-copyright">© 2026 UniPlug.</p>
       </div>
     </footer>
   );

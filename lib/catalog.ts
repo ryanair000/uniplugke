@@ -1,8 +1,26 @@
 import "server-only";
 
+import { cache } from "react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
+import { buildLokimaxCatalog } from "@/lib/lokimax-services";
+import {
+  PLAN_DURATIONS,
+  defaultPlanDurationOffer,
+  isPlanDurationMonths,
+  type PlanDurationOffer
+} from "@/lib/plan-durations";
 import type { CatalogService, MemberPlan, ServiceCategory } from "@/lib/types";
+
+const CUSTOMER_HIDDEN_SERVICE_SLUGS = new Set([
+  "dstv",
+  "dstv-compact",
+  "dstv-premium"
+]);
+
+function customerVisibleCatalog(services: CatalogService[]) {
+  return services.filter((service) => !CUSTOMER_HIDDEN_SERVICE_SLUGS.has(service.slug));
+}
 
 export const publicCatalogFallback: CatalogService[] = [
   {
@@ -25,7 +43,8 @@ export const publicCatalogFallback: CatalogService[] = [
       { question: "Can I report an issue?", answer: "Yes. Active members can report service issues from their dashboard." }
     ],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 5
   },
   {
     id: "10000000-0000-0000-0000-000000000002",
@@ -44,7 +63,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Eligible account faults can be reported and tracked online.",
     faqs: [{ question: "Where do I manage the service?", answer: "Your plan, access state, and support history appear in My UniPlug." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 2.69
   },
   {
     id: "10000000-0000-0000-0000-000000000003",
@@ -63,7 +83,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Invitation and access issues can be reported from the dashboard.",
     faqs: [{ question: "Do I use my own email?", answer: "The service detail shown after sign-in explains the current activation method." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 3.85
   },
   {
     id: "10000000-0000-0000-0000-000000000004",
@@ -82,7 +103,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Support reviews account-specific problems before replacement.",
     faqs: [{ question: "Is every device supported?", answer: "Compatibility requirements are checked before activation." }],
     availabilityStatus: "limited",
-    featured: false
+    featured: false,
+    startingPriceUsd: 3.46
   },
   {
     id: "10000000-0000-0000-0000-000000000005",
@@ -101,7 +123,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Account faults are checked for eligibility before replacement.",
     faqs: [{ question: "Are region requirements checked?", answer: "Yes. The member plan page shows the applicable requirements before checkout." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 11.15
   },
   {
     id: "10000000-0000-0000-0000-000000000006",
@@ -120,7 +143,8 @@ export const publicCatalogFallback: CatalogService[] = [
     replacementSummary: "Access problems can be reported and followed from the dashboard.",
     faqs: [{ question: "Can I track activation?", answer: "Yes. Activation and renewal information appears in My UniPlug." }],
     availabilityStatus: "available",
-    featured: true
+    featured: true,
+    startingPriceUsd: 6.92
   }
 ];
 
@@ -151,23 +175,36 @@ function normalizeService(row: Record<string, unknown>): CatalogService {
         }))
       : [],
     availabilityStatus: String(row.availability_status ?? "available") as CatalogService["availabilityStatus"],
-    featured: Boolean(row.is_featured)
+    featured: Boolean(row.is_featured),
+    startingPriceUsd: row.starting_price_usd == null ? null : Number(row.starting_price_usd)
   };
 }
 
-export async function getPublicCatalog() {
+export const getPublicCatalog = cache(async function getPublicCatalog() {
   const supabase = await createServerSupabaseClient();
   if (!supabase) return publicCatalogFallback;
 
-  const { data, error } = await supabase
-    .from("uniplug_catalog_services")
-    .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured")
-    .eq("is_active", true)
-    .order("sort_order");
+  const [curatedResult, lokimaxResult] = await Promise.all([
+    supabase
+      .from("uniplug_catalog_services")
+      .select("id,slug,category_slug,name,short_description,description,logo_text,accent_color,features,supported_devices,setup_requirements,fulfillment_label,activation_window,replacement_summary,faqs,availability_status,is_featured,starting_price_usd")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("catalog")
+      .select("id,name,selling_price_1_month,selling_price_3_months,selling_price_1_year,stock_quantity,created_at")
+      .eq("category", "entertainment")
+      .gt("selling_price_1_month", 0)
+      .order("created_at", { ascending: false })
+  ]);
 
-  if (error || !data?.length) return publicCatalogFallback;
-  return (data as Array<Record<string, unknown>>).map(normalizeService);
-}
+  const curatedServices = curatedResult.error || !curatedResult.data?.length
+    ? publicCatalogFallback
+    : (curatedResult.data as Array<Record<string, unknown>>).map(normalizeService);
+
+  if (lokimaxResult.error || !lokimaxResult.data?.length) return customerVisibleCatalog(curatedServices);
+  return customerVisibleCatalog(buildLokimaxCatalog(lokimaxResult.data, curatedServices));
+});
 
 export async function getPublicService(slug: string) {
   const services = await getPublicCatalog();
@@ -183,7 +220,7 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
 
   let query = supabase
     .from("uniplug_member_plans")
-    .select("id,service_id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status,service:uniplug_catalog_services(slug,name)")
+    .select("id,service_id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status,service:uniplug_catalog_services(slug,name),duration_offers:uniplug_plan_duration_offers(duration_months,discount_percent,badge,is_active)")
     .eq("is_active", true)
     .order("sort_order");
 
@@ -193,6 +230,17 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
 
   return (data as unknown as Array<Record<string, unknown>>).map((row) => {
     const service = row.service as { slug?: string; name?: string } | null;
+    const storedOffers = Array.isArray(row.duration_offers)
+      ? (row.duration_offers as Array<Record<string, unknown>>)
+        .filter((offer) => isPlanDurationMonths(offer.duration_months) && offer.is_active !== false)
+        .map((offer): PlanDurationOffer => ({
+          durationMonths: Number(offer.duration_months) as PlanDurationOffer["durationMonths"],
+          discountPercent: Math.max(0, Math.min(90, Number(offer.discount_percent) || 0)),
+          badge: offer.badge == null ? null : String(offer.badge),
+          isActive: true
+        }))
+      : [];
+    const offersByDuration = new Map(storedOffers.map((offer) => [offer.durationMonths, offer]));
     return {
       id: String(row.id),
       serviceId: String(row.service_id),
@@ -204,7 +252,14 @@ export async function getMemberPlans(serviceIds?: string[]): Promise<MemberPlan[
       compareAtKes: row.compare_at_kes == null ? null : Number(row.compare_at_kes),
       billingCycle: String(row.billing_cycle) as MemberPlan["billingCycle"],
       features: textArray(row.plan_features),
-      availabilityStatus: String(row.availability_status) as MemberPlan["availabilityStatus"]
+      availabilityStatus: String(row.availability_status) as MemberPlan["availabilityStatus"],
+      durationOffers: storedOffers.length
+        ? PLAN_DURATIONS.flatMap((duration) => {
+            const offer = offersByDuration.get(duration.months);
+            return offer ? [offer] : [];
+          })
+        : PLAN_DURATIONS.map((duration) => defaultPlanDurationOffer(duration.months))
     };
   });
 }
+

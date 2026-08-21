@@ -1,4 +1,5 @@
 import { PaymentStatus } from "@/components/checkout";
+import { isKeysStoreRequest } from "@/lib/site-mode";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payment status" };
@@ -10,5 +11,7 @@ export default async function PaymentReturnPage({
 }) {
   const query = await searchParams;
   const reference = query.reference || query.trxref || null;
-  return <section className="auth-page"><PaymentStatus reference={reference} /></section>;
+  const keyOrder = await isKeysStoreRequest();
+  const storeOrder = Boolean(reference?.startsWith("ST-"));
+  return <section className="auth-page"><PaymentStatus reference={reference} keyOrder={keyOrder && !storeOrder} storeOrder={storeOrder} /></section>;
 }

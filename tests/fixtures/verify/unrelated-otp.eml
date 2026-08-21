@@ -1,0 +1,6 @@
+From: Example Bank <security@example-bank.test>
+To: member@example.test
+Subject: Sign-in OTP
+Content-Type: text/plain; charset=UTF-8
+
+Your sign-in OTP is 829341. Never share it.

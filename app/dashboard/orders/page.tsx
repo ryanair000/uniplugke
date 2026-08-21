@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/auth";
+import { formatDualPrice } from "@/lib/currency";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Order history" };
-
-function formatKes(value: number) {
-  return `KSh ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
 
 function readableStatus(value: string) {
   return value.replaceAll("_", " ");
@@ -38,15 +35,15 @@ export default async function OrdersPage() {
   return (
     <section className="section shell page-top">
       <div className="dashboard-heading">
-        <div><p className="eyebrow">My UniPlug</p><h1>Order history</h1><p>Review payment status, activation progress, and individual order details.</p></div>
+        <div><p className="eyebrow">Payments & receipts</p><h1>Your orders</h1><p>Review payment status, activation progress, and receipts.</p></div>
         <Link className="button button-dark" href="/services">Add a service</Link>
       </div>
 
-      <div className="dashboard-stats compact-stats">
+      {orders.length ? <div className="dashboard-stats compact-stats">
         <article><span>Total orders</span><strong>{orders.length}</strong><small>All recorded purchases</small></article>
         <article><span>Paid</span><strong>{orders.filter((order) => order.payment_status === "paid").length}</strong><small>Payment confirmed</small></article>
         <article><span>Active</span><strong>{orders.filter((order) => order.fulfillment_status === "active" || order.fulfillment_status === "completed").length}</strong><small>Activated or completed</small></article>
-      </div>
+      </div> : null}
 
       <section className="panel order-history-panel">
         <div className="member-list order-history-list">
@@ -55,7 +52,7 @@ export default async function OrdersPage() {
               <div className="order-number-block"><strong>{order.order_number}</strong><span>{new Date(order.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
               <span className="status-pill">{readableStatus(order.payment_status)}</span>
               <span className="status-pill subtle">{readableStatus(order.fulfillment_status)}</span>
-              <div className="list-end"><strong>{formatKes(Number(order.total_kes))}</strong><span>{order.paystack_channel || "Payment channel pending"}</span></div>
+              <div className="list-end"><strong>{formatDualPrice(Number(order.total_kes))}</strong><span>{order.paystack_channel || "Payment channel pending"}</span></div>
               <b aria-hidden="true">→</b>
             </Link>
           ))}

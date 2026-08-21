@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-type CheckoutPayload = { phone?: unknown; planIds?: unknown };
+type CheckoutPayload = {
+  phone?: unknown;
+  selections?: unknown;
+};
 
 export async function POST(request: Request) {
   const viewer = await getViewer();
@@ -17,17 +21,31 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({})) as CheckoutPayload;
   const phone = String(body.phone || "").replace(/[^+\d]/g, "").slice(0, 20);
-  const submittedPlanIds: string[] = Array.isArray(body.planIds) ? body.planIds.map((value) => String(value)) : [];
-  const planIds = [...new Set<string>(submittedPlanIds)]
-    .filter((id) => uuidPattern.test(id))
-    .slice(0, 20);
-  if (phone.replace(/\D/g, "").length < 9 || !planIds.length) {
-    return NextResponse.json({ error: "A valid phone number and at least one plan are required" }, { status: 400 });
+  const selections = Array.isArray(body.selections)
+    ? body.selections
+      .map((selection) => {
+        if (!selection || typeof selection !== "object") return null;
+        const candidate = selection as { planId?: unknown; durationMonths?: unknown };
+        const planId = String(candidate.planId || "");
+        const durationMonths = Number(candidate.durationMonths);
+        return uuidPattern.test(planId) && isPlanDurationMonths(durationMonths)
+          ? { planId, durationMonths }
+          : null;
+      })
+      .filter((selection): selection is { planId: string; durationMonths: PlanDurationMonths } => Boolean(selection))
+      .filter((selection, index, all) => all.findIndex((item) => item.planId === selection.planId) === index)
+      .slice(0, 20)
+    : [];
+  if (phone.replace(/\D/g, "").length < 9 || !selections.length) {
+    return NextResponse.json({ error: "A valid phone number and at least one plan duration are required" }, { status: 400 });
   }
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Database is not configured" }, { status: 503 });
-  const { data, error } = await supabase.rpc("uniplug_create_member_order", { p_plan_ids: planIds, p_phone: phone });
+  const { data, error } = await supabase.rpc("uniplug_create_member_order_v2", {
+    p_selections: selections,
+    p_phone: phone
+  });
   const order = Array.isArray(data) ? data[0] : data;
   if (error || !order) return NextResponse.json({ error: error?.message || "Order could not be created" }, { status: 400 });
 

@@ -1,5 +1,5 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PasswordSetupForm } from "@/components/password-setup";
 import { getViewer } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -7,23 +7,16 @@ export const metadata = { title: "Create private password" };
 
 export default async function SetPasswordPage() {
   const viewer = await getViewer();
+  if (viewer.user) redirect("/dashboard/settings");
 
   return (
     <section className="auth-page">
       <div className="auth-card">
         <div className="auth-icon">⚡</div>
-        <p className="eyebrow">Secure your membership</p>
-        <h1>Create your private password</h1>
-        <p>Your username and password are separate. UniPlug support will never ask you to send this password.</p>
-        {viewer.user ? (
-          <PasswordSetupForm />
-        ) : (
-          <div className="notice">
-            <strong>The invitation session is missing or expired.</strong>
-            <p>Open the complete invitation link again, or ask an administrator to generate a new one.</p>
-            <Link className="button button-dark" href="/login">Back to sign in</Link>
-          </div>
-        )}
+        <p className="eyebrow">Account security</p>
+        <h1>Change your password anytime</h1>
+        <p>Sign in first, then open Account settings to choose a new private password whenever you are ready.</p>
+        <Link className="button button-dark" href="/login">Sign in</Link>
       </div>
     </section>
   );
