@@ -6,7 +6,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   return (
     <div className="member-area">
-      <div className="member-shell">
+      <div className="member-shell" aria-label="Member portal">
         <MemberNav
           username={viewer.profile.username}
           displayName={viewer.profile.displayName}
