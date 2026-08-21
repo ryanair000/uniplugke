@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: Readonly<{ children:
 
   return (
     <div className="member-area dashboard-v2-area">
-      <div className="dashboard-app-shell">
+      <div className="dashboard-app-shell" role="group" aria-label="Member portal">
         <DashboardNavigation username={viewer.profile.username} isAdmin={viewer.profile.role === "admin"} />
         <div className="dashboard-content">{children}</div>
       </div>
