@@ -1,0 +1,40 @@
+.dashboard-order-row .status-badge.status-success,
+.order-history-list .status-badge.status-success { color: #147052; }
+.dashboard-order-row .status-badge.status-warning,
+.order-history-list .status-badge.status-warning { color: #8a5b00; }
+.dashboard-order-row .status-badge.status-danger,
+.order-history-list .status-badge.status-danger { color: #bc2e40; }
+.dashboard-order-row .status-badge.status-info,
+.order-history-list .status-badge.status-info { color: var(--purple); }
+.dashboard-order-row .status-badge.status-neutral,
+.order-history-list .status-badge.status-neutral { color: #676773; }
+
+.receipt-summary dd .status-badge {
+  margin-left: auto;
+}
+
+.order-timeline > div.failed {
+  color: var(--danger);
+}
+
+.order-timeline > div.failed > span {
+  border-color: #f2bdc5;
+  background: #fff0f2;
+  color: var(--danger);
+}
+
+.order-timeline > div.review {
+  color: #795f12;
+}
+
+.order-timeline > div.review > span {
+  border-color: #efd897;
+  background: #fff7dd;
+  color: #795f12;
+}
+
+.order-alert-danger {
+  border-color: #efc1c8;
+  background: #fff2f4;
+  color: #a82c3c;
+}
