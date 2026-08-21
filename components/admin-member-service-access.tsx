@@ -20,12 +20,11 @@ const emptyDetails: AccessDetails = {
 };
 
 export function AdminMemberServiceAccess({
-  userId,
   subscriptions
 }: {
-  userId: string;
   subscriptions: SubscriptionOption[];
 }) {
+  const [panelOpen, setPanelOpen] = useState(false);
   const [subscriptionId, setSubscriptionId] = useState(subscriptions[0]?.id || "");
   const [details, setDetails] = useState<AccessDetails>(emptyDetails);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +33,7 @@ export function AdminMemberServiceAccess({
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    if (!subscriptionId) return;
+    if (!panelOpen || !subscriptionId) return;
     let active = true;
     setBusy(true);
     setNotice("");
@@ -47,7 +46,7 @@ export function AdminMemberServiceAccess({
       .catch((error) => active && setNotice(error instanceof Error ? error.message : "Service details could not be loaded."))
       .finally(() => active && setBusy(false));
     return () => { active = false; };
-  }, [subscriptionId]);
+  }, [panelOpen, subscriptionId]);
 
   async function save() {
     if (!subscriptionId || busy) return;
@@ -82,7 +81,11 @@ export function AdminMemberServiceAccess({
   if (!subscriptions.length) return null;
 
   return (
-    <details className="admin-member-service-access" style={{ marginTop: 8 }}>
+    <details
+      className="admin-member-service-access"
+      style={{ marginTop: 8 }}
+      onToggle={(event) => setPanelOpen(event.currentTarget.open)}
+    >
       <summary style={{ cursor: "pointer", fontWeight: 700 }}>Service account details</summary>
       <div style={{ display: "grid", gap: 10, marginTop: 10, maxWidth: 620 }}>
         <label>
@@ -105,41 +108,45 @@ export function AdminMemberServiceAccess({
           </select>
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-          <label style={{ display: "grid", gap: 4 }}>
-            <span>Service account mail</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={details.accountEmail} onChange={(event) => setDetails((current) => ({ ...current, accountEmail: event.target.value }))} placeholder="account@example.com" autoComplete="off" />
-              <button type="button" className="button button-light small" onClick={() => copy(details.accountEmail, "Account mail")}>Copy</button>
-            </div>
-          </label>
+        {busy && !details.accountEmail && !details.accountPassword && !details.profileName && !details.profilePin ? (
+          <span>Loading protected service details…</span>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Service account mail</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={details.accountEmail} onChange={(event) => setDetails((current) => ({ ...current, accountEmail: event.target.value }))} placeholder="account@example.com" autoComplete="off" />
+                <button type="button" className="button button-light small" onClick={() => copy(details.accountEmail, "Account mail")} disabled={!details.accountEmail}>Copy</button>
+              </div>
+            </label>
 
-          <label style={{ display: "grid", gap: 4 }}>
-            <span>Service account pass</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input type={showPassword ? "text" : "password"} value={details.accountPassword} onChange={(event) => setDetails((current) => ({ ...current, accountPassword: event.target.value }))} placeholder="Service password" autoComplete="new-password" />
-              <button type="button" className="button button-light small" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button>
-              <button type="button" className="button button-light small" onClick={() => copy(details.accountPassword, "Password")}>Copy</button>
-            </div>
-          </label>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Service account pass</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input type={showPassword ? "text" : "password"} value={details.accountPassword} onChange={(event) => setDetails((current) => ({ ...current, accountPassword: event.target.value }))} placeholder="Service password" autoComplete="new-password" />
+                <button type="button" className="button button-light small" onClick={() => setShowPassword((value) => !value)} disabled={!details.accountPassword}>{showPassword ? "Hide" : "Show"}</button>
+                <button type="button" className="button button-light small" onClick={() => copy(details.accountPassword, "Password")} disabled={!details.accountPassword}>Copy</button>
+              </div>
+            </label>
 
-          <label style={{ display: "grid", gap: 4 }}>
-            <span>Profile</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={details.profileName} onChange={(event) => setDetails((current) => ({ ...current, profileName: event.target.value }))} placeholder="e.g. Ryan" autoComplete="off" />
-              <button type="button" className="button button-light small" onClick={() => copy(details.profileName, "Profile")}>Copy</button>
-            </div>
-          </label>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Profile</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input value={details.profileName} onChange={(event) => setDetails((current) => ({ ...current, profileName: event.target.value }))} placeholder="e.g. Ryan" autoComplete="off" />
+                <button type="button" className="button button-light small" onClick={() => copy(details.profileName, "Profile")} disabled={!details.profileName}>Copy</button>
+              </div>
+            </label>
 
-          <label style={{ display: "grid", gap: 4 }}>
-            <span>Profile PIN</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input type={showPin ? "text" : "password"} value={details.profilePin} onChange={(event) => setDetails((current) => ({ ...current, profilePin: event.target.value }))} placeholder="Profile PIN" inputMode="numeric" autoComplete="off" />
-              <button type="button" className="button button-light small" onClick={() => setShowPin((value) => !value)}>{showPin ? "Hide" : "Show"}</button>
-              <button type="button" className="button button-light small" onClick={() => copy(details.profilePin, "Profile PIN")}>Copy</button>
-            </div>
-          </label>
-        </div>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span>Profile PIN</span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input type={showPin ? "text" : "password"} value={details.profilePin} onChange={(event) => setDetails((current) => ({ ...current, profilePin: event.target.value }))} placeholder="Profile PIN" inputMode="numeric" autoComplete="off" />
+                <button type="button" className="button button-light small" onClick={() => setShowPin((value) => !value)} disabled={!details.profilePin}>{showPin ? "Hide" : "Show"}</button>
+                <button type="button" className="button button-light small" onClick={() => copy(details.profilePin, "Profile PIN")} disabled={!details.profilePin}>Copy</button>
+              </div>
+            </label>
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <button type="button" className="button button-dark small" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save service details"}</button>
