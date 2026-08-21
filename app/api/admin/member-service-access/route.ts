@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
-  const { data, error } = await supabase.rpc("uniplug_admin_get_client_service_access", {
+  const { data, error } = await (supabase as any).rpc("uniplug_admin_get_client_service_access", {
     p_client_subscription_id: subscriptionId
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
@@ -45,7 +45,7 @@ export async function PUT(request: Request) {
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
-  const { error } = await supabase.rpc("uniplug_admin_set_client_service_access", {
+  const { error } = await (supabase as any).rpc("uniplug_admin_set_client_service_access", {
     p_client_subscription_id: subscriptionId,
     p_account_email: accountEmail || null,
     p_account_password: accountPassword || null,
