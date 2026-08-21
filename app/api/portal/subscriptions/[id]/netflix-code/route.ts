@@ -16,5 +16,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
   const headers: Record<string, string> = { ...noStore };
   if (result.retryAfter) headers["Retry-After"] = String(result.retryAfter);
+
+  if (result.status === 200 && typeof result.body.code === "string") {
+    return NextResponse.json({ code: result.body.code }, { status: 200, headers });
+  }
+
   return NextResponse.json(result.body, { status: result.status, headers });
 }
