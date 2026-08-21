@@ -4,6 +4,19 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type RpcError = { message: string } | null;
+type RpcResult = { data: unknown; error: RpcError };
+type RpcClient = {
+  rpc: (functionName: string, args?: Record<string, unknown>) => PromiseLike<RpcResult>;
+};
+type AdminAccessRow = {
+  service_name?: string | null;
+  account_email?: string | null;
+  account_password?: string | null;
+  profile_name?: string | null;
+  profile_pin?: string | null;
+};
+
 export async function GET(request: Request) {
   await requireAdmin();
   const url = new URL(request.url);
@@ -14,11 +27,12 @@ export async function GET(request: Request) {
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
-  const { data, error } = await (supabase as any).rpc("uniplug_admin_get_client_service_access", {
+  const rpcClient = supabase as unknown as RpcClient;
+  const { data, error } = await rpcClient.rpc("uniplug_admin_get_client_service_access", {
     p_client_subscription_id: subscriptionId
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
-  const row = Array.isArray(data) ? data[0] : null;
+  const row = (Array.isArray(data) ? data[0] : null) as AdminAccessRow | null;
   if (!row) return NextResponse.json({ error: "Service access details were not found." }, { status: 404 });
 
   return NextResponse.json({
@@ -45,7 +59,8 @@ export async function PUT(request: Request) {
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
-  const { error } = await (supabase as any).rpc("uniplug_admin_set_client_service_access", {
+  const rpcClient = supabase as unknown as RpcClient;
+  const { error } = await rpcClient.rpc("uniplug_admin_set_client_service_access", {
     p_client_subscription_id: subscriptionId,
     p_account_email: accountEmail || null,
     p_account_password: accountPassword || null,
