@@ -1,20 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requestSubscriptionAction } from "@/app/dashboard/subscriptions/actions";
 import { RenewPlanButton } from "@/components/renew-plan-button";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { requestSubscriptionAction } from "@/app/dashboard/subscriptions/actions";
+import { TrackedSubscriptionDetail } from "@/components/tracked-client-views";
 import { requireMember } from "@/lib/auth";
+import { getTrackedSubscription } from "@/lib/client-portal";
 import { formatDualPrice } from "@/lib/currency";
+import { formatMemberDate, formatMemberDateTime, memberStatusClass, memberStatusLabel } from "@/lib/member-dashboard";
 import { planDurationLabel } from "@/lib/plan-durations";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getTrackedSubscription } from "@/lib/client-portal";
-import { TrackedSubscriptionDetail } from "@/components/tracked-client-views";
 
 export const dynamic = "force-dynamic";
-
-function readableStatus(value: string) {
-  return value.replaceAll("_", " ");
-}
 
 export default async function SubscriptionDetailPage({
   params,
@@ -34,7 +31,7 @@ export default async function SubscriptionDetailPage({
   const supabase = await createServerSupabaseClient();
   if (!supabase) notFound();
 
-  const [{ data: subscription }, { data: requests }] = await Promise.all([
+  const [subscriptionResult, requestsResult] = await Promise.all([
     supabase
       .from("uniplug_member_subscriptions")
       .select("id,status,start_at,current_period_end,duration_months,auto_renew,created_at,service:uniplug_catalog_services(id,name,slug,short_description,logo_text,accent_color,fulfillment_label,activation_window,replacement_summary),plan:uniplug_member_plans(id,plan_name,plan_code,price_kes,compare_at_kes,billing_cycle,plan_features,availability_status)")
@@ -48,6 +45,7 @@ export default async function SubscriptionDetailPage({
       .eq("user_id", viewer.user.id)
       .order("created_at", { ascending: false })
   ]);
+  const subscription = subscriptionResult.data;
   if (!subscription) notFound();
 
   const service = subscription.service as unknown as {
@@ -71,7 +69,7 @@ export default async function SubscriptionDetailPage({
     plan_features: string[];
     availability_status: "available" | "limited" | "unavailable";
   } | null;
-  const actionRequests = (requests || []) as Array<{
+  const actionRequests = (requestsResult.data || []) as Array<{
     id: string;
     request_type: "pause" | "cancel";
     reason: string | null;
@@ -85,12 +83,15 @@ export default async function SubscriptionDetailPage({
   const canPause = ["active", "past_due"].includes(subscription.status) && !pendingPause;
   const canCancel = ["pending_activation", "active", "past_due", "paused"].includes(subscription.status) && !pendingCancel;
   const canRenew = Boolean(plan && service && plan.availability_status !== "unavailable" && ["active", "past_due", "paused", "expired"].includes(subscription.status));
+  const periodLabel = subscription.auto_renew ? "Renews on" : "Access until";
+  const supportHref = `/dashboard/support?service=${encodeURIComponent(service?.name || "Digital service")}`;
 
   return (
     <section className="section shell page-top">
-      <Link className="back-link" href="/dashboard">← Back to My UniPlug</Link>
+      <Link className="back-link" href="/dashboard/subscriptions">← Back to subscriptions</Link>
       {query.success === "request_submitted" ? <p className="form-success page-notice">Your request was submitted for review.</p> : null}
-      {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
+      {query.error ? <p className="form-error page-notice">We could not submit that request. Please try again, or create a support ticket if the problem continues.</p> : null}
+      {requestsResult.error ? <p className="form-error page-notice">Request history could not be loaded. Your service details are still available below.</p> : null}
 
       <div className="subscription-detail-hero">
         <ServiceArtwork
@@ -101,17 +102,18 @@ export default async function SubscriptionDetailPage({
           name={service?.name || "Digital service"}
           slug={service?.slug}
         />
-        <div><p className="eyebrow">My subscription</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span>{readableStatus(subscription.status)}</span><span>{planDurationLabel(Number(subscription.duration_months))}</span></div></div>
+        <div><p className="eyebrow">My service</p><h1>{service?.name || "Digital service"}</h1><p>{service?.short_description || "Your UniPlug member service."}</p><div className="tag-row"><span>{plan?.plan_name || "Member plan"}</span><span className={memberStatusClass(subscription.status)}>{memberStatusLabel(subscription.status)}</span><span>{planDurationLabel(Number(subscription.duration_months))}</span></div></div>
       </div>
 
       <div className="subscription-detail-grid">
         <div className="detail-main">
           <section className="panel">
-            <div className="section-heading compact"><div><p className="eyebrow">Plan</p><h2>Membership details</h2></div></div>
+            <div className="section-heading compact"><div><p className="eyebrow">Plan</p><h2>Service details</h2></div></div>
             <dl className="detail-list">
-              <div><dt>Current status</dt><dd>{readableStatus(subscription.status)}</dd></div>
-              <div><dt>Started</dt><dd>{subscription.start_at ? new Date(subscription.start_at).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Activation pending"}</dd></div>
-              <div><dt>Current period ends</dt><dd>{subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString("en-KE", { dateStyle: "long" }) : "Not scheduled"}</dd></div>
+              <div><dt>Current status</dt><dd><span className={memberStatusClass(subscription.status)}>{memberStatusLabel(subscription.status)}</span></dd></div>
+              <div><dt>Started</dt><dd>{subscription.start_at ? formatMemberDate(subscription.start_at, { dateStyle: "long" }) : "Activation pending"}</dd></div>
+              <div><dt>{periodLabel}</dt><dd>{subscription.current_period_end ? formatMemberDate(subscription.current_period_end, { dateStyle: "long" }) : "Not scheduled"}</dd></div>
+              <div><dt>Auto-renew</dt><dd>{subscription.auto_renew ? "On" : "Off"}</dd></div>
               <div><dt>Plan duration</dt><dd>{planDurationLabel(Number(subscription.duration_months))}</dd></div>
               <div><dt>Fulfilment</dt><dd>{service?.fulfillment_label || "Managed through UniPlug"}</dd></div>
               <div><dt>Activation window</dt><dd>{service?.activation_window || "Shown after verification"}</dd></div>
@@ -124,13 +126,13 @@ export default async function SubscriptionDetailPage({
             <div className="request-history">
               {actionRequests.map((request) => (
                 <article key={request.id}>
-                  <div><strong>{request.request_type === "pause" ? "Pause request" : "Cancellation request"}</strong><span>{new Date(request.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
-                  <span className="status-pill">{request.status}</span>
+                  <div><strong>{request.request_type === "pause" ? "Pause request" : "Cancellation request"}</strong><span>{formatMemberDateTime(request.created_at)}</span></div>
+                  <span className={memberStatusClass(request.status)}>{memberStatusLabel(request.status)}</span>
                   {request.reason ? <p>{request.reason}</p> : null}
                   {request.admin_note ? <p><b>UniPlug:</b> {request.admin_note}</p> : null}
                 </article>
               ))}
-              {!actionRequests.length ? <p className="muted-copy">No pause or cancellation requests have been submitted.</p> : null}
+              {!requestsResult.error && !actionRequests.length ? <p className="muted-copy">No pause or cancellation requests have been submitted.</p> : null}
             </div>
           </section>
         </div>
@@ -140,7 +142,7 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Renewal</p>
             <h2>{plan?.plan_name || "Member plan"}</h2>
             {plan ? <div className="plan-price">{formatDualPrice(Number(plan.price_kes) * Number(subscription.duration_months))}<span>/ {planDurationLabel(Number(subscription.duration_months))}</span></div> : null}
-            <p>A renewal creates a dedicated order and extends this subscription after payment and activation.</p>
+            <p>{subscription.auto_renew ? "This service is set to renew automatically. You can still extend it manually when eligible." : "Renewing extends your existing service after payment and activation."}</p>
             {plan && service ? <RenewPlanButton subscriptionId={subscription.id} disabled={!canRenew} /> : null}
             {!canRenew ? <small>This plan is not currently available for renewal.</small> : null}
           </section>
@@ -167,7 +169,7 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Service support</p>
             <h2>Access issue?</h2>
             <p>{service?.replacement_summary || "Eligible service issues can be reviewed by UniPlug support."}</p>
-            <Link className="button button-light" href="/help">Create support ticket</Link>
+            <Link className="button button-light" href={supportHref}>Create support ticket</Link>
           </section>
         </aside>
       </div>
