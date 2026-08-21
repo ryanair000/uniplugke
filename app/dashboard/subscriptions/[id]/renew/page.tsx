@@ -26,7 +26,7 @@ export default async function RenewalPage({ params }: { params: Promise<{ id: st
   if (!service || !plan || plan.availability_status === "unavailable") notFound();
 
   return (
-    <section className="section shell page-top">
+    <section className="member-page renewal-member-page">
       <Link className="back-link" href={`/dashboard/subscriptions/${id}`}>← Back to subscription</Link>
       <RenewalCheckout
         subscriptionId={id}
