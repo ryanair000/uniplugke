@@ -15,6 +15,8 @@ type Ticket = {
   category: string;
   service_name: string | null;
   subscription_id: string | null;
+  order_id: string | null;
+  order_number: string | null;
   created_at: string;
 };
 
@@ -46,6 +48,13 @@ function statusClass(status: string) {
   return styles.statusOpen;
 }
 
+function replyError(code: string | undefined) {
+  if (code === "rate_limited") return "You are sending replies too quickly. Try again in a moment.";
+  if (code === "invalid_attachment") return "That screenshot was rejected. Use a real JPG, PNG, or WEBP image up to 5 MB.";
+  if (code) return "That reply could not be sent. Please try again.";
+  return null;
+}
+
 export default async function SupportTicketPage({
   params,
   searchParams
@@ -61,7 +70,7 @@ export default async function SupportTicketPage({
 
   const { data: ticketData } = await supabase
     .from("uniplug_support_tickets")
-    .select("id,subject,status,category,service_name,subscription_id,created_at")
+    .select("id,subject,status,category,service_name,subscription_id,order_id,order_number,created_at")
     .eq("id", ticketId)
     .eq("user_id", viewer.user.id)
     .maybeSingle();
@@ -96,6 +105,7 @@ export default async function SupportTicketPage({
     current.push(attachment);
     attachmentMap.set(attachment.message_id, current);
   }
+  const errorMessage = replyError(query.error);
 
   return (
     <section className={`${styles.page} ${styles.threadShell}`}>
@@ -108,6 +118,7 @@ export default async function SupportTicketPage({
           <div className={styles.threadMeta}>
             <span>#{ticket.id.slice(0, 8).toUpperCase()}</span>
             {ticket.service_name ? <span>{ticket.service_name}</span> : null}
+            {ticket.order_number ? <span>Order {ticket.order_number}</span> : null}
             <span>{ticket.category.replaceAll("_", " ")}</span>
             <span>Opened {new Date(ticket.created_at).toLocaleDateString("en-KE", { dateStyle: "medium" })}</span>
           </div>
@@ -118,7 +129,7 @@ export default async function SupportTicketPage({
       {query.success === "ticket_created" ? <p className={styles.notice}>Request sent. UniPlug Support will reply here.</p> : null}
       {query.success === "reply_sent" ? <p className={styles.notice}>Your reply was sent.</p> : null}
       {query.warning === "attachment_failed" ? <p className={`${styles.notice} ${styles.noticeError}`}>Your message was sent, but the screenshot could not be attached.</p> : null}
-      {query.error ? <p className={`${styles.notice} ${styles.noticeError}`}>That reply could not be sent. Please try again.</p> : null}
+      {errorMessage ? <p className={`${styles.notice} ${styles.noticeError}`}>{errorMessage}</p> : null}
 
       <section className={styles.conversation} aria-label="Support conversation">
         {messages.map((message) => {
