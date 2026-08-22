@@ -6,6 +6,7 @@ export type VerifyAdminAction =
   | "mailbox_connection_tested"
   | "mailbox_credentials_rotated"
   | "mailbox_credentials_revoked"
+  | "service_account_credentials_updated"
   | "subscription_enabled"
   | "subscription_disabled"
   | "alert_resolved"
