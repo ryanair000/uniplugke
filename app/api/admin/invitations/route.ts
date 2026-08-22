@@ -22,6 +22,12 @@ function temporaryPassword() {
   return `${randomBytes(12).toString("base64url")}!7aA`;
 }
 
+function metadataObject(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {} as Record<string, unknown>;
+}
+
 async function resolveCanonicalClientId(admin: NonNullable<ReturnType<typeof createAdminSupabaseClient>>, clientId: string) {
   let current = clientId;
   const seen = new Set<string>();
@@ -154,7 +160,10 @@ export async function POST(request: Request) {
 
     const activeServices = [...new Set((subscriptions || [])
       .filter((subscription) => ["active", "due_soon", "trial"].includes(subscription.status))
-      .filter((subscription) => subscription.metadata?.portal_hidden !== true && subscription.metadata?.interest_only !== true)
+      .filter((subscription) => {
+        const metadata = metadataObject(subscription.metadata);
+        return metadata.portal_hidden !== true && metadata.interest_only !== true;
+      })
       .map((subscription) => {
         const service = (Array.isArray(subscription.service) ? subscription.service[0] : subscription.service) as { name?: string } | null;
         return service?.name;
