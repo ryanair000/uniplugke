@@ -10,6 +10,7 @@ const adminNavigation: PortalNavItem[] = [
   { href: "/admin/catalog", label: "Catalog", shortLabel: "C", icon: "catalog" },
   { href: "/admin/slots", label: "Slots", shortLabel: "S", icon: "slots" },
   { href: "/admin/mailboxes", label: "VeriFy", shortLabel: "Y", icon: "verify", aliases: ["/admin/verify"] },
+  { href: "/admin/sync", label: "Sync health", shortLabel: "H", icon: "tools" },
   { href: "/admin/key-requests", label: "Key sourcing", shortLabel: "K", icon: "key" }
 ];
 
