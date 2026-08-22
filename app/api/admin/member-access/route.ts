@@ -82,18 +82,19 @@ export async function POST(request: Request) {
   const message = [
     `Hi ${name} 👋`,
     "",
-    `Welcome to UniPlug VIP Shop. Your ${service} subscription is ready.`,
+    `Your ${service} access is ready ✅`,
     "",
-    `VIP Shop: ${loginUrl}`,
+    `Open ${service} in UniPlug:`,
+    vipLink.toString(),
+    "",
+    `This secure link signs you in automatically and opens your ${service} subscription directly.`,
+    "",
+    `For future visits: ${loginUrl}`,
     `Username: @${profile.username}`,
     ...(profile.phone ? [`Phone: ${profile.phone}`] : []),
-    `Secure one-tap access: ${vipLink.toString()}`,
     "",
-    `Tap the secure link above to sign in automatically and go straight to your ${service} subscription.`,
-    "For future visits, use your username or phone and your private password on the VIP Shop login page.",
-    "The one-tap link is single-use, so please keep it private and do not forward it.",
+    "Keep the access link private. It is single-use.",
     "",
-    "Enjoy your subscription 💜",
     "— UniPlug"
   ].join("\n");
 
