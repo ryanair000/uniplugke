@@ -161,8 +161,12 @@ export async function POST(request: Request) {
 
   const requestedPath = safeNext(body.next);
   const isAdmin = profile.role === "admin";
+  const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
   const destination = vipAccess.hasService || isAdmin
-    ? vipAccountDestination(false, firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath)
+    ? vipAccountDestination(
+        mustRotatePassword,
+        firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
+      )
     : storeAccountDestination(requestedPath);
   return NextResponse.json(
     { next: destination },
