@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     : { data: [], error: null };
   if (canonicalError) return NextResponse.json({ error: canonicalError.message }, { status: 500 });
 
-  const clients = [...new Map((canonicalRows || []).map((client) => [client.id, client])).values()].slice(0, 25);
+  const clients = [...new Map((canonicalRows || []).map((client) => [client.id, client] as const)).values()].slice(0, 25);
   const ids = clients.map((client) => client.id);
   const { data: siblingAliases, error: siblingError } = ids.length
     ? await admin.from("client_identity_aliases").select("alias_client_id,canonical_client_id").in("canonical_client_id", ids)
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     const services = [...new Map(tracked.map((subscription) => {
       const service = (Array.isArray(subscription.service) ? subscription.service[0] : subscription.service) as { name?: string } | null;
       const name = service?.name || "Service";
-      return [`${name}:${subscription.status}`, { name, status: subscription.status }];
+      return [`${name}:${subscription.status}`, { name, status: subscription.status }] as const;
     })).values()];
     return {
       ...client,
