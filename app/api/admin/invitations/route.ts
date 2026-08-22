@@ -29,6 +29,14 @@ function metadataObject(value: unknown) {
     : {} as Record<string, unknown>;
 }
 
+async function bestEffort(action: PromiseLike<unknown>) {
+  try {
+    await action;
+  } catch {
+    // Sync telemetry must never mask the primary portal operation.
+  }
+}
+
 export async function POST(request: Request) {
   const viewer = await requireAdmin();
   const body = await request.json().catch(() => ({}));
@@ -149,7 +157,7 @@ export async function POST(request: Request) {
       })
       .filter((name): name is string => Boolean(name)))];
 
-    await admin.from("integration_sync_events").insert({
+    await bestEffort(admin.from("integration_sync_events").insert({
       entity_type: "client",
       entity_id: client.id,
       source_system: "uniplug",
@@ -163,7 +171,7 @@ export async function POST(request: Request) {
         initiated_by: viewer.user.id
       },
       processed_at: now
-    }).catch(() => undefined);
+    }));
 
     const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.uniplug.shop"}/login`;
     const message = [
@@ -194,12 +202,12 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Portal member could not be prepared.";
     const now = new Date().toISOString();
-    await admin.from("clients").update({
+    await bestEffort(admin.from("clients").update({
       portal_access_status: "error",
       portal_sync_error: message.slice(0, 1000),
       portal_sync_updated_at: now
-    }).eq("id", canonicalClientId).catch(() => undefined);
-    await admin.from("integration_sync_events").insert({
+    }).eq("id", canonicalClientId));
+    await bestEffort(admin.from("integration_sync_events").insert({
       entity_type: "client",
       entity_id: canonicalClientId,
       source_system: "uniplug",
@@ -208,7 +216,7 @@ export async function POST(request: Request) {
       status: "failed",
       error: message.slice(0, 2000),
       metadata: { selected_client_id: selectedClientId }
-    }).catch(() => undefined);
+    }));
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
