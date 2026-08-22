@@ -28,6 +28,7 @@ function NavIcon({ name }: { name: string }) {
   if (name === "slots") return <svg {...common}><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></svg>;
   if (name === "verify") return <svg {...common}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>;
   if (name === "view") return <svg {...common}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>;
+  if (name === "admin" || name === "M") return <svg {...common}><path d="M12 3 4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-3Z"/><path d="M9 12h6M12 9v6"/></svg>;
   return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>;
 }
 
@@ -78,22 +79,7 @@ export function PortalNav({
               <span className="portal-nav-icon"><NavIcon name={item.icon || item.shortLabel} /></span>
               <span className="portal-nav-label">{item.label}</span>
               {item.badge && item.badge > 0 ? (
-                <span
-                  aria-label={`${item.badge} unread`}
-                  style={{
-                    marginLeft: "auto",
-                    minWidth: 20,
-                    height: 20,
-                    display: "inline-grid",
-                    placeItems: "center",
-                    borderRadius: 999,
-                    background: active ? "rgba(255,255,255,.18)" : "#efe7ff",
-                    color: active ? "white" : "#6d28d9",
-                    paddingInline: 6,
-                    fontSize: 10,
-                    fontWeight: 900
-                  }}
-                >
+                <span className="portal-nav-badge" aria-label={`${item.badge} unread`}>
                   {item.badge > 99 ? "99+" : item.badge}
                 </span>
               ) : null}
