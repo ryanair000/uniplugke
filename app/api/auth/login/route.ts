@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeKenyanPhone } from "@/lib/phone";
+import { findPortalUserForClient } from "@/lib/client-identity";
 import {
   getLokimaxVipAccess,
   storeAccountDestination,
@@ -91,23 +92,56 @@ export async function POST(request: Request) {
   if (admin) {
     const phone = normalizeKenyanPhone(identifier);
     if (phone) {
-      const { data: portal } = await admin
+      const { data: directPortal } = await admin
         .from("client_portal_accounts")
         .select("user_id")
         .eq("phone_e164", phone)
         .maybeSingle();
-      resolvedUserId = portal?.user_id || null;
+      resolvedUserId = directPortal?.user_id || null;
+
+      // Older LokiMax rows can hold the member phone on an alias client while
+      // the portal account is attached to the canonical client. Resolve those
+      // candidate client rows through the shared identity graph before giving up.
+      if (!resolvedUserId) {
+        const localKenyan = phone.startsWith("+254") ? `0${phone.slice(4)}` : null;
+        const digits = phone.replace(/\D/g, "");
+        const filters = [
+          `phone_e164.eq.${phone}`,
+          `whatsapp_e164.eq.${phone}`,
+          `phone.eq.${phone}`,
+          `whatsapp.eq.${phone}`,
+          `phone.eq.${digits}`,
+          `whatsapp.eq.${digits}`,
+          ...(localKenyan ? [`phone.eq.${localKenyan}`, `whatsapp.eq.${localKenyan}`] : [])
+        ];
+        const { data: clients } = await admin
+          .from("clients")
+          .select("id")
+          .is("deleted_at", null)
+          .or(filters.join(","))
+          .limit(12);
+        for (const client of clients || []) {
+          resolvedUserId = await findPortalUserForClient(admin, client.id);
+          if (resolvedUserId) break;
+        }
+      }
     } else {
       const profileQuery = identifier.includes("@")
         ? admin.from("uniplug_profiles").select("user_id").eq("email", identifier).maybeSingle()
         : admin.from("uniplug_profiles").select("user_id").eq("username", identifier).maybeSingle();
       const { data: profile } = await profileQuery;
       resolvedUserId = profile?.user_id || null;
+
       if (!resolvedUserId && identifier.includes("@")) {
-        const { data: client } = await admin.from("clients").select("id").eq("email", identifier).is("deleted_at", null).maybeSingle();
-        if (client) {
-          const { data: portal } = await admin.from("client_portal_accounts").select("user_id").eq("client_id", client.id).maybeSingle();
-          resolvedUserId = portal?.user_id || null;
+        const { data: clients } = await admin
+          .from("clients")
+          .select("id")
+          .eq("email", identifier)
+          .is("deleted_at", null)
+          .limit(12);
+        for (const client of clients || []) {
+          resolvedUserId = await findPortalUserForClient(admin, client.id);
+          if (resolvedUserId) break;
         }
       }
     }
