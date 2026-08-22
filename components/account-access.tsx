@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Eye, EyeOff, KeyRound, Mail, ShieldCheck, UserRound } from "lucide-react";
 
 type AccessDetails = {
@@ -82,6 +82,31 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
 
+  const getLatestCode = useCallback(async (silent = false) => {
+    setBusy("code");
+    if (!silent) setMessage("");
+    setCodeNote("Checking Netflix for your verification code…");
+    try {
+      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) {
+        if (body.status === "not_found") {
+          setCodeNote("Still waiting for the Netflix verification code…");
+          return;
+        }
+        throw new Error(body.error || "The Netflix verification code could not be loaded.");
+      }
+      if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
+      setCodeResult({ code: String(body.code) });
+      setCodeNote("");
+    } catch (error) {
+      setCodeNote("");
+      setMessage(error instanceof Error ? error.message : "The Netflix verification code could not be loaded.");
+    } finally {
+      setBusy(null);
+    }
+  }, [subscriptionId]);
+
   useEffect(() => {
     let active = true;
     async function loadDetails() {
@@ -104,11 +129,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
 
   useEffect(() => {
     if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut) return;
-    const remaining = 300_000 - (Date.now() - verificationStartedAt);
-    if (remaining <= 0) {
-      setVerificationTimedOut(true);
-      return;
-    }
+    const remaining = Math.max(0, 300_000 - (Date.now() - verificationStartedAt));
     const timer = window.setTimeout(() => setVerificationTimedOut(true), remaining);
     return () => window.clearTimeout(timer);
   }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut]);
@@ -120,7 +141,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       if (busy !== "code") void getLatestCode(true);
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy]);
+  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy, getLatestCode]);
 
   async function copyAllDetails() {
     if (!details) return;
@@ -170,31 +191,6 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       setMessage(body.message || "New slot assigned. Please log in using the new slot details shown above.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Your account issue could not be submitted.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function getLatestCode(silent = false) {
-    setBusy("code");
-    if (!silent) setMessage("");
-    setCodeNote("Checking Netflix for your verification code…");
-    try {
-      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
-      const body = await response.json();
-      if (!response.ok) {
-        if (body.status === "not_found") {
-          setCodeNote("Still waiting for the Netflix verification code…");
-          return;
-        }
-        throw new Error(body.error || "The Netflix verification code could not be loaded.");
-      }
-      if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
-      setCodeResult({ code: String(body.code) });
-      setCodeNote("");
-    } catch (error) {
-      setCodeNote("");
-      setMessage(error instanceof Error ? error.message : "The Netflix verification code could not be loaded.");
     } finally {
       setBusy(null);
     }
