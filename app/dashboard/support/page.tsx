@@ -20,6 +20,7 @@ const categories = [
 
 type Ticket = {
   id: string;
+  public_id: string;
   subject: string;
   status: string;
   category: string;
@@ -62,7 +63,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const { data } = supabase
     ? await supabase
         .from("uniplug_support_tickets")
-        .select("id,subject,status,category,service_name,order_number,last_message_at,member_unread,created_at")
+        .select("id,public_id,subject,status,category,service_name,order_number,last_message_at,member_unread,created_at")
         .eq("user_id", viewer.user.id)
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(50)
@@ -217,6 +218,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
                     <span className={`${styles.status} ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
                   </div>
                   <div className={styles.ticketMeta}>
+                    <span>{ticket.public_id}</span>
                     {ticket.service_name ? <span className={styles.ticketService}>{ticket.service_name}</span> : null}
                     {ticket.order_number ? <span>Order {ticket.order_number}</span> : null}
                     <span>{new Date(ticket.last_message_at || ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span>
