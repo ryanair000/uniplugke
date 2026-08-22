@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type TrackedSubscription = {
@@ -39,39 +40,12 @@ type AccountAccessRow = {
   profile_pin?: string | null;
 };
 
-async function resolveClientFamilyIds(clientId: string) {
-  const admin = createAdminSupabaseClient();
-  if (!admin) return { canonicalId: clientId, familyIds: [clientId] };
-
-  let canonicalId = clientId;
-  const seen = new Set<string>();
-  for (let i = 0; i < 16 && canonicalId && !seen.has(canonicalId); i += 1) {
-    seen.add(canonicalId);
-    const { data, error } = await admin
-      .from("client_identity_aliases")
-      .select("canonical_client_id")
-      .eq("alias_client_id", canonicalId)
-      .maybeSingle();
-    if (error) throw new Error(`Client identity could not be resolved: ${error.message}`);
-    if (!data?.canonical_client_id) break;
-    canonicalId = data.canonical_client_id;
-  }
-
-  const { data: aliases, error: aliasError } = await admin
-    .from("client_identity_aliases")
-    .select("alias_client_id")
-    .eq("canonical_client_id", canonicalId);
-  if (aliasError) throw new Error(`Client identity aliases could not be loaded: ${aliasError.message}`);
-
-  return {
-    canonicalId,
-    familyIds: [canonicalId, ...(aliases || []).map((row) => row.alias_client_id)]
-  };
-}
-
 export async function getTrackedSubscriptions(clientId: string) {
-  const family = await resolveClientFamilyIds(clientId);
-  const supabase = createAdminSupabaseClient() || await createServerSupabaseClient();
+  const admin = createAdminSupabaseClient();
+  const family = admin
+    ? await getClientFamilyIds(admin, clientId)
+    : { canonicalId: clientId, familyIds: [clientId] };
+  const supabase = admin || await createServerSupabaseClient();
   if (!supabase) return [] as TrackedSubscription[];
   const { data, error } = await supabase
     .from("client_subscriptions")
