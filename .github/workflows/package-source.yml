@@ -4,8 +4,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   package:
+    if: github.event.head_commit.message == 'Package UniPlug source'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +24,7 @@ jobs:
           name: uniplug-source
           path: uniplug-source.zip
           retention-days: 1
+      - name: Publish run id
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Deployment source run ${{ github.run_id }}" --body "Temporary deployment packaging run for commit ${{ github.sha }}."
