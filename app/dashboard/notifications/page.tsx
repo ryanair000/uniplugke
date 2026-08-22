@@ -21,6 +21,9 @@ function notificationHref(notification: Notification) {
   if (notification.entity_type === "subscription" && notification.entity_id) {
     return `/dashboard/subscriptions/${notification.entity_id}`;
   }
+  if (notification.entity_type === "support_ticket" && notification.entity_id) {
+    return `/dashboard/support/${notification.entity_id}`;
+  }
   if (notification.entity_type === "request") return "/dashboard/support";
   if (notification.entity_type === "profile") return "/dashboard/settings";
   return null;
