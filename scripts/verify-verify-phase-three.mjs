@@ -37,9 +37,9 @@ assert.doesNotMatch(operations, /message_fingerprint|encrypted_app_password|veri
 assert.match(page, /Success · 24h/);
 assert.match(page, /Safe test/);
 assert.match(page, /Test & securely save/);
-assert.match(page, /Eligible subscriptions/);
+assert.match(page, /VeriFy assignments/);
 assert.match(page, /Operational alerts/);
-assert.match(page, /Audit trail/);
+assert.match(page, /Administrator audit/);
 assert.match(page, /const clientMap = new Map/);
 assert.doesNotMatch(page, /clients!client_subscriptions_client_id_fkey/);
 
