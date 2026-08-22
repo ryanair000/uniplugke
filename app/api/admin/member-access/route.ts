@@ -1,17 +1,29 @@
+import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { VIP_ORIGIN } from "@/lib/account-routing";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ACCESS_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ACCESS_CODE_LENGTH = 10;
+const ACCESS_TTL_HOURS = 48;
+const ACCESS_MAX_USES = 3;
 
 function serviceName(value: unknown) {
   const service = Array.isArray(value) ? value[0] : value;
   return (service as { name?: string } | null)?.name || "your service";
 }
 
+function createAccessCode() {
+  return Array.from(
+    { length: ACCESS_CODE_LENGTH },
+    () => ACCESS_ALPHABET[randomInt(0, ACCESS_ALPHABET.length)]
+  ).join("");
+}
+
 export async function POST(request: Request) {
-  await requireAdmin();
+  const viewer = await requireAdmin();
   const body = await request.json().catch(() => ({}));
   const userId = String(body.userId || "").trim();
   const subscriptionId = String(body.subscriptionId || "").trim();
@@ -58,24 +70,48 @@ export async function POST(request: Request) {
   }
 
   const { data: authUser, error: authUserError } = await admin.auth.admin.getUserById(userId);
-  const authEmail = authUser.user?.email;
-  if (authUserError || !authEmail) {
+  if (authUserError || !authUser.user?.email) {
     return NextResponse.json({ error: "The member login identity could not be loaded." }, { status: 404 });
   }
 
-  const { data: generated, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email: authEmail
-  });
-  const tokenHash = generated?.properties?.hashed_token;
-  if (linkError || !tokenHash) {
-    return NextResponse.json({ error: linkError?.message || "The secure VIP link could not be created." }, { status: 400 });
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + ACCESS_TTL_HOURS * 60 * 60 * 1000).toISOString();
+
+  await admin
+    .from("uniplug_member_access_links")
+    .update({ revoked_at: now.toISOString() })
+    .eq("user_id", userId)
+    .eq("subscription_id", subscriptionId)
+    .is("revoked_at", null);
+
+  let code = "";
+  let createError: { code?: string; message?: string } | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    code = createAccessCode();
+    const { error } = await admin.from("uniplug_member_access_links").insert({
+      code,
+      user_id: userId,
+      subscription_id: subscription.id,
+      created_by: viewer.user.id,
+      expires_at: expiresAt,
+      max_uses: ACCESS_MAX_USES
+    });
+    if (!error) {
+      createError = null;
+      break;
+    }
+    createError = error;
+    if (error.code !== "23505") break;
   }
 
-  const vipLink = new URL("/auth/member-link", VIP_ORIGIN);
-  vipLink.searchParams.set("token_hash", tokenHash);
-  vipLink.searchParams.set("subscription", subscription.id);
+  if (createError || !code) {
+    return NextResponse.json(
+      { error: createError?.message || "The secure VIP link could not be created." },
+      { status: 500 }
+    );
+  }
 
+  const vipLink = new URL(`/access/${code}`, VIP_ORIGIN).toString();
   const loginUrl = new URL("/login", VIP_ORIGIN).toString();
   const name = profile.display_name || `@${profile.username}`;
   const service = serviceName(subscription.service);
@@ -84,29 +120,32 @@ export async function POST(request: Request) {
     "",
     `Your ${service} access is ready ✅`,
     "",
-    `Open ${service} in UniPlug:`,
-    vipLink.toString(),
+    `Open ${service} here:`,
+    vipLink,
     "",
-    `This secure link signs you in automatically and opens your ${service} subscription directly.`,
+    `This private link signs you in automatically and opens your ${service} subscription directly.`,
+    `It expires in ${ACCESS_TTL_HOURS} hours and can be opened up to ${ACCESS_MAX_USES} times.`,
     "",
     `For future visits: ${loginUrl}`,
     `Username: @${profile.username}`,
     ...(profile.phone ? [`Phone: ${profile.phone}`] : []),
     "",
-    "Keep the access link private. It is single-use.",
+    "Keep the access link private and do not forward it.",
     "",
     "— UniPlug"
   ].join("\n");
 
   return NextResponse.json(
     {
-      link: vipLink.toString(),
+      link: vipLink,
       loginUrl,
       message,
       serviceName: service,
       username: profile.username,
       phone: profile.phone,
-      subscriptionId: subscription.id
+      subscriptionId: subscription.id,
+      expiresAt,
+      maxUses: ACCESS_MAX_USES
     },
     { headers: { "Cache-Control": "no-store" } }
   );
