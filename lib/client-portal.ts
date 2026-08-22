@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type TrackedSubscription = {
   id: string;
@@ -39,18 +39,49 @@ type AccountAccessRow = {
   profile_pin?: string | null;
 };
 
+async function resolveClientFamilyIds(clientId: string) {
+  const admin = createAdminSupabaseClient();
+  if (!admin) return { canonicalId: clientId, familyIds: [clientId] };
+
+  let canonicalId = clientId;
+  const seen = new Set<string>();
+  for (let i = 0; i < 16 && canonicalId && !seen.has(canonicalId); i += 1) {
+    seen.add(canonicalId);
+    const { data, error } = await admin
+      .from("client_identity_aliases")
+      .select("canonical_client_id")
+      .eq("alias_client_id", canonicalId)
+      .maybeSingle();
+    if (error) throw new Error(`Client identity could not be resolved: ${error.message}`);
+    if (!data?.canonical_client_id) break;
+    canonicalId = data.canonical_client_id;
+  }
+
+  const { data: aliases, error: aliasError } = await admin
+    .from("client_identity_aliases")
+    .select("alias_client_id")
+    .eq("canonical_client_id", canonicalId);
+  if (aliasError) throw new Error(`Client identity aliases could not be loaded: ${aliasError.message}`);
+
+  return {
+    canonicalId,
+    familyIds: [canonicalId, ...(aliases || []).map((row) => row.alias_client_id)]
+  };
+}
+
 export async function getTrackedSubscriptions(clientId: string) {
-  const supabase = await createServerSupabaseClient();
+  const family = await resolveClientFamilyIds(clientId);
+  const supabase = createAdminSupabaseClient() || await createServerSupabaseClient();
   if (!supabase) return [] as TrackedSubscription[];
   const { data, error } = await supabase
     .from("client_subscriptions")
     .select("id,status,start_date,end_date,next_renewal_date,billing_cycle,amount,currency,auto_renew,service_identifier,account_reference,metadata,verify_enabled,service:client_services!client_subscriptions_service_id_fkey(id,name,category,description,verify_enabled,verify_provider)")
-    .eq("client_id", clientId)
+    .in("client_id", family.familyIds)
     .order("next_renewal_date", { ascending: true, nullsFirst: false });
   if (error) throw new Error(`Tracked subscriptions could not be loaded: ${error.message}`);
   return (data || []).flatMap((row) => {
     const metadata = (row.metadata || {}) as Record<string, unknown>;
-    if (metadata.portal_hidden === true) return [];
+    if (metadata.portal_hidden === true || metadata.interest_only === true) return [];
     const relatedService = (Array.isArray(row.service) ? row.service[0] : row.service) as {
       id: string;
       name: string;
