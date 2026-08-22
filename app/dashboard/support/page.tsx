@@ -1,30 +1,99 @@
+import Link from "next/link";
 import { createSupportTicket } from "@/app/help/actions";
+import styles from "@/components/support-ui.module.css";
 import { requireMember } from "@/lib/auth";
+import { getTrackedSubscriptions } from "@/lib/client-portal";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Support" };
 
+const categories = [
+  ["login", "Login"],
+  ["service", "Service"],
+  ["verification", "Verification"],
+  ["billing", "Billing"],
+  ["account", "Account"],
+  ["other", "Other"]
+] as const;
+
+type Ticket = {
+  id: string;
+  subject: string;
+  status: string;
+  category: string;
+  service_name: string | null;
+  last_message_at: string | null;
+  member_unread: boolean;
+  created_at: string;
+};
+
+type ServiceOption = { value: string; label: string };
+
+function statusLabel(status: string) {
+  if (status === "in_progress") return "In progress";
+  if (status === "waiting_customer") return "Waiting for you";
+  if (status === "resolved" || status === "closed") return "Resolved";
+  return "Open";
+}
+
+function statusClass(status: string) {
+  if (status === "in_progress") return styles.statusProgress;
+  if (status === "waiting_customer") return styles.statusWaiting;
+  if (status === "resolved" || status === "closed") return styles.statusResolved;
+  return styles.statusOpen;
+}
+
+function supportError(code: string | undefined) {
+  if (code === "invalid_attachment") return "That screenshot could not be attached. Use JPG, PNG, or WEBP up to 5 MB.";
+  if (code === "ticket_not_found") return "That support request could not be found.";
+  if (code) return "The request could not be sent. Check the details and try again.";
+  return null;
+}
+
 export default async function SupportPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await requireMember();
   const query = await searchParams;
   const supabase = await createServerSupabaseClient();
-  const { data } = supabase ? await supabase.from("uniplug_support_tickets").select("id,subject,message,status,admin_note,created_at,updated_at").eq("user_id", viewer.user.id).order("created_at", { ascending: false }).limit(50) : { data: [] };
-  const tickets = data || [];
-  const service = (query.service || "").slice(0, 80);
+
+  const { data } = supabase
+    ? await supabase
+        .from("uniplug_support_tickets")
+        .select("id,subject,status,category,service_name,last_message_at,member_unread,created_at")
+        .eq("user_id", viewer.user.id)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(50)
+    : { data: [] };
+  const tickets = (data || []) as Ticket[];
+
+  let serviceOptions: ServiceOption[] = [];
+  if (viewer.profile.clientId) {
+    const tracked = await getTrackedSubscriptions(viewer.profile.clientId);
+    serviceOptions = tracked.map((subscription) => ({
+      value: `tracked:${subscription.id}`,
+      label: subscription.service?.name || subscription.serviceIdentifier || "Tracked service"
+    }));
+  } else if (supabase) {
+    const { data: subscriptions } = await supabase
+      .from("uniplug_member_subscriptions")
+      .select("id,service:uniplug_catalog_services(name)")
+      .eq("user_id", viewer.user.id)
+      .order("created_at", { ascending: false });
+    serviceOptions = (subscriptions || []).map((subscription) => {
+      const service = Array.isArray(subscription.service) ? subscription.service[0] : subscription.service;
+      return { value: `member:${subscription.id}`, label: service?.name || "Digital service" };
+    });
+  }
+
+  const service = (query.service || "").trim().slice(0, 120);
   const renewal = query.topic === "renewal";
   const verify = query.topic === "verify";
   const provider = query.provider === "netflix" ? "Netflix" : "VeriFy";
-  const allowedVerifyCategories = new Set([
-    "assignment_missing",
-    "configuration_missing",
-    "mailbox_connection_missing",
-    "mailbox_authentication_failed",
-    "mailbox_provider_error",
-    "no_current_code",
-    "recent_auth_required"
-  ]);
-  const verifyCategory = allowedVerifyCategories.has(query.category || "") ? query.category! : "configuration_missing";
+  const matchingService = serviceOptions.find((option) => option.label.toLowerCase() === service.toLowerCase());
+  const defaultContext = query.subscription && serviceOptions.some((option) => option.value.endsWith(`:${query.subscription}`))
+    ? serviceOptions.find((option) => option.value.endsWith(`:${query.subscription}`))?.value || ""
+    : matchingService?.value || "";
+  const defaultCategory = renewal ? "billing" : verify ? "verification" : service ? "service" : "other";
   const defaultSubject = renewal && service
     ? `Renew ${service}`
     : verify
@@ -35,17 +104,99 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   const defaultMessage = renewal && service
     ? `I would like to renew my ${service} service. Please share the next payment step.`
     : verify
-      ? `I need help with ${service || provider} VeriFy. Safe failure category: ${verifyCategory}. I have not included any password or verification code.`
+      ? `I need help with ${service || provider} VeriFy. I have not included any password or verification code.`
       : "";
+  const errorMessage = supportError(query.error);
 
   return (
-    <section className="wallet-page">
-      <header className="wallet-page-header wallet-page-header-compact"><div><p className="wallet-kicker">Ticket support</p><h1>How can we help?</h1><p>Create a ticket and keep every update securely attached to your account.</p></div><span className="wallet-support-hours">Tickets only · Account protected</span></header>
-      {query.success === "ticket_created" ? <p className="form-success wallet-notice">Your ticket was created. We’ll respond here.</p> : null}
-      {query.error ? <p className="form-error wallet-notice">The ticket could not be created. Check the details and try again.</p> : null}
-      <div className="wallet-support-grid">
-        <section className="wallet-card"><div className="wallet-card-heading"><div><p className="wallet-kicker">New request</p><h2>Create a ticket</h2></div><span className="wallet-support-icon" aria-hidden="true">?</span></div><form action={createSupportTicket} className="wallet-ticket-form"><input type="hidden" name="returnTo" value="/dashboard/support"/><label>Subject<input name="subject" minLength={3} maxLength={120} required defaultValue={defaultSubject} placeholder="Briefly describe the issue"/></label><label>Message<textarea name="message" minLength={10} maxLength={2000} required rows={7} defaultValue={defaultMessage} placeholder="Tell us what happened and what you already tried."/></label><p>Never include passwords, verification codes, or payment credentials.</p><button className="button wallet-primary-button" type="submit">Create ticket</button></form></section>
-        <section className="wallet-card"><div className="wallet-card-heading"><div><p className="wallet-kicker">Your requests</p><h2>Ticket history</h2></div><span className="wallet-count-badge">{tickets.length}</span></div><div className="wallet-ticket-list">{tickets.map((ticket) => <article key={ticket.id}><div><strong>{ticket.subject}</strong><span className={`wallet-status status-${ticket.status}`}><i/>{String(ticket.status).replaceAll("_", " ")}</span></div><small>{new Date(ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small><p>{ticket.message}</p>{ticket.admin_note ? <div className="wallet-ticket-reply"><b>UniPlug reply</b><p>{ticket.admin_note}</p></div> : null}</article>)}{!tickets.length ? <div className="wallet-empty compact"><span aria-hidden="true">◇</span><h3>No tickets yet</h3><p>Your requests and replies will appear here.</p></div> : null}</div></section>
+    <section className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerCopy}>
+          <h1>Support</h1>
+          <p>Get help with your UniPlug services and keep every reply in one secure conversation.</p>
+        </div>
+      </header>
+
+      {query.success === "ticket_created" ? <p className={styles.notice}>Your support request was sent.</p> : null}
+      {errorMessage ? <p className={`${styles.notice} ${styles.noticeError}`}>{errorMessage}</p> : null}
+
+      <div className={styles.grid}>
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div><p className={styles.kicker}>New request</p><h2>What do you need help with?</h2></div>
+          </div>
+          <form action={createSupportTicket} className={styles.form} encType="multipart/form-data">
+            <input type="hidden" name="returnTo" value="/dashboard/support" />
+            <input type="hidden" name="serviceName" value={service} />
+
+            <div>
+              <p className={styles.kicker}>Issue type</p>
+              <div className={styles.categoryRow} style={{ marginTop: 9 }}>
+                {categories.map(([value, label]) => (
+                  <label key={value}>
+                    <input defaultChecked={value === defaultCategory} name="category" type="radio" value={value} />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {serviceOptions.length ? (
+              <label>
+                Service
+                <select defaultValue={defaultContext} name="subscriptionContext">
+                  <option value="">General account support</option>
+                  {serviceOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            ) : null}
+
+            <label>
+              Subject
+              <input name="subject" minLength={3} maxLength={120} required defaultValue={defaultSubject} placeholder="Briefly describe the issue" />
+            </label>
+            <label>
+              Message
+              <textarea name="message" minLength={10} maxLength={4000} required rows={6} defaultValue={defaultMessage} placeholder="Describe the problem and what you see on your screen." />
+            </label>
+            <label>
+              Add screenshot <span className={styles.fileHint}>Optional · JPG, PNG or WEBP · max 5 MB</span>
+              <input name="attachment" type="file" accept="image/jpeg,image/png,image/webp" />
+            </label>
+            <p className={styles.securityNote}><b>Keep it safe:</b> Never send passwords, OTPs, verification codes, or payment credentials in a support request.</p>
+            <button className={styles.primary} type="submit">Send request</button>
+          </form>
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div><p className={styles.kicker}>Your requests</p><h2>Recent support</h2></div>
+            <span className={styles.count}>{tickets.length}</span>
+          </div>
+          {tickets.length ? (
+            <div className={styles.ticketList}>
+              {tickets.map((ticket) => (
+                <Link className={styles.ticket} href={`/dashboard/support/${ticket.id}`} key={ticket.id}>
+                  <div className={styles.ticketTop}>
+                    <strong>{ticket.subject}</strong>
+                    <span className={`${styles.status} ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
+                  </div>
+                  <div className={styles.ticketMeta}>
+                    {ticket.service_name ? <span className={styles.ticketService}>{ticket.service_name}</span> : null}
+                    <span>{new Date(ticket.last_message_at || ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span>
+                    {ticket.member_unread ? <span className={styles.unread}>● New reply</span> : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.empty}>
+              <span aria-hidden="true">◇</span>
+              <h3>No support requests yet</h3>
+              <p>When you contact support, your requests and replies will appear here.</p>
+            </div>
+          )}
+        </section>
       </div>
     </section>
   );
