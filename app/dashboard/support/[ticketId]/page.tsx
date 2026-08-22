@@ -10,6 +10,7 @@ export const metadata = { title: "Support request" };
 
 type Ticket = {
   id: string;
+  public_id: string;
   subject: string;
   status: string;
   category: string;
@@ -70,7 +71,7 @@ export default async function SupportTicketPage({
 
   const { data: ticketData } = await supabase
     .from("uniplug_support_tickets")
-    .select("id,subject,status,category,service_name,subscription_id,order_id,order_number,created_at")
+    .select("id,public_id,subject,status,category,service_name,subscription_id,order_id,order_number,created_at")
     .eq("id", ticketId)
     .eq("user_id", viewer.user.id)
     .maybeSingle();
@@ -116,7 +117,7 @@ export default async function SupportTicketPage({
           <p className={styles.kicker}>Support request</p>
           <h1>{ticket.subject}</h1>
           <div className={styles.threadMeta}>
-            <span>#{ticket.id.slice(0, 8).toUpperCase()}</span>
+            <span>{ticket.public_id}</span>
             {ticket.service_name ? <span>{ticket.service_name}</span> : null}
             {ticket.order_number ? <span>Order {ticket.order_number}</span> : null}
             <span>{ticket.category.replaceAll("_", " ")}</span>
