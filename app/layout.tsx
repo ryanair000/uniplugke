@@ -10,6 +10,7 @@ import "@/app/store-commerce.css";
 import "@/app/brand.css";
 import "@/app/admin-console.css";
 import "@/app/access-ui.css";
+import "@/app/portal-sidebar-fix.css";
 import { CartProvider } from "@/components/catalog";
 import { SiteFooter, SiteHeader } from "@/components/site";
 import { getViewer } from "@/lib/auth";
