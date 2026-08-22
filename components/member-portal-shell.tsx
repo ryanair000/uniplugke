@@ -1,5 +1,6 @@
 import { PortalNav, type PortalNavItem } from "@/components/portal-nav";
 import { requireMember } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const memberNavigation: PortalNavItem[] = [
   { href: "/dashboard", label: "Home", shortLabel: "home" },
@@ -13,9 +14,19 @@ const memberNavigation: PortalNavItem[] = [
 
 export async function MemberPortalShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const viewer = await requireMember();
+  const supabase = await createServerSupabaseClient();
+  const { count } = supabase
+    ? await supabase
+        .from("uniplug_support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", viewer.user.id)
+        .eq("member_unread", true)
+    : { count: 0 };
+  const unreadSupport = count || 0;
+  const memberItems = memberNavigation.map((item) => item.href === "/dashboard/support" ? { ...item, badge: unreadSupport } : item);
   const items = viewer.profile.role === "admin"
-    ? [...memberNavigation, { href: "/admin", label: "Administration", shortLabel: "M" }]
-    : memberNavigation;
+    ? [...memberItems, { href: "/admin", label: "Administration", shortLabel: "M" }]
+    : memberItems;
 
   return (
     <div className="member-area">
