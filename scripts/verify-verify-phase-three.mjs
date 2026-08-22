@@ -45,7 +45,7 @@ assert.doesNotMatch(page, /clients!client_subscriptions_client_id_fkey/);
 
 assert.match(core, /subscription\.verify_enabled/);
 assert.match(core, /verifySupportUrl/);
-assert.match(support, /Safe failure category/);
+assert.match(support, /Never send passwords, OTPs, verification codes, or payment credentials/);
 assert.match(memberTool, /Create a prefilled support ticket/);
 
 console.log("Verified 34 VeriFy Phase 3 operations, credential, alert, audit, subscription-control, and support invariants.");
