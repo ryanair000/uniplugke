@@ -8,6 +8,7 @@ export const metadata = { title: "Support inbox" };
 
 type Ticket = {
   id: string;
+  public_id: string;
   user_id: string;
   subject: string;
   status: string;
@@ -84,7 +85,7 @@ export default async function AdminSupportPage({
   const { data: ticketData } = supabase
     ? await supabase
         .from("uniplug_support_tickets")
-        .select("id,user_id,subject,status,category,service_name,order_id,order_number,last_message_at,admin_unread,created_at")
+        .select("id,public_id,user_id,subject,status,category,service_name,order_id,order_number,last_message_at,admin_unread,created_at")
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(150)
     : { data: [] };
@@ -101,7 +102,7 @@ export default async function AdminSupportPage({
     if (!statusMatch) return false;
     if (!search) return true;
     const profile = profiles.get(ticket.user_id);
-    const haystack = [ticket.subject, ticket.service_name, ticket.order_number, ticket.category, profile?.display_name, profile?.username, profile?.email]
+    const haystack = [ticket.public_id, ticket.subject, ticket.service_name, ticket.order_number, ticket.category, profile?.display_name, profile?.username, profile?.email]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -184,7 +185,7 @@ export default async function AdminSupportPage({
                   <strong>{ticket.subject}</strong>
                   <span className={`${styles.status} ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
                 </div>
-                <span>{profile?.display_name || `@${profile?.username || ticket.user_id.slice(0, 8)}`}{ticket.service_name ? ` · ${ticket.service_name}` : ""}</span>
+                <span>{ticket.public_id} · {profile?.display_name || `@${profile?.username || ticket.user_id.slice(0, 8)}`}{ticket.service_name ? ` · ${ticket.service_name}` : ""}</span>
                 {ticket.order_number ? <span>Order {ticket.order_number}</span> : null}
                 <small>{new Date(ticket.last_message_at || ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small>
                 {ticket.admin_unread ? <span className={styles.adminUnread}>● Needs attention</span> : null}
@@ -198,7 +199,7 @@ export default async function AdminSupportPage({
           <section className={styles.adminThread}>
             <div className={styles.threadHeader}>
               <div>
-                <p className={styles.kicker}>#{selectedTicket.id.slice(0, 8).toUpperCase()}</p>
+                <p className={styles.kicker}>{selectedTicket.public_id}</p>
                 <h1>{selectedTicket.subject}</h1>
                 <div className={styles.threadMeta}>
                   <span>{selectedTicket.category.replaceAll("_", " ")}</span>
