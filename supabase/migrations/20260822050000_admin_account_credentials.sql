@@ -73,7 +73,10 @@ begin
       else account_password
     end,
     profile_name = nullif(btrim(coalesce(p_profile_name, '')), ''),
-    profile_pin = nullif(btrim(coalesce(p_profile_pin, '')), '')
+    profile_pin = case
+      when nullif(btrim(coalesce(p_profile_pin, '')), '') is not null then btrim(p_profile_pin)
+      else profile_pin
+    end
   where id = p_account_id;
 end;
 $$;
