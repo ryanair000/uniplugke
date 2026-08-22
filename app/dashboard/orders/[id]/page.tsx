@@ -49,6 +49,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     { key: "activation", label: "Activation started", complete: ["pending_activation", "processing", "active", "completed"].includes(order.fulfillment_status) },
     { key: "complete", label: "Service active", complete: ["active", "completed"].includes(order.fulfillment_status) }
   ];
+  const supportParams = new URLSearchParams({ order: order.id });
+  if (orderItems[0]?.service_name) supportParams.set("service", orderItems[0].service_name);
+  const supportHref = `/dashboard/support?${supportParams.toString()}`;
 
   return (
     <section className="section shell page-top">
@@ -102,8 +105,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <div><dt>Phone</dt><dd>{order.customer_phone}</dd></div>
           </dl>
           {order.paystack_reference ? <div className="reference-box"><span>Payment reference</span><code>{order.paystack_reference}</code></div> : null}
-          <p className="muted-copy">Need help with a payment? Share the order number with UniPlug support. Never share your password.</p>
-          <Link className="button button-dark" href="/help">Create support ticket</Link>
+          <p className="muted-copy">Need help with this order? UniPlug Support will receive the order reference automatically. Never share your password.</p>
+          <Link className="button button-dark" href={supportHref}>Get help with this order</Link>
         </aside>
       </div>
     </section>

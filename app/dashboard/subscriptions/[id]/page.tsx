@@ -85,6 +85,9 @@ export default async function SubscriptionDetailPage({
   const canPause = ["active", "past_due"].includes(subscription.status) && !pendingPause;
   const canCancel = ["pending_activation", "active", "past_due", "paused"].includes(subscription.status) && !pendingCancel;
   const canRenew = Boolean(plan && service && plan.availability_status !== "unavailable" && ["active", "past_due", "paused", "expired"].includes(subscription.status));
+  const supportParams = new URLSearchParams({ subscription: subscription.id });
+  if (service?.name) supportParams.set("service", service.name);
+  const supportHref = `/dashboard/support?${supportParams.toString()}`;
 
   return (
     <section className="section shell page-top">
@@ -167,7 +170,7 @@ export default async function SubscriptionDetailPage({
             <p className="eyebrow">Service support</p>
             <h2>Access issue?</h2>
             <p>{service?.replacement_summary || "Eligible service issues can be reviewed by UniPlug support."}</p>
-            <Link className="button button-light" href="/help">Create support ticket</Link>
+            <Link className="button button-light" href={supportHref}>Get help with this service</Link>
           </section>
         </aside>
       </div>

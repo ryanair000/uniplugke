@@ -5,6 +5,7 @@ const adminNavigation: PortalNavItem[] = [
   { href: "/admin", label: "Overview", shortLabel: "O", icon: "home" },
   { href: "/admin/members", label: "Members", shortLabel: "M", icon: "members" },
   { href: "/admin/orders", label: "Orders", shortLabel: "R", icon: "orders" },
+  { href: "/admin/support", label: "Support", shortLabel: "U", icon: "support" },
   { href: "/admin/requests", label: "Requests", shortLabel: "Q", icon: "requests" },
   { href: "/admin/catalog", label: "Catalog", shortLabel: "C", icon: "catalog" },
   { href: "/admin/slots", label: "Slots", shortLabel: "S", icon: "slots" },

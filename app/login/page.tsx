@@ -37,9 +37,13 @@ export default async function LoginPage({
       else vipAccess = await getLokimaxVipAccess(supabase, viewer.user.id);
     }
     const isAdmin = viewer.profile.role === "admin";
+    const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
     if (!onboardingFailed) {
       redirect(isAdmin || vipAccess.hasService
-        ? vipAccountDestination(false, firstLogin && !isAdmin ? "/dashboard/subscriptions" : safeNext(query.next))
+        ? vipAccountDestination(
+            mustRotatePassword,
+            firstLogin && !isAdmin ? "/dashboard/subscriptions" : safeNext(query.next)
+          )
         : storeAccountDestination(safeNext(query.next)));
     }
   }
@@ -51,13 +55,13 @@ export default async function LoginPage({
     <section className="auth-page">
       <div className="auth-card">
         <div className="auth-icon">⚡</div>
-        <p className="eyebrow">{isMainShop ? "UniPlug account" : "Lokimax client access"}</p>
+        <p className="eyebrow">{isMainShop ? "UniPlug account" : "UniPlug VIP access"}</p>
         <h1>{isCheckout ? "Sign in to continue checkout" : "Welcome back"}</h1>
         <p>
           {isMainShop
-            ? "Sign in to your UniPlug shop account. If Lokimax has a service linked to you, we’ll open the VIP portal automatically."
+            ? "Sign in to your UniPlug shop account. If a managed service is linked to you, we’ll open the VIP portal automatically."
             : isServiceReturn
-            ? "Sign in to return to this service and review dollar prices."
+            ? "Sign in to return to this service and review member pricing."
             : "Use the username or email and password from your invitation."}
         </p>
         {viewer.user && onboardingFailed ? (
@@ -77,9 +81,9 @@ export default async function LoginPage({
         )}
         {query.error === "vip_link_invalid" && <p className="form-error">This VIP access link is invalid for this account or subscription. Ask UniPlug for a fresh link.</p>}
         {query.error === "vip_link_expired" && <p className="form-error">This VIP access link has expired or reached its 3-use limit. Ask UniPlug for a fresh link.</p>}
-        {query.error === "membership_required" && <p className="form-error">VIP access requires a service linked to your Lokimax client account.</p>}
+        {query.error === "membership_required" && <p className="form-error">VIP access requires an active linked service.</p>}
         {query.error === "not_configured" && <p className="form-error">Member access is temporarily unavailable. Please contact UniPlug support.</p>}
-        <small>{isMainShop ? <>New to UniPlug? <a href="/register">Create an account</a>.</> : "VIP access is reserved for clients with a service in Lokimax."}</small>
+        <small>{isMainShop ? <>New to UniPlug? <a href="/register">Create an account</a>.</> : "VIP access is reserved for clients with an active linked service."}</small>
       </div>
     </section>
   );
