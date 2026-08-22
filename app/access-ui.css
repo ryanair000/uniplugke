@@ -1,0 +1,425 @@
+/* Client access + admin delivery UI refresh */
+
+/* Member login details */
+.access-console {
+  border-color: #e4dfeb;
+  box-shadow: 0 16px 44px rgba(33, 24, 51, .05);
+}
+
+.access-console > .access-console-heading {
+  align-items: center;
+  border-bottom: 1px solid #ece8f0;
+  background: linear-gradient(135deg, #ffffff 0%, #fbf9ff 100%);
+  padding: 22px 24px;
+}
+
+.access-console-heading h2 {
+  margin: 5px 0 0;
+  font-size: 1.45rem;
+  letter-spacing: -.035em;
+}
+
+.access-console-subtitle {
+  margin: 6px 0 0;
+  color: var(--wallet-muted, #6f6a78);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.access-ready-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #cde9df;
+  border-radius: 999px;
+  background: #edf9f5;
+  padding: 7px 10px;
+  color: #087a58;
+  font-size: .65rem;
+  font-weight: 850;
+}
+
+.access-console-vault {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 20px 24px 0;
+}
+
+.access-credential-row {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border: 1px solid #ebe7ef;
+  border-radius: 15px;
+  background: #fcfbfd;
+  padding: 12px 13px;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.access-credential-row:hover {
+  border-color: #ddd3ea;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(33, 24, 51, .035);
+}
+
+.access-credential-main {
+  display: grid;
+  align-items: center;
+  gap: 11px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.access-credential-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 11px;
+  background: #f0e9ff;
+  color: #6d28d9;
+}
+
+.access-credential-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.access-credential-copy dt {
+  color: #817a88;
+  font-size: .6rem;
+  font-weight: 750;
+}
+
+.access-credential-copy dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: #17151d;
+  font-size: .82rem;
+  font-weight: 780;
+  line-height: 1.35;
+}
+
+.access-credential-copy dd.is-masked {
+  letter-spacing: .16em;
+}
+
+.access-credential-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.access-credential-action,
+.access-copy-all-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #e2dce8;
+  border-radius: 9px;
+  background: #fff;
+  padding: 7px 9px;
+  color: #4c4652;
+  font: inherit;
+  font-size: .64rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.access-credential-action:hover,
+.access-copy-all-button:hover {
+  border-color: #cfc1e4;
+  background: #faf7ff;
+  color: #6d28d9;
+}
+
+.access-credential-action:active,
+.access-copy-all-button:active {
+  transform: translateY(1px);
+}
+
+.access-credential-action.is-copied,
+.access-copy-all-button.is-copied {
+  border-color: #b9dfd1;
+  background: #edf9f5;
+  color: #087a58;
+}
+
+.access-copy-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 14px 24px 0;
+  border: 1px solid #e4daf3;
+  border-radius: 14px;
+  background: #f8f4ff;
+  padding: 12px 13px;
+}
+
+.access-copy-all > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.access-copy-all strong {
+  color: #312a3a;
+  font-size: .7rem;
+}
+
+.access-copy-all span {
+  color: #746c7d;
+  font-size: .62rem;
+  line-height: 1.4;
+}
+
+.access-copy-all-button {
+  flex: 0 0 auto;
+  border-color: #d5c6ea;
+  color: #5d20bd;
+}
+
+.access-console-actions {
+  margin-top: 18px;
+}
+
+/* Admin member delivery */
+.admin-member-delivery {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 520px);
+  min-width: 0;
+}
+
+.admin-member-delivery-toolbar {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-member-delivery-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-member-delivery-copy strong {
+  color: #1c1921;
+  font-size: .72rem;
+}
+
+.admin-member-delivery-copy span {
+  overflow: hidden;
+  color: #7a7381;
+  font-size: .62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-member-delivery-controls {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(150px, 1fr) auto;
+}
+
+.admin-member-delivery-controls select {
+  min-width: 0;
+  border: 1px solid #e3dee8;
+  border-radius: 11px;
+  background: #fff;
+  padding: 9px 10px;
+  color: #211e25;
+  font: inherit;
+  font-size: .69rem;
+  outline: 0;
+}
+
+.admin-member-delivery-controls select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .08);
+}
+
+.admin-member-delivery-controls .button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.admin-delivery-ready {
+  display: grid;
+  gap: 9px;
+  border: 1px solid #d4eadf;
+  border-radius: 13px;
+  background: #f4fbf8;
+  padding: 11px;
+}
+
+.admin-delivery-ready-header {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-delivery-check {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 9px;
+  background: #dff4ec;
+  color: #087a58;
+}
+
+.admin-delivery-ready-header > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-delivery-ready-header strong {
+  color: #155c46;
+  font-size: .68rem;
+}
+
+.admin-delivery-ready-header span {
+  color: #5f766e;
+  font-size: .59rem;
+  line-height: 1.35;
+}
+
+.admin-delivery-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.admin-delivery-actions .button {
+  display: inline-flex;
+  min-height: 35px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+}
+
+.admin-delivery-link-preview {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: #6f6a78;
+  font-size: .58rem;
+}
+
+.admin-delivery-link-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-delivery-helper,
+.admin-delivery-notice {
+  color: #77717e;
+  font-size: .59rem;
+  line-height: 1.4;
+}
+
+.admin-delivery-notice {
+  color: #5f5870;
+}
+
+/* Give the existing admin service-account editor a cleaner entry point. */
+.admin-member-service-access {
+  width: min(100%, 520px);
+}
+
+.admin-member-service-access > summary {
+  border: 1px solid #e7e2eb;
+  border-radius: 10px;
+  background: #faf9fb;
+  padding: 8px 10px;
+  color: #312d36;
+  font-size: .68rem;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.admin-member-service-access > summary:hover {
+  border-color: #d9cfe3;
+  background: #f8f5fb;
+}
+
+.admin-member-service-access[open] > summary {
+  border-color: #d7cae5;
+  background: #f6f1fb;
+}
+
+@media (max-width: 760px) {
+  .access-console > .access-console-heading {
+    align-items: flex-start;
+  }
+
+  .access-ready-pill {
+    margin-top: 2px;
+  }
+
+  .access-credential-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .access-credential-actions {
+    justify-content: flex-end;
+  }
+
+  .access-copy-all {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .access-copy-all-button {
+    width: 100%;
+  }
+
+  .admin-member-delivery-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-member-delivery-controls .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .access-console > .access-console-heading,
+  .access-console-vault {
+    padding-inline: 17px;
+  }
+
+  .access-copy-all,
+  .access-console-actions {
+    margin-inline: 17px;
+  }
+
+  .access-console-heading {
+    gap: 12px;
+  }
+
+  .access-ready-pill {
+    font-size: .59rem;
+  }
+
+  .access-credential-actions {
+    justify-content: stretch;
+  }
+
+  .access-credential-action {
+    flex: 1 1 0;
+  }
+}
