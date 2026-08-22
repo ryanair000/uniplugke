@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+function vercelPreviewOrigin() {
+  if (process.env.VERCEL_ENV !== "preview") return null;
+  const deploymentHost = process.env.VERCEL_URL?.trim();
+  return deploymentHost ? `https://${deploymentHost}` : null;
+}
+
 export const STORE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop";
-export const VIP_ORIGIN = process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop";
+export const VIP_ORIGIN = vercelPreviewOrigin() || process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop";
 
 export type LokimaxVipAccess = {
   clientId: string | null;
