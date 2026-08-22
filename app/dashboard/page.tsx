@@ -58,6 +58,10 @@ type AttentionItem = {
   action: string;
 };
 
+function currentTimeMs() {
+  return Date.now();
+}
+
 function attentionItems(subscriptions: Subscription[], orders: MemberOrder[]) {
   const items: Array<AttentionItem & { priority: number }> = [];
 
@@ -76,7 +80,7 @@ function attentionItems(subscriptions: Subscription[], orders: MemberOrder[]) {
     }
 
     if (subscription.status === "pending_activation") {
-      const hoursWaiting = (Date.now() - new Date(subscription.created_at).getTime()) / 3_600_000;
+      const hoursWaiting = (currentTimeMs() - new Date(subscription.created_at).getTime()) / 3_600_000;
       if (hoursWaiting >= 24) {
         items.push({ key: `activation-${subscription.id}`, title: `${serviceName} activation is taking longer than expected`, detail: "Open the service for the latest activation information or support options.", href, action: "Track service →", priority: 80 });
       }
@@ -144,7 +148,7 @@ export default async function DashboardPage() {
   const activeCount = subscriptions.filter((item) => item.status === "active").length;
   const pendingRequestsCount = pendingRequestsResult?.count ?? 0;
   const attention = attentionItems(subscriptions, orders);
-  const now = Date.now();
+  const now = currentTimeMs();
   const nextServiceDate = subscriptions
     .filter((item) => ["active", "past_due"].includes(item.status) && Boolean(item.current_period_end) && new Date(item.current_period_end!).getTime() >= now)
     .sort((a, b) => new Date(a.current_period_end!).getTime() - new Date(b.current_period_end!).getTime())[0];
