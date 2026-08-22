@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { requireAdmin } from "@/lib/auth";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { normalizePhone } from "@/lib/phone";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
@@ -28,23 +29,6 @@ function metadataObject(value: unknown) {
     : {} as Record<string, unknown>;
 }
 
-async function resolveCanonicalClientId(admin: NonNullable<ReturnType<typeof createAdminSupabaseClient>>, clientId: string) {
-  let current = clientId;
-  const seen = new Set<string>();
-  for (let i = 0; i < 16 && current && !seen.has(current); i += 1) {
-    seen.add(current);
-    const { data, error } = await admin
-      .from("client_identity_aliases")
-      .select("canonical_client_id")
-      .eq("alias_client_id", current)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data?.canonical_client_id) break;
-    current = data.canonical_client_id;
-  }
-  return current;
-}
-
 export async function POST(request: Request) {
   const viewer = await requireAdmin();
   const body = await request.json().catch(() => ({}));
@@ -58,13 +42,8 @@ export async function POST(request: Request) {
 
   let canonicalClientId = selectedClientId;
   try {
-    canonicalClientId = await resolveCanonicalClientId(admin, selectedClientId);
-    const { data: aliases, error: aliasError } = await admin
-      .from("client_identity_aliases")
-      .select("alias_client_id")
-      .eq("canonical_client_id", canonicalClientId);
-    if (aliasError) throw aliasError;
-    const familyIds = [canonicalClientId, ...(aliases || []).map((row) => row.alias_client_id)];
+    const family = await getClientFamilyIds(admin, selectedClientId);
+    canonicalClientId = family.canonicalId;
 
     const [{ data: client, error: clientError }, { data: subscriptions, error: subscriptionError }, { data: portalRows, error: portalError }] = await Promise.all([
       admin.from("clients")
@@ -74,11 +53,11 @@ export async function POST(request: Request) {
         .maybeSingle(),
       admin.from("client_subscriptions")
         .select("id,status,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
-        .in("client_id", familyIds)
+        .in("client_id", family.familyIds)
         .order("created_at", { ascending: false }),
       admin.from("client_portal_accounts")
         .select("user_id,client_id")
-        .in("client_id", familyIds)
+        .in("client_id", family.familyIds)
     ]);
 
     if (clientError || !client) return NextResponse.json({ error: "Tracked client was not found." }, { status: 404 });
@@ -90,7 +69,7 @@ export async function POST(request: Request) {
     const username = portalUsername(client.client_code, client.display_name, client.id);
     const authEmail = portalEmail(client.id);
     const contactEmail = client.email ? String(client.email).toLowerCase() : null;
-    const existingPortal = (portalRows || [])[0] || null;
+    const existingPortal = (portalRows || []).find((row) => row.client_id === canonicalClientId) || portalRows?.[0] || null;
 
     let userId = existingPortal?.user_id || null;
     const actionType: "invite" | "recovery" = userId ? "recovery" : "invite";
