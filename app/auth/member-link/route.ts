@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   if (!admin) return loginError("vip_link_invalid");
 
   let userId = "";
-  let supabase = await createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   if (!supabase) return loginError("vip_link_invalid");
 
   const privateTokenHash = token ? hashToken(token) : "";
