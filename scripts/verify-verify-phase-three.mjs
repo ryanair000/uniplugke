@@ -34,7 +34,7 @@ assert.match(operations, /provider_format_change/);
 assert.match(operations, /authentication_failure/);
 assert.doesNotMatch(operations, /message_fingerprint|encrypted_app_password|verification_code/);
 
-assert.match(page, /Success rate · 24h/);
+assert.match(page, /Success · 24h/);
 assert.match(page, /Safe test/);
 assert.match(page, /Test & securely save/);
 assert.match(page, /Eligible subscriptions/);
