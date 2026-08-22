@@ -35,16 +35,23 @@ export function AdminMemberServiceAccess({
   useEffect(() => {
     if (!panelOpen || !subscriptionId) return;
     let active = true;
-    setBusy(true);
-    setNotice("");
-    fetch(`/api/admin/member-service-access?subscriptionId=${encodeURIComponent(subscriptionId)}`, { cache: "no-store" })
-      .then(async (response) => {
+
+    async function loadDetails() {
+      setBusy(true);
+      setNotice("");
+      try {
+        const response = await fetch(`/api/admin/member-service-access?subscriptionId=${encodeURIComponent(subscriptionId)}`, { cache: "no-store" });
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Service details could not be loaded.");
         if (active) setDetails({ ...emptyDetails, ...body });
-      })
-      .catch((error) => active && setNotice(error instanceof Error ? error.message : "Service details could not be loaded."))
-      .finally(() => active && setBusy(false));
+      } catch (error) {
+        if (active) setNotice(error instanceof Error ? error.message : "Service details could not be loaded.");
+      } finally {
+        if (active) setBusy(false);
+      }
+    }
+
+    void loadDetails();
     return () => { active = false; };
   }, [panelOpen, subscriptionId]);
 
