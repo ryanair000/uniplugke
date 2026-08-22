@@ -47,8 +47,8 @@ assert.match(actions, /adapter\?\.isEligible/);
 
 assert.match(page, /Provider rollout gates/);
 assert.match(page, /Activation gates/);
-assert.match(page, /Instant provider shutdown/);
+assert.match(page, /Instant shutdown/);
 assert.match(page, /Pilot cohort/);
-assert.match(page, /Only providers in the reviewed code registry/);
+assert.match(page, /Only providers in the reviewed application registry/);
 
 console.log("Verified 38 VeriFy Phase 4 authorization, readiness, cohort, kill-switch, audit, and server-only invariants.");
