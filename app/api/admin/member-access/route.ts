@@ -1,16 +1,25 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { VIP_ORIGIN } from "@/lib/account-routing";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACCESS_LINK_LIFETIME_MS = 48 * 60 * 60 * 1000;
-const ACCESS_LINK_MAX_USES = 3;
+const ACCESS_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ACCESS_CODE_LENGTH = 10;
+const ACCESS_TTL_HOURS = 48;
+const ACCESS_MAX_USES = 3;
 
 function serviceName(value: unknown) {
   const service = Array.isArray(value) ? value[0] : value;
   return (service as { name?: string } | null)?.name || "your service";
+}
+
+function createAccessCode() {
+  return Array.from(
+    { length: ACCESS_CODE_LENGTH },
+    () => ACCESS_ALPHABET[randomInt(0, ACCESS_ALPHABET.length)]
+  ).join("");
 }
 
 function hashToken(token: string) {
@@ -70,9 +79,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + ACCESS_LINK_LIFETIME_MS).toISOString();
-  const token = randomBytes(32).toString("base64url");
-  const tokenHash = hashToken(token);
+  const expiresAt = new Date(now.getTime() + ACCESS_TTL_HOURS * 60 * 60 * 1000).toISOString();
 
   const { error: revokeError } = await admin
     .from("uniplug_member_access_links")
@@ -85,50 +92,63 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Existing VIP links could not be rotated safely." }, { status: 500 });
   }
 
-  const { error: insertError } = await admin
-    .from("uniplug_member_access_links")
-    .insert({
+  let code = "";
+  let createError: { code?: string; message?: string } | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    code = createAccessCode();
+    const token = randomBytes(32).toString("base64url");
+    const { error } = await admin.from("uniplug_member_access_links").insert({
+      code,
       user_id: userId,
       subscription_id: subscription.id,
-      token_hash: tokenHash,
+      token_hash: hashToken(token),
+      created_by: viewer.user.id,
       expires_at: expiresAt,
-      max_uses: ACCESS_LINK_MAX_USES,
-      use_count: 0,
-      created_by: viewer.user.id
+      max_uses: ACCESS_MAX_USES,
+      use_count: 0
     });
-
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message || "The secure VIP link could not be created." }, { status: 400 });
+    if (!error) {
+      createError = null;
+      break;
+    }
+    createError = error;
+    if (error.code !== "23505") break;
   }
 
-  const vipLink = new URL("/auth/member-link", VIP_ORIGIN);
-  vipLink.searchParams.set("token", token);
-  vipLink.searchParams.set("subscription", subscription.id);
+  if (createError || !code) {
+    return NextResponse.json(
+      { error: createError?.message || "The secure VIP link could not be created." },
+      { status: 500 }
+    );
+  }
 
+  const vipLink = new URL(`/access/${code}`, VIP_ORIGIN).toString();
   const loginUrl = new URL("/login", VIP_ORIGIN).toString();
   const name = profile.display_name || `@${profile.username}`;
   const service = serviceName(subscription.service);
   const message = [
     `Hi ${name} 👋`,
     "",
-    `Welcome to UniPlug VIP Shop. Your ${service} subscription is ready.`,
+    `Your ${service} access is ready ✅`,
     "",
-    `VIP Shop: ${loginUrl}`,
+    `Open ${service} here:`,
+    vipLink,
+    "",
+    `This private link signs you in automatically and opens your ${service} subscription directly.`,
+    `It expires in ${ACCESS_TTL_HOURS} hours and can be opened up to ${ACCESS_MAX_USES} times.`,
+    "",
+    `For future visits: ${loginUrl}`,
     `Username: @${profile.username}`,
     ...(profile.phone ? [`Phone: ${profile.phone}`] : []),
-    `Secure one-tap access: ${vipLink.toString()}`,
     "",
-    `Tap the secure link above to sign in automatically and go straight to your ${service} subscription.`,
-    "The secure link works for 48 hours and can be opened up to 3 times. Please keep it private and do not forward it.",
-    "For future visits, use your username or phone and your private password on the VIP Shop login page.",
+    "Keep the access link private and do not forward it.",
     "",
-    "Enjoy your subscription 💜",
     "— UniPlug"
   ].join("\n");
 
   return NextResponse.json(
     {
-      link: vipLink.toString(),
+      link: vipLink,
       loginUrl,
       message,
       serviceName: service,
@@ -136,8 +156,8 @@ export async function POST(request: Request) {
       phone: profile.phone,
       subscriptionId: subscription.id,
       expiresAt,
-      maxUses: ACCESS_LINK_MAX_USES,
-      usesRemaining: ACCESS_LINK_MAX_USES
+      maxUses: ACCESS_MAX_USES,
+      usesRemaining: ACCESS_MAX_USES
     },
     { headers: { "Cache-Control": "no-store" } }
   );

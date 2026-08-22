@@ -23,6 +23,10 @@ function isPublicCatalogPath(pathname: string) {
   return pathname === "/" || pathname === "/services" || pathname.startsWith("/services/");
 }
 
+function isPasswordRotationPath(pathname: string) {
+  return pathname === "/dashboard/settings" || pathname === "/settings";
+}
+
 function redirectWithCookies(response: NextResponse, destination: URL) {
   const redirect = NextResponse.redirect(destination);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
@@ -36,18 +40,38 @@ function securePrivateResponse(response: NextResponse) {
   return response;
 }
 
+function passwordRotationRequiredResponse(request: NextRequest, response: NextResponse) {
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const denied = NextResponse.json(
+      { error: "Change your temporary password before using private account features." },
+      { status: 403 }
+    );
+    response.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie));
+    return securePrivateResponse(denied);
+  }
+
+  const settingsUrl = request.nextUrl.clone();
+  settingsUrl.pathname = "/dashboard/settings";
+  settingsUrl.search = "";
+  settingsUrl.searchParams.set("security", "required");
+  return redirectWithCookies(response, settingsUrl);
+}
+
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const pathname = request.nextUrl.pathname;
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+
   if (isKeysHostname(host)) {
     if (pathname === "/tools/verify") {
       return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, vipAccountDestination(false, pathname)));
     }
     const allowed = pathname === "/" || pathname.startsWith("/keys/") || pathname.startsWith("/products/") || pathname === "/cart" || pathname === "/order-status" || pathname === "/login" || pathname === "/register" || pathname === "/auth/callback" || pathname === "/checkout" || pathname === "/payment-return" || pathname === "/opengraph-image" || pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/api/auth/login" || pathname === "/api/auth/register" || pathname === "/api/store/products" || pathname === "/api/store/checkout" || pathname === "/api/keys/checkout" || pathname === "/api/keys/requests" || pathname === "/api/keys/order-status" || pathname === "/api/payments/verify" || pathname === "/api/payments/webhook";
     if (!allowed) {
-      const storeUrl = request.nextUrl.clone(); storeUrl.pathname = "/"; storeUrl.search = "";
+      const storeUrl = request.nextUrl.clone();
+      storeUrl.pathname = "/";
+      storeUrl.search = "";
       return NextResponse.redirect(storeUrl);
     }
     if (pathname !== "/" || !url || !key) return NextResponse.next({ request });
@@ -80,6 +104,7 @@ export async function updateSession(request: NextRequest) {
     if (storeProfile.role !== "admin" && !vipAccess.hasService && !vipAccess.mustChangePassword) return storeResponse;
     return redirectWithCookies(storeResponse, new URL(vipAccountDestination(vipAccess.mustChangePassword)));
   }
+
   const isPublicPath = publicPaths.has(pathname);
   const isCatalogPath = isPublicCatalogPath(pathname);
 
@@ -113,6 +138,7 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
 
   let profile: { status: string; role: string } | null = null;
+  let mustChangePassword = false;
   if (data.user) {
     const result = await supabase
       .from("uniplug_profiles")
@@ -123,6 +149,7 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.status === "active" && profile.role !== "admin") {
       const vipAccess = await getLokimaxVipAccess(supabase, data.user.id);
+      mustChangePassword = vipAccess.mustChangePassword;
       if (!vipAccess.hasService && !vipAccess.mustChangePassword) {
         return redirectWithCookies(response, new URL(storeAccountDestination("/")));
       }
@@ -146,6 +173,10 @@ export async function updateSession(request: NextRequest) {
     loginUrl.search = "";
     loginUrl.searchParams.set("error", "membership_required");
     return redirectWithCookies(response, loginUrl);
+  }
+
+  if (mustChangePassword && !isPasswordRotationPath(pathname)) {
+    return passwordRotationRequiredResponse(request, response);
   }
 
   return securePrivateResponse(response);

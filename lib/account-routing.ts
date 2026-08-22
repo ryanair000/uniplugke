@@ -45,7 +45,9 @@ function vipPath(nextPath: string) {
 }
 
 export function vipAccountDestination(mustChangePassword = false, nextPath = "/dashboard") {
-  void mustChangePassword; // Kept for compatibility with callers deployed before optional password setup.
+  if (mustChangePassword) {
+    return absoluteUrl(VIP_ORIGIN, "/dashboard/settings?security=required");
+  }
   return absoluteUrl(VIP_ORIGIN, vipPath(nextPath));
 }
 

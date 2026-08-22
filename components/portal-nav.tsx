@@ -11,6 +11,7 @@ export type PortalNavItem = {
   shortLabel: string;
   icon?: string;
   aliases?: string[];
+  badge?: number;
 };
 
 function NavIcon({ name }: { name: string }) {
@@ -76,6 +77,26 @@ export function PortalNav({
             >
               <span className="portal-nav-icon"><NavIcon name={item.icon || item.shortLabel} /></span>
               <span className="portal-nav-label">{item.label}</span>
+              {item.badge && item.badge > 0 ? (
+                <span
+                  aria-label={`${item.badge} unread`}
+                  style={{
+                    marginLeft: "auto",
+                    minWidth: 20,
+                    height: 20,
+                    display: "inline-grid",
+                    placeItems: "center",
+                    borderRadius: 999,
+                    background: active ? "rgba(255,255,255,.18)" : "#efe7ff",
+                    color: active ? "white" : "#6d28d9",
+                    paddingInline: 6,
+                    fontSize: 10,
+                    fontWeight: 900
+                  }}
+                >
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              ) : null}
             </Link>
           );
         })}

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeKenyanPhone } from "@/lib/phone";
@@ -16,11 +17,36 @@ function cleanIdentifier(value: unknown) {
   return String(value || "").trim().toLowerCase().slice(0, 160);
 }
 
+function fingerprint(prefix: string, value: string) {
+  return createHash("sha256").update(`${prefix}:${value}`).digest("hex");
+}
+
+function requestIp(request: Request) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
+}
+
 async function genericFailure() {
   await new Promise((resolve) => setTimeout(resolve, 350));
   return NextResponse.json(
     { error: "The username/email or password is incorrect." },
     { status: 401, headers: { "Cache-Control": "no-store" } }
+  );
+}
+
+function rateLimitFailure() {
+  return NextResponse.json(
+    { error: "Too many sign-in attempts. Try again shortly." },
+    {
+      status: 429,
+      headers: {
+        "Cache-Control": "no-store",
+        "Retry-After": "600"
+      }
+    }
   );
 }
 
@@ -31,6 +57,34 @@ export async function POST(request: Request) {
   if (!identifier || password.length < 8 || password.length > 256) return genericFailure();
 
   const admin = createAdminSupabaseClient();
+
+  if (admin) {
+    const ipKey = fingerprint("uniplug-login-ip", requestIp(request));
+    const identifierKey = fingerprint("uniplug-login-identifier", identifier);
+    const [ipLimit, identifierLimit] = await Promise.all([
+      admin.rpc("check_rate_limit", {
+        p_fingerprint: ipKey,
+        p_route: "uniplug_login_ip",
+        p_limit: 40,
+        p_window_seconds: 600
+      }),
+      admin.rpc("check_rate_limit", {
+        p_fingerprint: identifierKey,
+        p_route: "uniplug_login_identifier",
+        p_limit: 10,
+        p_window_seconds: 600
+      })
+    ]);
+
+    if (ipLimit.error || identifierLimit.error) {
+      console.error("[uniplug-login] rate limiter unavailable");
+      return NextResponse.json(
+        { error: "Sign-in is temporarily unavailable. Please try again." },
+        { status: 503, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    if (ipLimit.data !== true || identifierLimit.data !== true) return rateLimitFailure();
+  }
 
   let email = identifier;
   let resolvedUserId: string | null = null;
@@ -107,8 +161,12 @@ export async function POST(request: Request) {
 
   const requestedPath = safeNext(body.next);
   const isAdmin = profile.role === "admin";
+  const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
   const destination = vipAccess.hasService || isAdmin
-    ? vipAccountDestination(false, firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath)
+    ? vipAccountDestination(
+        mustRotatePassword,
+        firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
+      )
     : storeAccountDestination(requestedPath);
   return NextResponse.json(
     { next: destination },
