@@ -9,6 +9,12 @@ export type LokimaxVipAccess = {
   mustChangePassword: boolean;
 };
 
+function metadataObject(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {} as Record<string, unknown>;
+}
+
 export async function getLokimaxVipAccess(
   supabase: SupabaseClient,
   userId: string
@@ -23,14 +29,23 @@ export async function getLokimaxVipAccess(
     return { clientId: null, hasService: false, mustChangePassword: false };
   }
 
-  const { count, error } = await supabase
+  // Do not pin this query to portal.client_id. The portal RLS policy exposes
+  // every visible subscription in the same canonical LokiMax client family,
+  // including subscriptions that still live on a historical alias row.
+  const { data: subscriptions, error } = await supabase
     .from("client_subscriptions")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", portal.client_id);
+    .select("id,status,metadata")
+    .in("status", ["active", "due_soon", "trial"])
+    .limit(500);
+
+  const hasService = !error && (subscriptions || []).some((subscription) => {
+    const metadata = metadataObject(subscription.metadata);
+    return metadata.portal_hidden !== true && metadata.interest_only !== true;
+  });
 
   return {
     clientId: portal.client_id,
-    hasService: !error && Boolean(count),
+    hasService,
     mustChangePassword: Boolean(portal.must_change_password)
   };
 }
