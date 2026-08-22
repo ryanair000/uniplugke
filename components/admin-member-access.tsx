@@ -17,6 +17,8 @@ type AccessResult = {
   username: string;
   phone: string | null;
   subscriptionId: string;
+  expiresAt: string;
+  maxUses: number;
 };
 
 export function AdminMemberAccess({
@@ -66,7 +68,7 @@ export function AdminMemberAccess({
     try {
       await navigator.clipboard.writeText(value);
       setCopied(target);
-      setNotice(target === "message" ? "Client message copied." : "Client access link copied.");
+      setNotice(target === "message" ? "Client message copied." : "Short access link copied.");
       window.setTimeout(() => setCopied((current) => current === target ? null : current), 1800);
     } catch {
       setNotice("Copy failed. Please allow clipboard access and try again.");
@@ -76,8 +78,6 @@ export function AdminMemberAccess({
   if (!subscriptions.length) {
     return <span className="status-pill subtle">No VIP subscription</span>;
   }
-
-  const friendlyLink = result ? `Open your ${result.serviceName} on UniPlug: ${result.link}` : "";
 
   return (
     <div className="admin-member-delivery">
@@ -120,19 +120,28 @@ export function AdminMemberAccess({
         <div className="admin-delivery-ready">
           <div className="admin-delivery-ready-header">
             <span className="admin-delivery-check" aria-hidden="true"><Check size={15} /></span>
-            <div><strong>{result.serviceName} access ready</strong><span>Share the message or the clean one-line access link below.</span></div>
+            <div>
+              <strong>{result.serviceName} short link ready</strong>
+              <span>Valid for 48 hours · up to {result.maxUses} opens</span>
+            </div>
           </div>
           <div className="admin-delivery-actions">
             <button type="button" className="button button-dark small" onClick={() => copy(result.message, "message")}>
               {copied === "message" ? <Check size={15} /> : <MessageCircle size={15} />}
               {copied === "message" ? "Message copied" : "Copy client message"}
             </button>
-            <button type="button" className="button button-light small" onClick={() => copy(friendlyLink, "link")}>
+            <button type="button" className="button button-light small" onClick={() => copy(result.link, "link")}>
               {copied === "link" ? <Check size={15} /> : <Copy size={15} />}
-              {copied === "link" ? "Link copied" : "Copy access link"}
+              {copied === "link" ? "Link copied" : "Copy short link"}
             </button>
           </div>
-          <div className="admin-delivery-link-preview"><Link2 size={14} /><span>vip.uniplug.shop · secure one-tap sign-in · opens {result.serviceName}</span></div>
+          <div className="admin-delivery-link-preview">
+            <Link2 size={14} />
+            <span>{result.link}</span>
+          </div>
+          <span className="admin-delivery-helper">
+            Expires {new Date(result.expiresAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}. Creating a new link revokes the previous one for this service.
+          </span>
         </div>
       ) : null}
 
