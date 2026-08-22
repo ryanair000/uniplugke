@@ -47,6 +47,10 @@ function normalize(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase();
 }
 
+function currentTimeMs() {
+  return Date.now();
+}
+
 export default async function AdminSlotsPage({
   searchParams
 }: {
@@ -86,12 +90,13 @@ export default async function AdminSlotsPage({
     if (slotId && !assignedBySlot.has(slotId)) assignedBySlot.set(slotId, subscription);
   }
 
+  const now = currentTimeMs();
   const rows = slots.map((slot) => {
     const subscription = assignedBySlot.get(slot.id) || null;
     const client = subscription ? clientById.get(subscription.client_id) || null : null;
     const serviceName = serviceById.get(slot.service_id || "") || relation(subscription?.service || null)?.name || "Digital service";
     const isAssigned = Boolean(subscription);
-    const expired = slot.expiry_date ? new Date(slot.expiry_date).getTime() < Date.now() : false;
+    const expired = slot.expiry_date ? new Date(slot.expiry_date).getTime() < now : false;
     const needsAttention = isAssigned && (expired || ["expired", "inactive", "blocked", "failed"].includes(normalize(slot.status)));
     return { slot, subscription, client, serviceName, isAssigned, needsAttention };
   });
