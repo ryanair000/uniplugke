@@ -7,6 +7,7 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/sup
 import { usdToKes } from "@/lib/currency";
 
 const categories = new Set(["streaming", "music", "creative", "ai", "productivity", "cloud", "security", "gaming", "learning"]);
+const availabilityStates = new Set(["available", "limited", "coming_soon", "unavailable"]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function slug(value: FormDataEntryValue | null) {
@@ -65,22 +66,25 @@ export async function createMemberPlan(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   if (!supabase) throw new Error("Supabase is not configured");
 
-  const priceUsd = Number(formData.get("priceUsd"));
-  const compareAtRaw = String(formData.get("compareAtUsd") || "").trim();
-  const compareAtUsd = compareAtRaw ? Number(compareAtRaw) : null;
+  const priceKesRaw = String(formData.get("priceKes") || "").trim();
+  const priceUsdRaw = String(formData.get("priceUsd") || "").trim();
+  const compareKesRaw = String(formData.get("compareAtKes") || "").trim();
+  const compareUsdRaw = String(formData.get("compareAtUsd") || "").trim();
+  const priceKes = priceKesRaw ? Number(priceKesRaw) : usdToKes(Number(priceUsdRaw));
+  const compareAtKes = compareKesRaw ? Number(compareKesRaw) : compareUsdRaw ? usdToKes(Number(compareUsdRaw)) : null;
   const planName = String(formData.get("planName") || "").trim().slice(0, 100);
   const planCode = slug(formData.get("planCode") || planName);
   const serviceId = String(formData.get("serviceId") || "");
   if (!serviceId || !planName || !planCode) throw new Error("Service, plan name, and plan code are required");
-  if (!Number.isFinite(priceUsd) || priceUsd <= 0) throw new Error("A valid price is required");
-  if (compareAtUsd !== null && (!Number.isFinite(compareAtUsd) || compareAtUsd < priceUsd)) throw new Error("Compare-at price must be at least the member price");
+  if (!Number.isFinite(priceKes) || priceKes <= 0) throw new Error("A valid price is required");
+  if (compareAtKes !== null && (!Number.isFinite(compareAtKes) || compareAtKes < priceKes)) throw new Error("Compare-at price must be at least the member price");
 
   const { error } = await supabase.from("uniplug_member_plans").insert({
     service_id: serviceId,
     plan_name: planName,
     plan_code: planCode,
-    price_kes: usdToKes(priceUsd),
-    compare_at_kes: compareAtUsd === null ? null : usdToKes(compareAtUsd),
+    price_kes: Math.round(priceKes),
+    compare_at_kes: compareAtKes === null ? null : Math.round(compareAtKes),
     billing_cycle: "monthly",
     plan_features: lines(formData.get("planFeatures")),
     purchase_limit: Math.min(20, Math.max(1, Number(formData.get("purchaseLimit") || 1))),
@@ -89,7 +93,33 @@ export async function createMemberPlan(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   refreshCatalog();
-  redirect("/admin/catalog?success=plan");
+  redirect("/admin/catalog?view=plans&success=plan");
+}
+
+export async function updateCatalogServiceState(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const serviceId = String(formData.get("serviceId") || "");
+  const availabilityStatus = String(formData.get("availabilityStatus") || "available");
+  if (!uuidPattern.test(serviceId) || !availabilityStates.has(availabilityStatus)) throw new Error("Choose a valid service state");
+  const { error } = await supabase.from("uniplug_catalog_services").update({ availability_status: availabilityStatus }).eq("id", serviceId);
+  if (error) throw new Error(error.message);
+  refreshCatalog();
+  redirect("/admin/catalog?success=service_updated");
+}
+
+export async function updateMemberPlanState(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) throw new Error("Supabase is not configured");
+  const planId = String(formData.get("planId") || "");
+  const availabilityStatus = String(formData.get("availabilityStatus") || "available");
+  if (!uuidPattern.test(planId) || !availabilityStates.has(availabilityStatus)) throw new Error("Choose a valid plan state");
+  const { error } = await supabase.from("uniplug_member_plans").update({ availability_status: availabilityStatus }).eq("id", planId);
+  if (error) throw new Error(error.message);
+  refreshCatalog();
+  redirect("/admin/catalog?view=plans&success=plan_updated");
 }
 
 export async function activateMemberOrder(formData: FormData) {
@@ -149,8 +179,9 @@ export async function resolveReplacementApproval(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin");
   revalidatePath("/admin/requests");
+  revalidatePath("/admin/slots");
   revalidatePath("/dashboard/activity");
-  redirect("/admin/requests?success=replacement_reviewed");
+  redirect("/admin/requests?view=replacements&success=replacement_reviewed");
 }
 
 export async function updateSupportTicket(formData: FormData) {
@@ -174,7 +205,7 @@ export async function updateSupportTicket(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/requests");
   revalidatePath("/help");
-  redirect("/admin/requests?success=ticket_updated");
+  redirect("/admin/requests?view=support&success=ticket_updated");
 }
 
 export async function updateMemberStatus(formData: FormData) {
@@ -203,5 +234,5 @@ export async function markKeyOrderDelivered(formData: FormData) {
   const { error } = await admin.from("uniplug_key_orders").update({ fulfillment_status: "delivered", fulfilled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", orderId).eq("payment_status", "paid");
   if (error) throw new Error(error.message);
   revalidatePath("/admin/orders");
-  redirect("/admin/orders?success=key_delivered");
+  redirect("/admin/orders?view=keys&success=key_delivered");
 }
