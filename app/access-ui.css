@@ -309,6 +309,30 @@
   padding-inline: 10px;
 }
 
+.admin-delivery-choice {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid #dcebe5;
+  padding-top: 9px;
+}
+
+.admin-delivery-choice-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-delivery-choice-heading strong {
+  color: #25483d;
+  font-size: .66rem;
+}
+
+.admin-delivery-choice-heading span {
+  color: #6d7f78;
+  font-size: .58rem;
+}
+
 .admin-delivery-link-preview {
   display: flex;
   min-width: 0;

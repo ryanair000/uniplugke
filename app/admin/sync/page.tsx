@@ -1,5 +1,6 @@
 import { AdminEmptyState, AdminMetricStrip, AdminPageHeader, AdminSection, AdminStatus } from "@/components/admin-console";
 import { requireAdmin } from "@/lib/auth";
+import { getPortalProvisioningCoverage } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function AdminSyncPage() {
     );
   }
 
-  const [clientsResult, portalsResult, aliasesResult, eventsResult] = await Promise.all([
+  const [clientsResult, portalsResult, aliasesResult, eventsResult, provisioningCoverage] = await Promise.all([
     admin
       .from("clients")
       .select("id,display_name,phone_e164,portal_access_status,portal_sync_error,portal_sync_updated_at,deleted_at")
@@ -29,7 +30,8 @@ export default async function AdminSyncPage() {
       .from("integration_sync_events")
       .select("id,entity_id,event_type,status,error,retry_count,metadata,created_at,processed_at")
       .order("created_at", { ascending: false })
-      .limit(80)
+      .limit(80),
+    getPortalProvisioningCoverage(admin)
   ]);
 
   const clients = (clientsResult.data || []) as Array<{
@@ -61,6 +63,7 @@ export default async function AdminSyncPage() {
   const syncErrors = canonicalClients.filter((client) => client.portal_access_status === "error" || Boolean(client.portal_sync_error));
   const orphanPortalRows = portals.filter((portal) => aliasIds.has(portal.client_id));
   const recentFailures = events.filter((event) => event.status === "failed" || event.status === "dead_letter");
+  const syncIssueCount = syncErrors.length + orphanPortalRows.length + provisioningCoverage.missingCount;
 
   return (
     <section className="portal-page">
@@ -72,14 +75,25 @@ export default async function AdminSyncPage() {
 
       <AdminMetricStrip items={[
         { label: "Canonical clients", value: canonicalClients.length, detail: "deduplicated identities" },
-        { label: "Portal active", value: activePortalClients.length, detail: "linked UniPlug members", tone: "good" },
+        { label: "Eligible subscribers", value: provisioningCoverage.eligibleCount, detail: "active or due soon" },
+        { label: "Portal active", value: activePortalClients.length, detail: "linked UniPlug members", tone: provisioningCoverage.missingCount ? "danger" : "good" },
         { label: "Identity aliases", value: aliases.length, detail: "duplicate rows resolved" },
-        { label: "Sync issues", value: syncErrors.length + orphanPortalRows.length, detail: "needs admin attention", tone: syncErrors.length + orphanPortalRows.length ? "danger" : "good" }
+        { label: "Missing accounts", value: provisioningCoverage.missingCount, detail: "eligible clients not provisioned", tone: provisioningCoverage.missingCount ? "danger" : "good" },
+        { label: "Sync issues", value: syncIssueCount, detail: "needs admin attention", tone: syncIssueCount ? "danger" : "good" }
       ]} />
 
-      <AdminSection title="Current issues" description="Canonical client errors and any portal mappings still attached to an alias identity.">
-        {syncErrors.length || orphanPortalRows.length ? (
+      <AdminSection title="Current issues" description="Missing eligible accounts, canonical client errors, and portal mappings still attached to an alias identity.">
+        {syncIssueCount ? (
           <div className="admin-list">
+            {provisioningCoverage.missingCount ? (
+              <div>
+                <div>
+                  <strong>{provisioningCoverage.missingCount} eligible subscriber account{provisioningCoverage.missingCount === 1 ? "" : "s"} missing</strong>
+                  <span>{provisioningCoverage.statusCounts.active || 0} active · {provisioningCoverage.statusCounts.due_soon || 0} due soon in the eligible population</span>
+                </div>
+                <AdminStatus value="error" />
+              </div>
+            ) : null}
             {syncErrors.slice(0, 30).map((client) => (
               <div key={`client-${client.id}`}>
                 <div>
@@ -100,7 +114,7 @@ export default async function AdminSyncPage() {
             ))}
           </div>
         ) : (
-          <AdminEmptyState title="Sync is healthy" description="No canonical client errors or alias-linked portal accounts are currently detected." />
+          <AdminEmptyState title="Sync is healthy" description="Every eligible subscriber has a canonical UniPlug portal account and no synchronization errors are detected." />
         )}
       </AdminSection>
 

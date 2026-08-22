@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { VIP_ORIGIN } from "@/lib/account-routing";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 const ACCESS_CODE_PATTERN = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/;
@@ -18,7 +19,7 @@ function loginError(error: "vip_link_invalid" | "vip_link_expired" | "onboarding
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code: rawCode } = await params;
@@ -63,14 +64,15 @@ export async function GET(
     return loginError("vip_link_invalid");
   }
 
+  const family = await getClientFamilyIds(admin, portal.client_id);
   const { data: subscription } = await admin
     .from("client_subscriptions")
     .select("id,metadata")
     .eq("id", subscriptionId)
-    .eq("client_id", portal.client_id)
+    .in("client_id", family.familyIds)
     .maybeSingle();
   const metadata = (subscription?.metadata || {}) as Record<string, unknown>;
-  if (!subscription || metadata.portal_hidden === true) {
+  if (!subscription || metadata.portal_hidden === true || metadata.interest_only === true) {
     await supabase.auth.signOut();
     return loginError("vip_link_invalid");
   }
@@ -108,5 +110,8 @@ export async function GET(
     .update({ last_login_at: now, updated_at: now })
     .eq("user_id", userId);
 
-  return redirectResponse(new URL(`/dashboard/subscriptions/${subscription.id}`, VIP_ORIGIN));
+  const destination = new URL(request.url).searchParams.get("destination") === "services"
+    ? "/dashboard/subscriptions"
+    : `/dashboard/subscriptions/${subscription.id}`;
+  return redirectResponse(new URL(destination, VIP_ORIGIN));
 }

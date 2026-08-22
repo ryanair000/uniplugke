@@ -6,6 +6,7 @@ import { AdminMemberAccess } from "@/components/admin-member-access";
 import { AdminMemberServiceAccess } from "@/components/admin-member-service-access";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { requireAdmin } from "@/lib/auth";
+import { getPortalProvisioningCoverage } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -60,6 +61,9 @@ export default async function AdminMembersPage({
   }>;
 
   const admin = createAdminSupabaseClient();
+  const provisioningCoverage = admin
+    ? await getPortalProvisioningCoverage(admin)
+    : { eligibleCount: 0, missingCount: 0 };
   const portalRows = admin && profiles.length
     ? ((await admin
         .from("client_portal_accounts")
@@ -193,9 +197,10 @@ export default async function AdminMembersPage({
       {query.success ? <p className="admin-notice">Member access updated.</p> : null}
 
       <AdminMetricStrip items={[
-        { label: "Active", value: profiles.filter((profile) => profile.status === "active").length, detail: "can access member tools", tone: "good" },
+        { label: "Portal active", value: profiles.filter((profile) => profile.status === "active").length, detail: "enabled member profiles", tone: "good" },
+        { label: "Eligible subscribers", value: provisioningCoverage.eligibleCount, detail: "active or due soon" },
         { label: "Linked", value: linkedProfiles.length, detail: "mapped to LokiMax client" },
-        { label: "Sync issues", value: syncIssueProfiles.length, detail: "needs review", tone: syncIssueProfiles.length ? "danger" : "good" },
+        { label: "Sync issues", value: syncIssueProfiles.length + provisioningCoverage.missingCount, detail: provisioningCoverage.missingCount ? `${provisioningCoverage.missingCount} missing eligible accounts` : "needs review", tone: syncIssueProfiles.length + provisioningCoverage.missingCount ? "danger" : "good" },
         { label: "Invites", value: invitations.filter((item) => item.status === "pending").length, detail: "active links" }
       ]} />
 

@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { VIP_ORIGIN } from "@/lib/account-routing";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -61,15 +62,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Activate this member before creating a VIP access link." }, { status: 409 });
   }
 
+  const family = await getClientFamilyIds(admin, portal.client_id);
   const { data: subscription, error: subscriptionError } = await admin
     .from("client_subscriptions")
     .select("id,client_id,status,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
     .eq("id", subscriptionId)
-    .eq("client_id", portal.client_id)
+    .in("client_id", family.familyIds)
     .maybeSingle();
 
   const metadata = (subscription?.metadata || {}) as Record<string, unknown>;
-  if (subscriptionError || !subscription || metadata.portal_hidden === true) {
+  if (subscriptionError || !subscription || metadata.portal_hidden === true || metadata.interest_only === true) {
     return NextResponse.json({ error: "That subscription is not available for this member." }, { status: 404 });
   }
 
@@ -122,35 +124,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const vipLink = new URL(`/access/${code}`, VIP_ORIGIN).toString();
+  const serviceLink = new URL(`/access/${code}`, VIP_ORIGIN).toString();
+  const portalLinkUrl = new URL(`/access/${code}`, VIP_ORIGIN);
+  portalLinkUrl.searchParams.set("destination", "services");
+  const portalLink = portalLinkUrl.toString();
   const loginUrl = new URL("/login", VIP_ORIGIN).toString();
-  const name = profile.display_name || `@${profile.username}`;
+  const name = profile.display_name && profile.display_name.toLowerCase() !== "n/a"
+    ? profile.display_name
+    : `@${profile.username}`;
   const service = serviceName(subscription.service);
-  const message = [
+  const portalMessage = [
     `Hi ${name} 👋`,
-    "",
-    `Your ${service} access is ready ✅`,
-    "",
-    `Open ${service} here:`,
-    vipLink,
-    "",
-    `This private link signs you in automatically and opens your ${service} subscription directly.`,
-    `It expires in ${ACCESS_TTL_HOURS} hours and can be opened up to ${ACCESS_MAX_USES} times.`,
-    "",
-    `For future visits: ${loginUrl}`,
-    `Username: @${profile.username}`,
-    ...(profile.phone ? [`Phone: ${profile.phone}`] : []),
-    "",
-    "Keep the access link private and do not forward it.",
-    "",
-    "— UniPlug"
+    `Open your UniPlug services: ${portalLink}`,
+    `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
+  ].join("\n");
+  const serviceMessage = [
+    `Hi ${name} 👋`,
+    `Open ${service}: ${serviceLink}`,
+    `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
   ].join("\n");
 
   return NextResponse.json(
     {
-      link: vipLink,
+      link: serviceLink,
       loginUrl,
-      message,
+      message: serviceMessage,
+      portalLink,
+      portalMessage,
+      serviceLink,
+      serviceMessage,
       serviceName: service,
       username: profile.username,
       phone: profile.phone,

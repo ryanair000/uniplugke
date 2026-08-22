@@ -6,7 +6,9 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const migration = read("supabase/migrations/20260822123000_member_access_short_codes_compat.sql");
 const adminRoute = read("app/api/admin/member-access/route.ts");
 const shortRoute = read("app/access/[code]/route.ts");
+const legacyRoute = read("app/auth/member-link/route.ts");
 const adminUi = read("components/admin-member-access.tsx");
+const proxy = read("lib/supabase/proxy.ts");
 
 assert.match(migration, /add column if not exists code text/);
 assert.match(migration, /uniplug_consume_member_access_link\(p_code text\)/);
@@ -18,12 +20,26 @@ assert.match(adminRoute, /ACCESS_MAX_USES = 3/);
 assert.match(adminRoute, /token_hash: hashToken\(token\)/);
 assert.match(adminRoute, /new URL\(`\/access\/\$\{code\}`/);
 assert.match(adminRoute, /revoked_at/);
+assert.match(adminRoute, /getClientFamilyIds/);
+assert.match(adminRoute, /\.in\("client_id", family\.familyIds\)/);
+assert.match(adminRoute, /portalLink/);
+assert.match(adminRoute, /portalMessage/);
+assert.match(adminRoute, /serviceMessage/);
+assert.doesNotMatch(adminRoute, /For future visits/);
 assert.match(shortRoute, /uniplug_consume_member_access_link/);
 assert.match(shortRoute, /admin\.auth\.admin\.generateLink/);
 assert.match(shortRoute, /verifyOtp/);
+assert.match(shortRoute, /getClientFamilyIds/);
+assert.match(shortRoute, /destination/);
+assert.match(legacyRoute, /getClientFamilyIds/);
 assert.match(shortRoute, /Cache-Control/);
 assert.match(shortRoute, /Referrer-Policy/);
 assert.match(adminUi, /Valid for 48 hours/);
-assert.match(adminUi, /Copy short link/);
+assert.match(adminUi, /Get portal link/);
+assert.match(adminUi, /Get service link/);
+assert.match(adminUi, /Copy portal message/);
+assert.match(adminUi, /Copy service message/);
+assert.match(proxy, /pathname\.startsWith\("\/access\/"\)/);
+assert.match(proxy, /pathname === "\/auth\/member-link"/);
 
 console.log("Verified friendly 48-hour, 3-use UniPlug member access links with hashed-token compatibility.");

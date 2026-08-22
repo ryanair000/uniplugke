@@ -13,6 +13,10 @@ type AccessResult = {
   link: string;
   loginUrl: string;
   message: string;
+  portalLink: string;
+  portalMessage: string;
+  serviceLink: string;
+  serviceMessage: string;
   serviceName: string;
   username: string;
   phone: string | null;
@@ -34,7 +38,7 @@ export function AdminMemberAccess({
   const [result, setResult] = useState<AccessResult | null>(null);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState<"message" | "link" | null>(null);
+  const [copied, setCopied] = useState<"portalMessage" | "portalLink" | "serviceMessage" | "serviceLink" | null>(null);
   const selected = useMemo(
     () => subscriptions.find((subscription) => subscription.id === subscriptionId) || subscriptions[0],
     [subscriptionId, subscriptions]
@@ -56,7 +60,7 @@ export function AdminMemberAccess({
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "VIP access link could not be created.");
       setResult(body as AccessResult);
-      setNotice("Secure client access is ready to share.");
+      setNotice("Portal and service links are ready to share.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "VIP access link could not be created.");
     } finally {
@@ -64,11 +68,14 @@ export function AdminMemberAccess({
     }
   }
 
-  async function copy(value: string, target: "message" | "link") {
+  async function copy(
+    value: string,
+    target: "portalMessage" | "portalLink" | "serviceMessage" | "serviceLink"
+  ) {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(target);
-      setNotice(target === "message" ? "Client message copied." : "Short access link copied.");
+      setNotice(target.endsWith("Message") ? "Short message copied." : "Access link copied.");
       window.setTimeout(() => setCopied((current) => current === target ? null : current), 1800);
     } catch {
       setNotice("Copy failed. Please allow clipboard access and try again.");
@@ -111,7 +118,7 @@ export function AdminMemberAccess({
             disabled={!canGenerate || busy}
             onClick={generateAccess}
           >
-            {busy ? "Creating…" : result ? "Create new link" : "Create access link"}
+            {busy ? "Creating…" : result ? "Refresh links" : "Create links"}
           </button>
         </div>
       </div>
@@ -121,26 +128,46 @@ export function AdminMemberAccess({
           <div className="admin-delivery-ready-header">
             <span className="admin-delivery-check" aria-hidden="true"><Check size={15} /></span>
             <div>
-              <strong>{result.serviceName} short link ready</strong>
-              <span>Valid for 48 hours · up to {result.maxUses} opens</span>
+              <strong>Client links ready</strong>
+              <span>Portal overview + direct {result.serviceName} · Valid for 48 hours · up to {result.maxUses} opens</span>
             </div>
           </div>
-          <div className="admin-delivery-actions">
-            <button type="button" className="button button-dark small" onClick={() => copy(result.message, "message")}>
-              {copied === "message" ? <Check size={15} /> : <MessageCircle size={15} />}
-              {copied === "message" ? "Message copied" : "Copy client message"}
-            </button>
-            <button type="button" className="button button-light small" onClick={() => copy(result.link, "link")}>
-              {copied === "link" ? <Check size={15} /> : <Copy size={15} />}
-              {copied === "link" ? "Link copied" : "Copy short link"}
-            </button>
+          <div className="admin-delivery-choice">
+            <div className="admin-delivery-choice-heading">
+              <strong>All client services</strong>
+              <span>Opens the services overview</span>
+            </div>
+            <div className="admin-delivery-actions">
+              <button type="button" className="button button-dark small" onClick={() => copy(result.portalMessage, "portalMessage")}>
+                {copied === "portalMessage" ? <Check size={15} /> : <MessageCircle size={15} />}
+                {copied === "portalMessage" ? "Message copied" : "Copy portal message"}
+              </button>
+              <button type="button" className="button button-light small" onClick={() => copy(result.portalLink, "portalLink")}>
+                {copied === "portalLink" ? <Check size={15} /> : <Copy size={15} />}
+                {copied === "portalLink" ? "Link copied" : "Get portal link"}
+              </button>
+            </div>
+            <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.portalLink}</span></div>
           </div>
-          <div className="admin-delivery-link-preview">
-            <Link2 size={14} />
-            <span>{result.link}</span>
+          <div className="admin-delivery-choice">
+            <div className="admin-delivery-choice-heading">
+              <strong>{result.serviceName}</strong>
+              <span>Opens this exact service</span>
+            </div>
+            <div className="admin-delivery-actions">
+              <button type="button" className="button button-dark small" onClick={() => copy(result.serviceMessage, "serviceMessage")}>
+                {copied === "serviceMessage" ? <Check size={15} /> : <MessageCircle size={15} />}
+                {copied === "serviceMessage" ? "Message copied" : "Copy service message"}
+              </button>
+              <button type="button" className="button button-light small" onClick={() => copy(result.serviceLink, "serviceLink")}>
+                {copied === "serviceLink" ? <Check size={15} /> : <Copy size={15} />}
+                {copied === "serviceLink" ? "Link copied" : "Get service link"}
+              </button>
+            </div>
+            <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.serviceLink}</span></div>
           </div>
           <span className="admin-delivery-helper">
-            Expires {new Date(result.expiresAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}. Creating a new link revokes the previous one for this service.
+            Expires {new Date(result.expiresAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}. Both destinations share this private access grant.
           </span>
         </div>
       ) : null}

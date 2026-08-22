@@ -15,12 +15,17 @@ const publicPaths = new Set([
   "/auth/callback",
   "/api/auth/login",
   "/api/auth/register",
+  "/api/cron/portal-reconcile",
   "/api/payments/webhook",
   "/robots.txt"
 ]);
 
 function isPublicCatalogPath(pathname: string) {
   return pathname === "/" || pathname === "/services" || pathname.startsWith("/services/");
+}
+
+function isMemberAccessPath(pathname: string) {
+  return pathname === "/auth/member-link" || pathname.startsWith("/access/");
 }
 
 function isPasswordRotationPath(pathname: string) {
@@ -105,7 +110,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(storeResponse, new URL(vipAccountDestination(vipAccess.mustChangePassword)));
   }
 
-  const isPublicPath = publicPaths.has(pathname);
+  const isPublicPath = publicPaths.has(pathname) || isMemberAccessPath(pathname);
   const isCatalogPath = isPublicCatalogPath(pathname);
 
   if (!url || !key) {

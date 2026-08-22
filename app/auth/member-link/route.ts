@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { VIP_ORIGIN } from "@/lib/account-routing";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -93,14 +94,15 @@ export async function GET(request: Request) {
     return loginError("vip_link_invalid");
   }
 
+  const family = await getClientFamilyIds(admin, portal.client_id);
   const { data: subscription } = await admin
     .from("client_subscriptions")
     .select("id,metadata")
     .eq("id", subscriptionId)
-    .eq("client_id", portal.client_id)
+    .in("client_id", family.familyIds)
     .maybeSingle();
   const metadata = (subscription?.metadata || {}) as Record<string, unknown>;
-  if (!subscription || metadata.portal_hidden === true) {
+  if (!subscription || metadata.portal_hidden === true || metadata.interest_only === true) {
     if (!token) await supabase.auth.signOut();
     return loginError("vip_link_invalid");
   }
