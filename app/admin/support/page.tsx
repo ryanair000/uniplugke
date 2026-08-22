@@ -13,6 +13,8 @@ type Ticket = {
   status: string;
   category: string;
   service_name: string | null;
+  order_id: string | null;
+  order_number: string | null;
   last_message_at: string | null;
   admin_unread: boolean;
   created_at: string;
@@ -82,7 +84,7 @@ export default async function AdminSupportPage({
   const { data: ticketData } = supabase
     ? await supabase
         .from("uniplug_support_tickets")
-        .select("id,user_id,subject,status,category,service_name,last_message_at,admin_unread,created_at")
+        .select("id,user_id,subject,status,category,service_name,order_id,order_number,last_message_at,admin_unread,created_at")
         .order("last_message_at", { ascending: false, nullsFirst: false })
         .limit(150)
     : { data: [] };
@@ -99,7 +101,7 @@ export default async function AdminSupportPage({
     if (!statusMatch) return false;
     if (!search) return true;
     const profile = profiles.get(ticket.user_id);
-    const haystack = [ticket.subject, ticket.service_name, ticket.category, profile?.display_name, profile?.username, profile?.email]
+    const haystack = [ticket.subject, ticket.service_name, ticket.order_number, ticket.category, profile?.display_name, profile?.username, profile?.email]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -147,7 +149,7 @@ export default async function AdminSupportPage({
         <div className={styles.headerCopy}>
           <p className={styles.kicker}>Member care</p>
           <h1>Support inbox</h1>
-          <p>Reply to members with the service, account, and ticket history visible in one workspace.</p>
+          <p>Reply to members with the service, order, account, and ticket history visible in one workspace.</p>
         </div>
         <span className={styles.count} title="Unread support requests">{unreadCount}</span>
       </header>
@@ -164,7 +166,7 @@ export default async function AdminSupportPage({
         </div>
         <form action="/admin/support" method="get">
           {statusFilter !== "all" ? <input name="status" type="hidden" value={statusFilter} /> : null}
-          <input defaultValue={query.q || ""} name="q" placeholder="Search member, ticket or service" aria-label="Search support" style={{ minHeight: 40, width: 260, maxWidth: "100%", border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "white" }} />
+          <input defaultValue={query.q || ""} name="q" placeholder="Search member, ticket, order or service" aria-label="Search support" style={{ minHeight: 40, width: 290, maxWidth: "100%", border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "white" }} />
         </form>
       </div>
 
@@ -183,6 +185,7 @@ export default async function AdminSupportPage({
                   <span className={`${styles.status} ${statusClass(ticket.status)}`}>{statusLabel(ticket.status)}</span>
                 </div>
                 <span>{profile?.display_name || `@${profile?.username || ticket.user_id.slice(0, 8)}`}{ticket.service_name ? ` · ${ticket.service_name}` : ""}</span>
+                {ticket.order_number ? <span>Order {ticket.order_number}</span> : null}
                 <small>{new Date(ticket.last_message_at || ticket.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</small>
                 {ticket.admin_unread ? <span className={styles.adminUnread}>● Needs attention</span> : null}
               </Link>
@@ -200,6 +203,7 @@ export default async function AdminSupportPage({
                 <div className={styles.threadMeta}>
                   <span>{selectedTicket.category.replaceAll("_", " ")}</span>
                   {selectedTicket.service_name ? <span>{selectedTicket.service_name}</span> : null}
+                  {selectedTicket.order_number ? <span>Order {selectedTicket.order_number}</span> : null}
                 </div>
               </div>
               <span className={`${styles.status} ${statusClass(selectedTicket.status)}`}>{statusLabel(selectedTicket.status)}</span>
@@ -209,6 +213,7 @@ export default async function AdminSupportPage({
               <div><small>Member</small><strong>{selectedProfile?.display_name || `@${selectedProfile?.username || selectedTicket.user_id.slice(0, 8)}`}</strong></div>
               <div><small>Email</small><strong>{selectedProfile?.email || "Not available"}</strong></div>
               <div><small>Service</small><strong>{selectedTicket.service_name || "General support"}</strong></div>
+              <div><small>Order</small><strong>{selectedTicket.order_number || "Not attached"}</strong></div>
             </div>
 
             <div className={styles.adminConversation}>
