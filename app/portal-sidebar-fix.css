@@ -1,0 +1,131 @@
+/* Clean portal sidebar treatment.
+   Keep navigation as one row per destination; only the icon gets a compact visual slot. */
+
+.portal-nav nav a > .portal-nav-label {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
+  flex: 1 1 auto !important;
+  place-items: initial !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-nav nav a > .portal-nav-icon {
+  display: grid !important;
+  width: 32px !important;
+  height: 32px !important;
+  flex: 0 0 32px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+.portal-nav nav a:hover > .portal-nav-icon {
+  background: rgba(23, 21, 29, 0.05) !important;
+}
+
+.portal-nav nav a.active > .portal-nav-icon,
+.portal-nav nav a.active:hover > .portal-nav-icon {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: inherit !important;
+}
+
+.portal-nav-badge {
+  display: inline-grid !important;
+  width: auto !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  flex: 0 0 auto !important;
+  place-items: center !important;
+  margin-left: auto;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #efe7ff !important;
+  padding: 0 6px !important;
+  color: #6d28d9 !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.portal-nav nav a.active > .portal-nav-badge {
+  background: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+}
+
+.member-area .portal-nav nav a {
+  min-height: 48px;
+  padding: 7px 10px;
+}
+
+.member-area .portal-nav nav a.active {
+  box-shadow: 0 8px 18px rgba(23, 21, 29, 0.12);
+}
+
+.member-area .portal-nav-footer {
+  display: grid;
+  gap: 10px;
+}
+
+.member-area .portal-nav-account {
+  min-width: 0;
+}
+
+.member-area .portal-nav-footer .text-button {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 11px;
+}
+
+@media (max-width: 760px) {
+  .member-area .portal-nav nav a > .portal-nav-label {
+    width: auto !important;
+    height: auto !important;
+    flex: none !important;
+    overflow: visible;
+    font-size: 0.57rem !important;
+    line-height: 1 !important;
+    text-align: center;
+    text-overflow: clip;
+  }
+
+  .member-area .portal-nav nav a > .portal-nav-icon {
+    width: 20px !important;
+    height: 20px !important;
+    flex: 0 0 20px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .member-area .portal-nav nav a:hover > .portal-nav-icon,
+  .member-area .portal-nav nav a.active > .portal-nav-icon,
+  .member-area .portal-nav nav a.active:hover > .portal-nav-icon {
+    background: transparent !important;
+  }
+
+  .portal-nav-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding-inline: 4px !important;
+    font-size: 8px !important;
+  }
+
+  .member-area .portal-nav nav a {
+    position: relative;
+  }
+}
