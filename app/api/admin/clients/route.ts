@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
+function metadataObject(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {} as Record<string, unknown>;
+}
+
 export async function GET(request: Request) {
   await requireAdmin();
   const admin = createAdminSupabaseClient();
@@ -59,7 +65,8 @@ export async function GET(request: Request) {
   const result = clients.map((client) => {
     const tracked = (subscriptions || []).filter((subscription) => {
       const canonicalId = familyIdToCanonical.get(subscription.client_id) || subscription.client_id;
-      return canonicalId === client.id && subscription.metadata?.portal_hidden !== true && subscription.metadata?.interest_only !== true;
+      const metadata = metadataObject(subscription.metadata);
+      return canonicalId === client.id && metadata.portal_hidden !== true && metadata.interest_only !== true;
     });
     const portal = (portals || []).find((item) => (familyIdToCanonical.get(item.client_id) || item.client_id) === client.id);
     const services = [...new Map(tracked.map((subscription) => {
