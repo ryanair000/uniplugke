@@ -30,7 +30,6 @@ type ManagedAccount = {
   service_name: string | null;
   game: string | null;
   profile_name: string | null;
-  profile_pin: string | null;
   password_secret_id: string | null;
 };
 
@@ -127,7 +126,7 @@ export default async function AdminMailboxesPage({
   const eventSince = verifyWindowStart(24);
   const [credentialResult, accountResult, slotResult, subscriptionResult, clientResult, eventResult, alertResult, auditResult] = await Promise.all([
     admin.from("uniplug_mailbox_credentials").select("mailbox_email,connected_at,last_checked_at,last_error").order("mailbox_email"),
-    admin.from("accounts").select("id,account_mail,service_name,game,profile_name,profile_pin,password_secret_id").order("account_mail").limit(2000),
+    admin.from("accounts").select("id,account_mail,service_name,game,profile_name,password_secret_id").order("account_mail").limit(2000),
     admin.from("slots").select("id,account,status,expiry_date").limit(2000),
     admin
       .from("client_subscriptions")
@@ -257,7 +256,7 @@ export default async function AdminMailboxesPage({
                                     <label>New account password<input name="accountPassword" type="password" autoComplete="new-password" placeholder="Leave blank to keep current password" /></label>
                                     <div className="admin-split-fields">
                                       <label>Profile name<input name="profileName" defaultValue={row.account.profile_name || ""} placeholder="Optional" /></label>
-                                      <label>Profile PIN<input name="profilePin" type="password" inputMode="numeric" defaultValue={row.account.profile_pin || ""} placeholder="Optional" /></label>
+                                      <label>Profile PIN<input name="profilePin" type="password" inputMode="numeric" autoComplete="new-password" placeholder="Leave blank to keep current PIN" /></label>
                                     </div>
                                     <button className="button button-dark small" type="submit">Save account</button>
                                   </form>
