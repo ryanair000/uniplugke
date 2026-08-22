@@ -23,6 +23,7 @@ function mailboxEmail(value: FormDataEntryValue | null) {
 function refreshVerifyOperations() {
   revalidatePath("/admin");
   revalidatePath("/admin/mailboxes");
+  revalidatePath("/admin/slots");
   revalidatePath("/tools/verify");
   revalidatePath("/dashboard/subscriptions");
 }
@@ -38,9 +39,9 @@ export async function testVerifyMailbox(formData: FormData) {
     .eq("mailbox_email", email)
     .maybeSingle();
   if (credentialError) throw new Error(credentialError.message);
-  if (!credential) redirect("/admin/mailboxes?error=mailbox_not_connected");
+  if (!credential) redirect("/admin/mailboxes?view=accounts&error=mailbox_not_connected");
 
-  let destination = "/admin/mailboxes?success=connection_tested";
+  let destination = "/admin/mailboxes?view=accounts&success=connection_tested";
   const checkedAt = new Date().toISOString();
   try {
     const result = await testMailboxConnection({ mailboxEmail: email, encryptedAppPassword: credential.encrypted_app_password });
@@ -74,7 +75,7 @@ export async function testVerifyMailbox(formData: FormData) {
       failureCategory,
       mailboxEmail: email
     });
-    destination = `/admin/mailboxes?error=${failureCategory}`;
+    destination = `/admin/mailboxes?view=accounts&error=${failureCategory}`;
   }
   refreshVerifyOperations();
   redirect(destination);
@@ -84,12 +85,12 @@ export async function rotateVerifyMailboxCredential(formData: FormData) {
   const viewer = await requireAdmin();
   const email = mailboxEmail(formData.get("mailboxEmail"));
   const appPassword = String(formData.get("appPassword") || "").replace(/\s/g, "");
-  if (!/^[a-z0-9]{12,64}$/i.test(appPassword)) redirect("/admin/mailboxes?error=invalid_app_password");
+  if (!/^[a-z0-9]{12,64}$/i.test(appPassword)) redirect("/admin/mailboxes?view=accounts&error=invalid_app_password");
   const admin = createAdminSupabaseClient();
   if (!admin) throw new Error("Supabase is not configured.");
 
   const encryptedAppPassword = encryptMailboxSecret(appPassword);
-  let destination = "/admin/mailboxes?success=credential_rotated";
+  let destination = "/admin/mailboxes?view=accounts&success=credential_rotated";
   try {
     const test = await testMailboxConnection({ mailboxEmail: email, encryptedAppPassword });
     const changedAt = new Date().toISOString();
@@ -122,7 +123,7 @@ export async function rotateVerifyMailboxCredential(formData: FormData) {
       mailboxEmail: email,
       metadata: { existingCredentialPreserved: true }
     });
-    destination = `/admin/mailboxes?error=${failureCategory}`;
+    destination = `/admin/mailboxes?view=accounts&error=${failureCategory}`;
   }
   refreshVerifyOperations();
   redirect(destination);
@@ -143,7 +144,40 @@ export async function revokeVerifyMailboxCredential(formData: FormData) {
     mailboxEmail: email
   });
   refreshVerifyOperations();
-  redirect("/admin/mailboxes?success=credential_revoked");
+  redirect("/admin/mailboxes?view=accounts&success=credential_revoked");
+}
+
+export async function updateVerifyAccountCredentials(formData: FormData) {
+  const viewer = await requireAdmin();
+  const accountId = String(formData.get("accountId") || "");
+  const email = mailboxEmail(formData.get("accountEmail"));
+  const accountPassword = String(formData.get("accountPassword") || "");
+  const profileName = String(formData.get("profileName") || "").trim().slice(0, 120);
+  const profilePin = String(formData.get("profilePin") || "").trim().slice(0, 64);
+  if (!uuidPattern.test(accountId)) throw new Error("A valid service account is required.");
+  if (accountPassword.length > 512) throw new Error("Account password is too long.");
+
+  const admin = createAdminSupabaseClient();
+  if (!admin) throw new Error("Supabase is not configured.");
+  const { error } = await admin.rpc("uniplug_admin_update_account_credentials", {
+    p_account_id: accountId,
+    p_account_email: email,
+    p_account_password: accountPassword || null,
+    p_profile_name: profileName || null,
+    p_profile_pin: profilePin || null
+  });
+  if (error) throw new Error(error.message);
+
+  await recordVerifyAdminEvent({
+    admin,
+    actorUserId: viewer.user.id,
+    action: "service_account_credentials_updated",
+    outcome: "success",
+    mailboxEmail: email,
+    metadata: { accountId, passwordChanged: Boolean(accountPassword), profileUpdated: Boolean(profileName || profilePin) }
+  });
+  refreshVerifyOperations();
+  redirect("/admin/mailboxes?view=accounts&success=account_updated");
 }
 
 export async function setSubscriptionVerifyEnabled(formData: FormData) {
@@ -152,7 +186,7 @@ export async function setSubscriptionVerifyEnabled(formData: FormData) {
   const enabled = String(formData.get("enabled") || "") === "true";
   const reason = String(formData.get("reason") || "").trim().slice(0, 160);
   if (!uuidPattern.test(subscriptionId)) throw new Error("A valid subscription is required.");
-  if (!enabled && reason.length < 3) redirect("/admin/mailboxes?error=disable_reason_required");
+  if (!enabled && reason.length < 3) redirect("/admin/mailboxes?view=assignments&error=disable_reason_required");
   const admin = createAdminSupabaseClient();
   if (!admin) throw new Error("Supabase is not configured.");
   const { data: subscription, error: subscriptionError } = await admin
@@ -162,7 +196,7 @@ export async function setSubscriptionVerifyEnabled(formData: FormData) {
     .maybeSingle();
   const service = Array.isArray(subscription?.service) ? subscription.service[0] : subscription?.service;
   if (subscriptionError || !subscription || !service?.verify_enabled || !service.verify_provider) {
-    redirect("/admin/mailboxes?error=subscription_not_supported");
+    redirect("/admin/mailboxes?view=assignments&error=subscription_not_supported");
   }
   const changedAt = new Date().toISOString();
   const { error } = await admin.from("client_subscriptions").update({
@@ -181,7 +215,7 @@ export async function setSubscriptionVerifyEnabled(formData: FormData) {
     metadata: { reason: reason || null }
   });
   refreshVerifyOperations();
-  redirect(`/admin/mailboxes?success=subscription_${enabled ? "enabled" : "disabled"}`);
+  redirect(`/admin/mailboxes?view=assignments&success=subscription_${enabled ? "enabled" : "disabled"}`);
 }
 
 export async function setVerifyAlertStatus(formData: FormData) {
@@ -216,5 +250,5 @@ export async function setVerifyAlertStatus(formData: FormData) {
     subscriptionId: alert.client_subscription_id
   });
   refreshVerifyOperations();
-  redirect(`/admin/mailboxes?success=alert_${status}`);
+  redirect(`/admin/mailboxes?view=alerts&success=alert_${status}`);
 }
