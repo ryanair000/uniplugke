@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 const adminNavigation: PortalNavItem[] = [
   { href: "/admin", label: "Overview", shortLabel: "O" },
   { href: "/admin/orders", label: "Orders", shortLabel: "R" },
+  { href: "/admin/support", label: "Support", shortLabel: "support" },
   { href: "/admin/requests", label: "Requests", shortLabel: "Q" },
   { href: "/admin/key-requests", label: "Key sourcing", shortLabel: "K" },
   { href: "/admin/members", label: "Members", shortLabel: "M" },
