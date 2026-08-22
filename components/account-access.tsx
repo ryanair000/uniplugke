@@ -1,16 +1,73 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Copy, Eye, EyeOff, KeyRound, Mail, ShieldCheck, UserRound } from "lucide-react";
 
-type AccessDetails = { serviceName: string; accountEmail: string; accountPassword: string; verificationCode: string | null; profileName: string | null; profilePin: string | null };
+type AccessDetails = {
+  serviceName: string;
+  accountEmail: string;
+  accountPassword: string;
+  verificationCode: string | null;
+  profileName: string | null;
+  profilePin: string | null;
+};
 type CodeResult = { code: string };
-
 type IssueReason = "no_subscription" | "household_issue" | "incorrect_password" | "many_users_streaming" | "";
+type CredentialKind = "email" | "password" | "profile" | "pin";
 
-function VaultRow({ label, value }: { label: string; value: string }) {
+function CredentialIcon({ kind }: { kind: CredentialKind }) {
+  if (kind === "email") return <Mail size={17} strokeWidth={2.2} />;
+  if (kind === "profile") return <UserRound size={17} strokeWidth={2.2} />;
+  return <KeyRound size={17} strokeWidth={2.2} />;
+}
+
+function VaultRow({
+  label,
+  value,
+  kind,
+  sensitive = false
+}: {
+  label: string;
+  value: string;
+  kind: CredentialKind;
+  sensitive?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
-  async function copy() { await navigator.clipboard.writeText(value); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }
-  return <div className="wallet-vault-row"><div><dt>{label}</dt><dd>{value}</dd></div><div className="wallet-vault-actions"><button type="button" onClick={copy}>{copied ? "Copied" : "Copy"}</button></div></div>;
+  const [visible, setVisible] = useState(!sensitive);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className="access-credential-row">
+      <div className="access-credential-main">
+        <span className="access-credential-icon" aria-hidden="true"><CredentialIcon kind={kind} /></span>
+        <div className="access-credential-copy">
+          <dt>{label}</dt>
+          <dd className={sensitive && !visible ? "is-masked" : undefined}>{sensitive && !visible ? "••••••••••••" : value}</dd>
+        </div>
+      </div>
+      <div className="access-credential-actions">
+        {sensitive ? (
+          <button type="button" className="access-credential-action" onClick={() => setVisible((current) => !current)} aria-label={`${visible ? "Hide" : "Show"} ${label.toLowerCase()}`}>
+            {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+            <span>{visible ? "Hide" : "Show"}</span>
+          </button>
+        ) : null}
+        <button type="button" className={`access-credential-action ${copied ? "is-copied" : ""}`} onClick={copy} aria-label={`Copy ${label.toLowerCase()}`}>
+          {copied ? <Check size={15} /> : <Copy size={15} />}
+          <span>{copied ? "Copied" : "Copy"}</span>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = false }: { subscriptionId: string; canReplace?: boolean; isNetflix?: boolean }) {
@@ -23,11 +80,13 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   const [codeNote, setCodeNote] = useState("");
   const [replacementReason, setReplacementReason] = useState<IssueReason | null>(null);
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
     let active = true;
     async function loadDetails() {
-      setBusy("reveal"); setMessage("");
+      setBusy("reveal");
+      setMessage("");
       try {
         const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/access`, { cache: "no-store" });
         const body = await response.json();
@@ -63,10 +122,29 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     return () => window.clearInterval(timer);
   }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy]);
 
+  async function copyAllDetails() {
+    if (!details) return;
+    const lines = [
+      `${details.serviceName || "Service"} login details`,
+      `Email: ${details.accountEmail}`,
+      `Password: ${details.accountPassword}`,
+      ...(details.profileName ? [`Profile: ${details.profileName}`] : []),
+      ...(details.profilePin ? [`Profile PIN: ${details.profilePin}`] : [])
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopiedAll(true);
+      window.setTimeout(() => setCopiedAll(false), 1800);
+    } catch {
+      setMessage("Copy failed. Please allow clipboard access and try again.");
+    }
+  }
+
   async function reportIssue() {
     if (!replacementReason) return;
     const reason = replacementReason;
-    setBusy("replace"); setMessage("");
+    setBusy("replace");
+    setMessage("");
     try {
       const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/replace`, {
         method: "POST",
@@ -149,8 +227,34 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
 
   return (
     <section className="wallet-card access-console">
-      <div className="wallet-card-heading"><div><p className="wallet-kicker">Account access</p><h2>Login details</h2></div><span className="wallet-lock" aria-hidden="true">⌁</span></div>
-      {!details ? <div className="access-console-locked"><p>{busy === "reveal" ? "Loading your login details…" : "Login details are currently unavailable."}</p></div> : <dl className="wallet-vault access-console-vault"><VaultRow label="Email" value={details.accountEmail}/><VaultRow label="Password" value={details.accountPassword}/>{details.profileName ? <VaultRow label="Profile" value={details.profileName}/> : null}{details.profilePin ? <VaultRow label="Profile PIN" value={details.profilePin}/> : null}<p>Keep these login details private and use them only for your assigned service.</p></dl>}
+      <div className="wallet-card-heading access-console-heading">
+        <div>
+          <p className="wallet-kicker">Account access</p>
+          <h2>Login details</h2>
+          <p className="access-console-subtitle">Everything you need to sign in, in one place.</p>
+        </div>
+        {details ? <span className="access-ready-pill"><ShieldCheck size={14} /> Access ready</span> : <span className="wallet-lock" aria-hidden="true">⌁</span>}
+      </div>
+
+      {!details ? (
+        <div className="access-console-locked"><p>{busy === "reveal" ? "Loading your login details…" : "Login details are currently unavailable."}</p></div>
+      ) : (
+        <>
+          <dl className="wallet-vault access-console-vault">
+            <VaultRow label="Email" value={details.accountEmail} kind="email" />
+            <VaultRow label="Password" value={details.accountPassword} kind="password" sensitive />
+            {details.profileName ? <VaultRow label="Profile" value={details.profileName} kind="profile" /> : null}
+            {details.profilePin ? <VaultRow label="Profile PIN" value={details.profilePin} kind="pin" sensitive /> : null}
+          </dl>
+          <div className="access-copy-all">
+            <div><strong>{details.serviceName || "Service"} access</strong><span>Keep these details private and use them only for your assigned service.</span></div>
+            <button type="button" className={`access-copy-all-button ${copiedAll ? "is-copied" : ""}`} onClick={copyAllDetails}>
+              {copiedAll ? <Check size={16} /> : <Copy size={16} />}
+              {copiedAll ? "Copied all" : "Copy all details"}
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="access-console-actions">
         {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code"}>Need Verification Code</button> : null}
@@ -174,7 +278,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
             <option value="">Choose an issue</option>
             <option value="no_subscription">No subscription</option>
             {isNetflix ? <option value="household_issue">Household issues</option> : null}
-            <option value="incorrect_password">Incorrect Pass</option>
+            <option value="incorrect_password">Incorrect password</option>
             <option value="many_users_streaming">Many users streaming</option>
           </select>
         </div>
