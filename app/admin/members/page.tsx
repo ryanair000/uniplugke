@@ -1,4 +1,6 @@
 import { updateMemberStatus } from "@/app/admin/actions";
+import { AdminDrawer } from "@/components/admin-drawer";
+import { AdminEmptyState, AdminMetricStrip, AdminPageHeader, AdminSection, AdminStatus, AdminTabs, AdminToolbar } from "@/components/admin-console";
 import { AdminInvitationForm } from "@/components/admin-invitations";
 import { AdminMemberAccess } from "@/components/admin-member-access";
 import { AdminMemberServiceAccess } from "@/components/admin-member-service-access";
@@ -12,16 +14,17 @@ export const metadata = { title: "Member administration" };
 export default async function AdminMembersPage({
   searchParams
 }: {
-  searchParams: Promise<{ success?: string }>;
+  searchParams: Promise<{ success?: string; view?: string; search?: string; status?: string; service?: string }>;
 }) {
   const query = await searchParams;
+  const view = query.view === "invites" ? "invites" : "members";
   const viewer = await requireAdmin();
   const supabase = await createServerSupabaseClient();
   const empty = { data: [] as Array<Record<string, unknown>> };
   const [profilesResult, invitationsResult] = supabase
     ? await Promise.all([
         supabase.from("uniplug_profiles").select("user_id,email,display_name,username,phone,role,status,created_at").order("created_at", { ascending: false }).limit(250),
-        supabase.from("uniplug_invitations").select("id,email,username,status,action_type,created_at,expires_at").order("created_at", { ascending: false }).limit(30)
+        supabase.from("uniplug_invitations").select("id,email,username,status,action_type,created_at,expires_at").order("created_at", { ascending: false }).limit(100)
       ])
     : [empty, empty];
   const profiles = (profilesResult.data || []) as Array<{
@@ -82,85 +85,120 @@ export default async function AdminMembersPage({
     subscriptions.sort((a, b) => (statusOrder.get(a.status) ?? 9) - (statusOrder.get(b.status) ?? 9));
   }
 
+  const serviceNames = [...new Set(Array.from(subscriptionsByClient.values()).flat().map((item) => item.name))].sort();
+  const search = String(query.search || "").trim().toLowerCase();
+  const status = String(query.status || "all");
+  const serviceFilter = String(query.service || "all");
+  const filteredProfiles = profiles.filter((profile) => {
+    const clientId = clientIdByUser.get(profile.user_id);
+    const subscriptions = clientId ? subscriptionsByClient.get(clientId) || [] : [];
+    const haystack = `${profile.display_name || ""} ${profile.username} ${profile.email} ${profile.phone || ""} ${subscriptions.map((item) => item.name).join(" ")}`.toLowerCase();
+    const matchesSearch = !search || haystack.includes(search);
+    const matchesStatus = status === "all" || profile.status === status;
+    const matchesService = serviceFilter === "all" || subscriptions.some((item) => item.name === serviceFilter);
+    return matchesSearch && matchesStatus && matchesService;
+  });
+
+  const inviteAction = (
+    <AdminDrawer triggerLabel="Invite member" title="Invite existing client" eyebrow="Member access" description="Find a tracked client and generate their secure portal access without cluttering the directory.">
+      <AdminInvitationForm />
+    </AdminDrawer>
+  );
+
   return (
-    <section className="section shell page-top portal-page">
-      <div className="dashboard-heading">
-        <div><p className="eyebrow">Access operations</p><h1>Members</h1><p>Invite customers, deliver secure VIP access, verify account state, and suspend access without exposing private credentials.</p></div>
-      </div>
-      {query.success ? <p className="form-success page-notice">Member status updated.</p> : null}
+    <section className="portal-page">
+      <AdminPageHeader
+        eyebrow="Members"
+        title="Member directory"
+        description="Find a client fast, see their services, deliver access and make account changes only when you open them."
+        actions={inviteAction}
+      />
 
-      <div className="dashboard-stats compact-stats">
-        <article><span>Active</span><strong>{profiles.filter((profile) => profile.status === "active").length}</strong><small>Can access member tools</small></article>
-        <article><span>Pending</span><strong>{profiles.filter((profile) => profile.status === "pending").length}</strong><small>Setup not completed</small></article>
-        <article><span>Suspended</span><strong>{profiles.filter((profile) => profile.status === "suspended").length}</strong><small>Access restricted</small></article>
-      </div>
+      {query.success ? <p className="admin-notice">Member access updated.</p> : null}
 
-      <div className="admin-grid admin-members-grid">
-        <AdminInvitationForm />
-        <section className="panel">
-          <div className="section-heading compact"><div><p className="eyebrow">Invitation log</p><h2>Recent links</h2></div></div>
-          <div className="admin-list">
-            {invitations.slice(0, 8).map((invitation) => (
-              <div key={invitation.id}>
-                <div><strong>@{invitation.username}</strong><span>{invitation.email} · {invitation.action_type}</span><span>Expires {new Date(invitation.expires_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</span></div>
-                <span className={`status-pill status-${invitation.status}`}>{invitation.status}</span>
+      <AdminMetricStrip items={[
+        { label: "Active", value: profiles.filter((profile) => profile.status === "active").length, detail: "can access member tools", tone: "good" },
+        { label: "Pending", value: profiles.filter((profile) => profile.status === "pending").length, detail: "setup incomplete", tone: "warning" },
+        { label: "Suspended", value: profiles.filter((profile) => profile.status === "suspended").length, detail: "access restricted", tone: "danger" },
+        { label: "Invites", value: invitations.filter((item) => item.status === "pending").length, detail: "active links" }
+      ]} />
+
+      <AdminTabs active={view === "invites" ? "/admin/members?view=invites" : "/admin/members"} tabs={[
+        { label: "Members", href: "/admin/members", count: profiles.length },
+        { label: "Invites", href: "/admin/members?view=invites", count: invitations.length }
+      ]} />
+
+      {view === "members" ? (
+        <>
+          <AdminToolbar>
+            <form method="get">
+              <input className="admin-search" type="search" name="search" defaultValue={query.search || ""} placeholder="Search name, phone, username or email…" />
+              <select name="status" defaultValue={status}><option value="all">All access</option><option value="active">Active</option><option value="pending">Pending</option><option value="suspended">Suspended</option></select>
+              <select name="service" defaultValue={serviceFilter}><option value="all">All services</option>{serviceNames.map((name) => <option key={name} value={name}>{name}</option>)}</select>
+              <button className="button button-light" type="submit">Filter</button>
+            </form>
+          </AdminToolbar>
+
+          <AdminSection title="Members" description={`${filteredProfiles.length} matching profile${filteredProfiles.length === 1 ? "" : "s"}`}>
+            {filteredProfiles.length ? (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead><tr><th>Member</th><th>Contact</th><th>Services</th><th>Access</th><th>Joined</th><th>Manage</th></tr></thead>
+                  <tbody>
+                    {filteredProfiles.map((profile) => {
+                      const clientId = clientIdByUser.get(profile.user_id);
+                      const deliverySubscriptions = clientId ? subscriptionsByClient.get(clientId) || [] : [];
+                      return (
+                        <tr key={profile.user_id}>
+                          <td><strong>{profile.display_name || `@${profile.username}`}</strong><small>@{profile.username}</small></td>
+                          <td><strong>{profile.phone || profile.email}</strong><small>{profile.phone ? profile.email : "No phone saved"}</small></td>
+                          <td><strong>{deliverySubscriptions.length}</strong><small>{deliverySubscriptions.length ? deliverySubscriptions.slice(0, 2).map((item) => item.name).join(" · ") : "No tracked service"}{deliverySubscriptions.length > 2 ? ` +${deliverySubscriptions.length - 2}` : ""}</small></td>
+                          <td><AdminStatus value={profile.status} /></td>
+                          <td>{new Date(profile.created_at).toLocaleDateString("en-KE", { dateStyle: "medium" })}</td>
+                          <td>
+                            <AdminDrawer triggerLabel="Manage" triggerClassName="button button-light small" title={profile.display_name || `@${profile.username}`} eyebrow="Member" description={`@${profile.username} · ${deliverySubscriptions.length} tracked service${deliverySubscriptions.length === 1 ? "" : "s"}`}>
+                              <div className="admin-stack">
+                                <dl className="admin-detail-grid">
+                                  <div><dt>Email</dt><dd>{profile.email}</dd></div>
+                                  <div><dt>Phone</dt><dd>{profile.phone || "Not saved"}</dd></div>
+                                  <div><dt>Role</dt><dd>{profile.role}</dd></div>
+                                  <div><dt>Joined</dt><dd>{new Date(profile.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</dd></div>
+                                </dl>
+                                <div className="admin-compact-card"><strong>Deliver portal access</strong><p>Create or copy the member's secure access link and login message.</p><div style={{ marginTop: 10 }}><AdminMemberAccess userId={profile.user_id} status={profile.status} subscriptions={deliverySubscriptions} /></div></div>
+                                <div className="admin-compact-card"><strong>Service visibility</strong><p>Control which tracked services are available in this member's portal.</p><div style={{ marginTop: 10 }}><AdminMemberServiceAccess subscriptions={deliverySubscriptions} /></div></div>
+                                <div className="admin-compact-card">
+                                  <strong>Portal status</strong>
+                                  <p>Suspend or restore access. Changes take effect immediately.</p>
+                                  <form action={updateMemberStatus} className="admin-form-clean" style={{ marginTop: 10 }}>
+                                    <input name="userId" type="hidden" value={profile.user_id} />
+                                    <label>Access status<select name="status" defaultValue={profile.status} disabled={profile.user_id === viewer.user.id}><option value="active">Active</option><option value="pending">Pending</option><option value="suspended">Suspended</option></select></label>
+                                    <ConfirmSubmitButton className="button button-dark small" confirmation={`Change access status for @${profile.username}? This takes effect immediately.`} disabled={profile.user_id === viewer.user.id}>Save access</ConfirmSubmitButton>
+                                  </form>
+                                </div>
+                              </div>
+                            </AdminDrawer>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ))}
-            {!invitations.length ? <p className="muted-copy">No invitations created yet.</p> : null}
-          </div>
-        </section>
-      </div>
-
-      <section className="panel portal-table-panel">
-        <div className="section-heading compact"><div><p className="eyebrow">Directory</p><h2>All members</h2></div><span className="status-pill subtle">{profiles.length} profiles</span></div>
-        <div className="member-admin-list">
-          {profiles.map((profile) => {
-            const clientId = clientIdByUser.get(profile.user_id);
-            const deliverySubscriptions = clientId ? subscriptionsByClient.get(clientId) || [] : [];
-            return (
-              <article key={profile.user_id}>
-                <div>
-                  <strong>{profile.display_name || `@${profile.username}`}</strong>
-                  <span>@{profile.username} · {profile.email}</span>
-                  <span>{profile.phone || "No phone"} · {profile.role} · joined {new Date(profile.created_at).toLocaleDateString("en-KE", { dateStyle: "medium" })}</span>
-                </div>
-                <div>
-                  <AdminMemberAccess
-                    userId={profile.user_id}
-                    status={profile.status}
-                    subscriptions={deliverySubscriptions}
-                  />
-                  <AdminMemberServiceAccess subscriptions={deliverySubscriptions} />
-                  <form action={updateMemberStatus}>
-                    <input name="userId" type="hidden" value={profile.user_id} />
-                    <label className="sr-only" htmlFor={`status-${profile.user_id}`}>
-                      Access status for @{profile.username}
-                    </label>
-                    <select
-                      id={`status-${profile.user_id}`}
-                      name="status"
-                      defaultValue={profile.status}
-                      disabled={profile.user_id === viewer.user.id}
-                    >
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="suspended">Suspended</option>
-                    </select>
-                    <ConfirmSubmitButton
-                      className="button button-light small"
-                      confirmation={`Change access status for @${profile.username}? This takes effect immediately.`}
-                      disabled={profile.user_id === viewer.user.id}
-                    >
-                      Update
-                    </ConfirmSubmitButton>
-                  </form>
-                </div>
-              </article>
-            );
-          })}
-          {!profiles.length ? <div className="empty-state"><h3>No profiles found</h3><p>Create the first member invitation above.</p></div> : null}
-        </div>
-      </section>
+            ) : <AdminEmptyState title="No members match" description="Clear the filters or invite an existing tracked client." />}
+          </AdminSection>
+        </>
+      ) : (
+        <AdminSection title="Invitation history" description="Recent invite and recovery links. Expired links remain here for audit context.">
+          {invitations.length ? (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>Member</th><th>Email</th><th>Action</th><th>Created</th><th>Expires</th><th>Status</th></tr></thead>
+                <tbody>{invitations.map((invitation) => <tr key={invitation.id}><td><strong>@{invitation.username}</strong></td><td>{invitation.email}</td><td>{invitation.action_type.replaceAll("_", " ")}</td><td>{new Date(invitation.created_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</td><td>{new Date(invitation.expires_at).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}</td><td><AdminStatus value={invitation.status} /></td></tr>)}</tbody>
+              </table>
+            </div>
+          ) : <AdminEmptyState title="No invitations yet" description="Use Invite member to create the first secure client access link." />}
+        </AdminSection>
+      )}
     </section>
   );
 }
