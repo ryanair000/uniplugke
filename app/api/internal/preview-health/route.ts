@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
+// Preview-only health check used to verify VIP routing and backend readiness before promotion.
 export async function GET() {
   if (process.env.VERCEL_ENV !== "preview") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
