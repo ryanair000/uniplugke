@@ -308,9 +308,10 @@ export async function retrieveVerifyCode({
         failureCategory: "no_current_code"
       });
       return {
-        status: 404,
+        status: 202,
+        retryAfter: 60,
         body: {
-          status: "not_found",
+          status: "pending",
           error: `No new code was found. On ${provider.displayName} request a new message, then check again.`,
           supportUrl: verifySupportUrl(provider.id, "no_current_code", service?.name)
         }
@@ -374,9 +375,10 @@ export async function retrieveVerifyCode({
         outcome: "waiting_for_new_message"
       });
       return {
-        status: 404,
+        status: 202,
+        retryAfter: 60,
         body: {
-          status: "not_found",
+          status: "pending",
           error: `Still waiting for a new ${provider.displayName} verification code.`
         }
       };

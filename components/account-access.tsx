@@ -89,11 +89,11 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     try {
       const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
       const body = await response.json();
+      if (body.status === "pending" || body.status === "not_found") {
+        setCodeNote("Still waiting for the Netflix verification code…");
+        return;
+      }
       if (!response.ok) {
-        if (body.status === "not_found") {
-          setCodeNote("Still waiting for the Netflix verification code…");
-          return;
-        }
         throw new Error(body.error || "The Netflix verification code could not be loaded.");
       }
       if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
