@@ -73,9 +73,18 @@ export async function parseNetflixMessage(text: string, resolveLink: LinkResolve
   if (resetLanguage.test(text)) return null;
   const directCode = codeNearLabel(text);
   if (directCode) return directCode;
-  for (const link of netflixLinks(text).slice(0, 4)) {
+  const links = netflixLinks(text);
+  for (const link of links.slice(0, 4)) {
     const code = await resolveLink(link);
     if (code) return code;
   }
+  const normalized = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  console.info("Netflix message parser rejected candidate", {
+    hasSignInCodeLabel: /sign(?:-|\s)?in\s+code/i.test(normalized),
+    hasCodeLabel: /\bcode\b/i.test(normalized),
+    hasContiguousFourDigits: /(?:^|\D)\d{4}(?!\d)/.test(normalized),
+    hasSpacedFourDigits: /(?:^|\D)\d(?:\s+\d){3}(?!\d)/.test(normalized),
+    netflixLinkCount: links.length
+  });
   return null;
 }
