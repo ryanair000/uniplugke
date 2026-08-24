@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { decodedMimeText } from "../lib/verify/mime.ts";
+import { newestMailboxMessagesFirst } from "../lib/verify/mailbox-order.ts";
 import { parseNetflixMessage } from "../lib/verify/providers/netflix-parser.ts";
 
 const fixtureUrl = (name) => new URL(`../tests/fixtures/verify/${name}`, import.meta.url);
@@ -30,4 +31,11 @@ assert.match(resolvedLink, /^https:\/\/www\.netflix\.com\//);
 assert.equal(await parseFixture("netflix-password-reset.eml"), null);
 assert.equal(await parseFixture("unrelated-otp.eml"), null);
 
-console.log("Verified 9 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, and unrelated-OTP fixtures.");
+const mailboxMessages = newestMailboxMessagesFirst([
+  { uid: 903, receivedAt: new Date("2026-08-24T17:37:00.000Z"), value: "older-high-uid" },
+  { uid: 901, receivedAt: new Date("2026-08-24T17:40:00.000Z"), value: "newest-by-date" },
+  { uid: 902, receivedAt: new Date("2026-08-24T17:38:00.000Z"), value: "middle" }
+]);
+assert.deepEqual(mailboxMessages.map(({ value }) => value), ["newest-by-date", "middle", "older-high-uid"]);
+
+console.log("Verified 10 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, unrelated-OTP, and mailbox-order fixtures.");

@@ -3,6 +3,7 @@ import "server-only";
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { ImapFlow } from "imapflow";
 import { decodedMimeText } from "@/lib/verify/mime";
+import { newestMailboxMessagesFirst } from "@/lib/verify/mailbox-order";
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
@@ -130,34 +131,46 @@ export async function findLatestCodeWithAppPassword({
       const scan = {
         provider,
         queryMatchCount: Array.isArray(matches) ? matches.length : 0,
+        fetchedMessageCount: 0,
         inspectedMessageCount: 0,
         missingSourceCount: 0,
+        invalidReceivedDateCount: 0,
         disallowedSenderCount: 0,
         expiredMessageCount: 0,
         parserRejectedCount: 0
       };
-      for (const uid of (matches || []).slice(-8).reverse()) {
-        scan.inspectedMessageCount += 1;
+      const candidates = [];
+      for (const uid of (matches || []).slice(-8)) {
         const message = await client.fetchOne(
           uid,
           { source: { maxLength: 2_000_000 }, internalDate: true, envelope: true },
           { uid: true }
         );
+        scan.fetchedMessageCount += 1;
         if (!message || !message.source) {
           scan.missingSourceCount += 1;
           continue;
         }
+        const receivedAt = message.internalDate ? new Date(message.internalDate) : null;
+        if (!receivedAt || !Number.isFinite(receivedAt.getTime())) {
+          scan.invalidReceivedDateCount += 1;
+          continue;
+        }
+        candidates.push({ uid, receivedAt, value: message });
+      }
+
+      for (const { uid, receivedAt, value: message } of newestMailboxMessagesFirst(candidates)) {
+        scan.inspectedMessageCount += 1;
         if (!senderIsAllowed(message.envelope?.from, allowedSenderDomains)) {
           scan.disallowedSenderCount += 1;
           continue;
         }
-        const receivedAt = message.internalDate ? new Date(message.internalDate) : new Date();
         const expiresAt = new Date(receivedAt.getTime() + codeTtlMs);
         if (expiresAt.getTime() <= Date.now()) {
           scan.expiredMessageCount += 1;
           continue;
         }
-        const code = await parseMessage(decodedMimeText(message.source));
+        const code = await parseMessage(decodedMimeText(message.source!));
         if (code) {
           console.info("VeriFy mailbox scan completed", { ...scan, outcome: "code_found" });
           const messageFingerprint = createHash("sha256")

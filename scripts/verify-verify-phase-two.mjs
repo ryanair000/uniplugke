@@ -42,6 +42,8 @@ assert.match(migration, /grant execute on function public\.uniplug_reserve_verif
 assert.match(core, /uniplug_reserve_verify_request/);
 assert.match(core, /verifyRequestIpHash/);
 assert.match(core, /uniplug_record_verify_message/);
+assert.match(core, /reused mailbox message suppressed/);
+assert.match(core, /waiting_for_new_message/);
 assert.match(core, /failure_category/);
 assert.match(core, /latency_ms/);
 assert.match(core, /needsRecentAuthentication/);

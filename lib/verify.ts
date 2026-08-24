@@ -39,6 +39,10 @@ function elapsedMs(startedAt: number) {
   return Math.max(0, Date.now() - startedAt);
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function verifySupportUrl(provider: string, failureCategory: string, serviceName: string | null | undefined) {
   const query = new URLSearchParams({
     topic: "verify",
@@ -313,24 +317,39 @@ export async function retrieveVerifyCode({
       };
     }
 
-    const { data: wasReused, error: receiptError } = await admin.rpc(
+    const recordMessage = async (message: typeof result) => admin.rpc(
       "uniplug_record_verify_message",
       {
         p_user_id: userId,
         p_client_subscription_id: subscriptionId,
         p_provider: provider.id,
-        p_message_fingerprint: result.messageFingerprint,
-        p_expires_at: result.expiresAt,
+        p_message_fingerprint: message.messageFingerprint,
+        p_expires_at: message.expiresAt,
         p_request_id: reservation.request_id
       }
     );
-    if (receiptError) {
+
+    let selectedResult = result;
+    let receipt = await recordMessage(selectedResult);
+    if (!receipt.error && Boolean(receipt.data)) {
+      await wait(2_500);
+      const refreshedResult = await provider.retrieveLatestCode({
+        mailboxEmail,
+        encryptedAppPassword: connection.encrypted_app_password
+      });
+      if (refreshedResult && refreshedResult.messageFingerprint !== selectedResult.messageFingerprint) {
+        selectedResult = refreshedResult;
+        receipt = await recordMessage(selectedResult);
+      }
+    }
+
+    if (receipt.error) {
       console.error("VeriFy message receipt failed", {
         category: "configuration_missing",
         provider: provider.id,
         requestId: reservation.request_id,
         latencyMs: elapsedMs(startedAt),
-        error: receiptError.message
+        error: receipt.error.message
       });
       await audit({
         eventType: "mailbox_check_failed",
@@ -340,22 +359,37 @@ export async function retrieveVerifyCode({
       return { status: 503, body: { error: "Code retrieval is temporarily unavailable." } };
     }
 
-    const reused = Boolean(wasReused);
+    const reused = Boolean(receipt.data);
     await audit({
       eventType: reused ? "code_reused" : "code_found",
       outcome: provider.id,
-      messageFingerprint: result.messageFingerprint,
+      messageFingerprint: selectedResult.messageFingerprint,
       idempotent: reused
     });
+    if (reused) {
+      console.info("VeriFy reused mailbox message suppressed", {
+        provider: provider.id,
+        subscriptionId,
+        latencyMs: elapsedMs(startedAt),
+        outcome: "waiting_for_new_message"
+      });
+      return {
+        status: 404,
+        body: {
+          status: "not_found",
+          error: `Still waiting for a new ${provider.displayName} verification code.`
+        }
+      };
+    }
     return {
       status: 200,
       body: {
         status: "ready",
         provider: provider.id,
-        code: result.code,
-        receivedAt: result.receivedAt,
-        expiresAt: result.expiresAt,
-        reused
+        code: selectedResult.code,
+        receivedAt: selectedResult.receivedAt,
+        expiresAt: selectedResult.expiresAt,
+        reused: false
       }
     };
   } catch (error) {
