@@ -127,18 +127,39 @@ export async function findLatestCodeWithAppPassword({
     const lock = await client.getMailboxLock("INBOX", { readOnly: true });
     try {
       const matches = await client.search({ gmraw: messageQuery }, { uid: true });
+      const scan = {
+        provider,
+        queryMatchCount: Array.isArray(matches) ? matches.length : 0,
+        inspectedMessageCount: 0,
+        missingSourceCount: 0,
+        disallowedSenderCount: 0,
+        expiredMessageCount: 0,
+        parserRejectedCount: 0
+      };
       for (const uid of (matches || []).slice(-8).reverse()) {
+        scan.inspectedMessageCount += 1;
         const message = await client.fetchOne(
           uid,
           { source: { maxLength: 2_000_000 }, internalDate: true, envelope: true },
           { uid: true }
         );
-        if (!message || !message.source || !senderIsAllowed(message.envelope?.from, allowedSenderDomains)) continue;
+        if (!message || !message.source) {
+          scan.missingSourceCount += 1;
+          continue;
+        }
+        if (!senderIsAllowed(message.envelope?.from, allowedSenderDomains)) {
+          scan.disallowedSenderCount += 1;
+          continue;
+        }
         const receivedAt = message.internalDate ? new Date(message.internalDate) : new Date();
         const expiresAt = new Date(receivedAt.getTime() + codeTtlMs);
-        if (expiresAt.getTime() <= Date.now()) continue;
+        if (expiresAt.getTime() <= Date.now()) {
+          scan.expiredMessageCount += 1;
+          continue;
+        }
         const code = await parseMessage(decodedMimeText(message.source));
         if (code) {
+          console.info("VeriFy mailbox scan completed", { ...scan, outcome: "code_found" });
           const messageFingerprint = createHash("sha256")
             .update(`${provider}:${mailboxEmail.toLowerCase()}:${String(uid)}:${receivedAt.toISOString()}`)
             .digest("hex");
@@ -149,7 +170,9 @@ export async function findLatestCodeWithAppPassword({
             receivedAt: receivedAt.toISOString()
           };
         }
+        scan.parserRejectedCount += 1;
       }
+      console.info("VeriFy mailbox scan completed", { ...scan, outcome: "code_not_found" });
       return null;
     } finally {
       lock.release();
