@@ -78,6 +78,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   const [verificationStartedAt, setVerificationStartedAt] = useState<number | null>(null);
   const [verificationTimedOut, setVerificationTimedOut] = useState(false);
   const [codeNote, setCodeNote] = useState("");
+  const [nextCodeCheckAt, setNextCodeCheckAt] = useState<number | null>(null);
   const [replacementReason, setReplacementReason] = useState<IssueReason | null>(null);
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
@@ -89,7 +90,15 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     try {
       const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
       const body = await response.json();
+      const retryAfterSeconds = Math.max(1, Number(response.headers.get("Retry-After")) || 60);
+      if (body.status === "cooldown" || body.status === "rate_limited") {
+        setNextCodeCheckAt(Date.now() + retryAfterSeconds * 1000);
+        setCodeNote("Waiting before the next automatic check…");
+        setMessage("");
+        return;
+      }
       if (body.status === "pending" || body.status === "not_found") {
+        setNextCodeCheckAt(Date.now() + retryAfterSeconds * 1000);
         setCodeNote("Still waiting for the Netflix verification code…");
         return;
       }
@@ -97,9 +106,11 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
         throw new Error(body.error || "The Netflix verification code could not be loaded.");
       }
       if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
+      setNextCodeCheckAt(null);
       setCodeResult({ code: String(body.code) });
       setCodeNote("");
     } catch (error) {
+      setNextCodeCheckAt(null);
       setCodeNote("");
       setMessage(error instanceof Error ? error.message : "The Netflix verification code could not be loaded.");
     } finally {
@@ -135,13 +146,21 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut]);
 
   useEffect(() => {
-    if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut) return;
-    const timer = window.setInterval(() => {
-      if (Date.now() - verificationStartedAt >= 300_000) return;
-      if (busy !== "code") void getLatestCode(true);
-    }, 60_000);
-    return () => window.clearInterval(timer);
-  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy, getLatestCode]);
+    if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut || busy === "code") return;
+    const verificationEndsAt = verificationStartedAt + 300_000;
+    const remaining = verificationEndsAt - Date.now();
+    if (remaining <= 0) return;
+    const requestedCheckAt = nextCodeCheckAt || Date.now() + 60_000;
+    const delay = Math.max(1_000, Math.min(requestedCheckAt - Date.now(), remaining));
+    const timer = window.setTimeout(() => {
+      if (Date.now() >= verificationEndsAt) {
+        setVerificationTimedOut(true);
+        return;
+      }
+      void getLatestCode(true);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy, nextCodeCheckAt, getLatestCode]);
 
   async function copyAllDetails() {
     if (!details) return;
@@ -188,6 +207,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       setVerificationTimedOut(false);
       setCodeResult(null);
       setCodeNote("");
+      setNextCodeCheckAt(null);
       setMessage(body.message || "New slot assigned. Please log in using the new slot details shown above.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Your account issue could not be submitted.");
@@ -204,6 +224,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     setReplacementReason(null);
     setCodeResult(null);
     setCodeNote("Checking Netflix for your verification code…");
+    setNextCodeCheckAt(null);
     setMessage("");
     void getLatestCode();
   }
@@ -215,6 +236,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     setVerificationTimedOut(false);
     setCodeResult(null);
     setCodeNote("");
+    setNextCodeCheckAt(null);
     setMessage("");
   }
 
@@ -253,7 +275,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       )}
 
       <div className="access-console-actions">
-        {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code"}>Need Verification Code</button> : null}
+        {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code" || (verificationOpen && !verificationTimedOut && !codeResult)}>Need Verification Code</button> : null}
         {canReplace ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div>
 

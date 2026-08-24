@@ -21,5 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ code: result.body.code }, { status: 200, headers });
   }
 
-  return NextResponse.json(result.body, { status: result.status, headers });
+  const isCooldown = result.status === 429 && result.body.status === "rate_limited";
+  const body = isCooldown ? { ...result.body, status: "cooldown" } : result.body;
+  return NextResponse.json(body, { status: isCooldown ? 202 : result.status, headers });
 }

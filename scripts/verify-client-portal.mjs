@@ -73,6 +73,10 @@ assert.match(netflixCode, /createAdminSupabaseClient/);
 assert.match(netflixCode, /status: 202/);
 assert.match(netflixCode, /status: "pending"/);
 assert.match(accountAccess, /body\.status === "pending"/);
+assert.match(netflixCode, /isCooldown \? 202 : result\.status/);
+assert.match(netflixCode, /status: "cooldown"/);
+assert.match(accountAccess, /response\.headers\.get\("Retry-After"\)/);
+assert.match(accountAccess, /setNextCodeCheckAt/);
 assert.match(verifyPage, /VerifyTool/);
 assert.match(approvalMigration, /v_completed_count >= 1/);
 assert.match(approvalMigration, /approval_required/);
@@ -109,5 +113,5 @@ assert.match(lokimaxServices, /key === "dstvcompact"/);
 assert.match(lokimaxServices, /key === "dstvpremium"/);
 assert.match(trackedViews, /Live channels and entertainment managed through your UniPlug account/);
 
-console.log("Verified 67 client portal, bundle renewal, renewal precedence, multi-service sync, private DStv labelling, optional password, notification, credential, Netflix Household, and replacement-approval invariants.");
+console.log("Verified 71 client portal, bundle renewal, renewal precedence, multi-service sync, private DStv labelling, optional password, notification, credential, Netflix Household, and replacement-approval invariants.");
 
