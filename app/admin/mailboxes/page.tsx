@@ -180,7 +180,10 @@ export default async function AdminMailboxesPage({
   const accountRows = accounts.map((account) => {
     const email = normalized(account.account_mail);
     const credential = credentialMap.get(email) || null;
-    const accountSubscriptions = allSubscriptions.filter((subscription) => assignedAccountId(subscription.metadata) === account.id || normalized(subscription.account_reference) === email);
+    const accountSubscriptions = allSubscriptions.filter((subscription) => (
+      (Boolean(account.id) && assignedAccountId(subscription.metadata) === account.id)
+      || normalized(subscription.account_reference) === email
+    ));
     const accountSlots = slots.filter((slot) => normalized(slot.account) === email);
     const usedSlots = accountSlots.filter((slot) => accountSubscriptions.some((subscription) => normalized(subscription.account_reference) === normalized(slot.account)));
     const health = credential?.last_error ? "connection_error" : !credential ? "missing_app" : accountSubscriptions.length ? "healthy" : "unassigned";

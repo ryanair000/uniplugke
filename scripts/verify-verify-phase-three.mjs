@@ -27,6 +27,7 @@ assert.match(actions, /mailbox_credentials_revoked/);
 assert.match(actions, /\^\[a-z0-9\]\{16\}\$/i);
 assert.match(page, /Subscription-tracked mailbox/);
 assert.match(page, /accountByEmail/);
+assert.match(page, /Boolean\(account\.id\)/);
 assert.match(actions, /subscription_disabled/);
 assert.match(actions, /alert_resolved/);
 assert.doesNotMatch(actions, /encrypted_app_password[^\n]*metadata/);
