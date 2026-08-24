@@ -1,0 +1,7 @@
+From: Netflix <info@account.netflix.com>
+To: member@example.test
+Subject: Your Netflix sign-in code
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body><h1>Finish signing in</h1><p>Use the secure code below to finish signing in to Netflix. This request came from a supported device. Do not share the code with anyone you do not trust.</p><p><strong>6417</strong></p><p>This code expires in 15 minutes.</p><footer>&copy; Netflix 2026</footer></body></html>

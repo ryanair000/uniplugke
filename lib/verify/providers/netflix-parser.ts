@@ -11,6 +11,29 @@ function codeNearLabel(text: string) {
     || null;
 }
 
+function signInCodeClosestToLabel(text: string) {
+  const normalized = text
+    .replace(/[A-Za-z0-9+/]{40,}={0,2}/g, " ")
+    .replace(/https:\/\/\S+/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+  const labels = [...normalized.matchAll(/sign(?:-|\s)?in\s+code/gi)];
+  if (!labels.length) return null;
+
+  const nearestByValue = new Map<string, number>();
+  for (const match of normalized.matchAll(/\d{4}/g)) {
+    const index = match.index ?? 0;
+    if (/\d/.test(normalized[index - 1] || "") || /\d/.test(normalized[index + 4] || "")) continue;
+    const distance = Math.min(...labels.map((label) => index - ((label.index ?? 0) + label[0].length)).filter((value) => value >= 0));
+    if (!Number.isFinite(distance) || distance > 2_000) continue;
+    const previous = nearestByValue.get(match[0]);
+    if (previous === undefined || distance < previous) nearestByValue.set(match[0], distance);
+  }
+
+  const candidates = [...nearestByValue.entries()].sort((left, right) => left[1] - right[1]);
+  return candidates[0]?.[0] || null;
+}
+
 function htmlDecode(value: string) {
   return value
     .replaceAll("&amp;", "&")
@@ -73,6 +96,8 @@ export async function parseNetflixMessage(text: string, resolveLink: LinkResolve
   if (resetLanguage.test(text)) return null;
   const directCode = codeNearLabel(text);
   if (directCode) return directCode;
+  const signInCode = signInCodeClosestToLabel(text);
+  if (signInCode) return signInCode;
   const links = netflixLinks(text);
   for (const link of links.slice(0, 4)) {
     const code = await resolveLink(link);
