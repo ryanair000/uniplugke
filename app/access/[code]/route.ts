@@ -113,5 +113,13 @@ export async function GET(
   const destination = new URL(request.url).searchParams.get("destination") === "services"
     ? "/dashboard/subscriptions"
     : `/dashboard/subscriptions/${subscription.id}`;
+
+  if (portal.must_change_password) {
+    const settingsUrl = new URL("/dashboard/settings", VIP_ORIGIN);
+    settingsUrl.searchParams.set("security", "required");
+    settingsUrl.searchParams.set("next", destination);
+    return redirectResponse(settingsUrl);
+  }
+
   return redirectResponse(new URL(destination, VIP_ORIGIN));
 }

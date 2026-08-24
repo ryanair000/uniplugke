@@ -135,12 +135,16 @@ export async function POST(request: Request) {
   const service = serviceName(subscription.service);
   const portalMessage = [
     `Hi ${name} 👋`,
-    `Open your UniPlug services: ${portalLink}`,
+    portal.must_change_password
+      ? `Set your private UniPlug password, then open your services: ${portalLink}`
+      : `Open your UniPlug services: ${portalLink}`,
     `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
   ].join("\n");
   const serviceMessage = [
     `Hi ${name} 👋`,
-    `Open ${service}: ${serviceLink}`,
+    portal.must_change_password
+      ? `Set your private UniPlug password, then open ${service}: ${serviceLink}`
+      : `Open ${service}: ${serviceLink}`,
     `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
   ].join("\n");
 
@@ -159,6 +163,7 @@ export async function POST(request: Request) {
       subscriptionId: subscription.id,
       expiresAt,
       maxUses: ACCESS_MAX_USES,
+      requiresPasswordSetup: Boolean(portal.must_change_password),
       usesRemaining: ACCESS_MAX_USES
     },
     { headers: { "Cache-Control": "no-store" } }

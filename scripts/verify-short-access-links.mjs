@@ -9,6 +9,8 @@ const shortRoute = read("app/access/[code]/route.ts");
 const legacyRoute = read("app/auth/member-link/route.ts");
 const adminUi = read("components/admin-member-access.tsx");
 const proxy = read("lib/supabase/proxy.ts");
+const settingsPage = read("app/dashboard/settings/page.tsx");
+const settingsActions = read("app/settings/actions.ts");
 
 assert.match(migration, /add column if not exists code text/);
 assert.match(migration, /uniplug_consume_member_access_link\(p_code text\)/);
@@ -31,6 +33,8 @@ assert.match(shortRoute, /admin\.auth\.admin\.generateLink/);
 assert.match(shortRoute, /verifyOtp/);
 assert.match(shortRoute, /getClientFamilyIds/);
 assert.match(shortRoute, /destination/);
+assert.match(shortRoute, /portal\.must_change_password/);
+assert.match(shortRoute, /searchParams\.set\("next", destination\)/);
 assert.match(legacyRoute, /getClientFamilyIds/);
 assert.match(shortRoute, /Cache-Control/);
 assert.match(shortRoute, /Referrer-Policy/);
@@ -39,6 +43,10 @@ assert.match(adminUi, /Get portal link/);
 assert.match(adminUi, /Get service link/);
 assert.match(adminUi, /Copy portal message/);
 assert.match(adminUi, /Copy service message/);
+assert.match(adminUi, /requiresPasswordSetup/);
+assert.match(settingsPage, /name="next"/);
+assert.match(settingsActions, /safeNextPath/);
+assert.match(settingsActions, /if \(next\) redirect\(next\)/);
 assert.match(proxy, /pathname\.startsWith\("\/access\/"\)/);
 assert.match(proxy, /pathname === "\/auth\/member-link"/);
 

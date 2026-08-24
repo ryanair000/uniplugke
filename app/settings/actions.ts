@@ -5,8 +5,20 @@ import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/auth";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
-function settingsUrl(type: "success" | "error", message: string) {
-  return `/dashboard/settings?${type}=${encodeURIComponent(message)}`;
+function safeNextPath(value: FormDataEntryValue | null) {
+  const next = String(value || "").trim();
+  return next === "/dashboard/subscriptions" || /^\/dashboard\/subscriptions\/[0-9a-f-]{36}$/i.test(next)
+    ? next
+    : "";
+}
+
+function settingsUrl(type: "success" | "error", message: string, next = "") {
+  const query = new URLSearchParams({ [type]: message });
+  if (next) {
+    query.set("security", "required");
+    query.set("next", next);
+  }
+  return `/dashboard/settings?${query.toString()}`;
 }
 
 export async function updateMemberProfile(formData: FormData) {
@@ -36,22 +48,23 @@ export async function updateMemberProfile(formData: FormData) {
 
 export async function updateMemberPassword(formData: FormData) {
   const viewer = await requireMember();
+  const next = safeNextPath(formData.get("next"));
   const password = String(formData.get("password") || "");
   const confirmation = String(formData.get("passwordConfirmation") || "");
-  if (password.length < 10) redirect(settingsUrl("error", "Use a password with at least 10 characters."));
-  if (password !== confirmation) redirect(settingsUrl("error", "The new passwords do not match."));
+  if (password.length < 10) redirect(settingsUrl("error", "Use a password with at least 10 characters.", next));
+  if (password !== confirmation) redirect(settingsUrl("error", "The new passwords do not match.", next));
 
   const supabase = await createServerSupabaseClient();
-  if (!supabase) redirect(settingsUrl("error", "Password updates are not configured."));
+  if (!supabase) redirect(settingsUrl("error", "Password updates are not configured.", next));
 
   const { error: passwordError } = await supabase.auth.updateUser({ password });
-  if (passwordError) redirect(settingsUrl("error", passwordError.message));
+  if (passwordError) redirect(settingsUrl("error", passwordError.message, next));
 
   // Clearing the forced-rotation flag is intentionally service-role only.
   // A browser bearer token cannot mark its own temporary password as rotated.
   const admin = createAdminSupabaseClient();
   if (!admin) {
-    redirect(settingsUrl("error", "Your password changed, but account security could not be finalized. Please try again."));
+    redirect(settingsUrl("error", "Your password changed, but account security could not be finalized. Please try again.", next));
   }
 
   const { error: portalError } = await admin
@@ -59,7 +72,7 @@ export async function updateMemberPassword(formData: FormData) {
     .update({ must_change_password: false, updated_at: new Date().toISOString() })
     .eq("user_id", viewer.user.id);
   if (portalError) {
-    redirect(settingsUrl("error", "Your password changed, but account security could not be finalized. Please try again."));
+    redirect(settingsUrl("error", "Your password changed, but account security could not be finalized. Please try again.", next));
   }
 
   const { error: eventError } = await admin.from("uniplug_member_events").insert({
@@ -76,5 +89,6 @@ export async function updateMemberPassword(formData: FormData) {
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
+  if (next) redirect(next);
   redirect(settingsUrl("success", "Private password updated."));
 }

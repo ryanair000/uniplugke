@@ -8,7 +8,7 @@ export const metadata = { title: "Profile and security" };
 export default async function SettingsPage({
   searchParams
 }: {
-  searchParams: Promise<{ success?: string; error?: string }>;
+  searchParams: Promise<{ success?: string; error?: string; security?: string; next?: string }>;
 }) {
   const viewer = await requireMember();
   const query = await searchParams;
@@ -24,6 +24,7 @@ export default async function SettingsPage({
 
       {query.success ? <p className="form-success page-notice">{query.success}</p> : null}
       {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
+      {query.security === "required" ? <p className="admin-notice">Set your private password once. We will open your selected service immediately afterwards.</p> : null}
 
       <div className="settings-grid">
         <section className="panel">
@@ -48,6 +49,7 @@ export default async function SettingsPage({
           <h2>Change private password</h2>
           <p>Use a unique password that you do not reuse on streaming, email, or social accounts.</p>
           <form action={updateMemberPassword} className="admin-form settings-form">
+            <input name="next" type="hidden" value={query.next || ""} />
             <label className="field">New password<input name="password" type="password" autoComplete="new-password" minLength={10} required /></label>
             <label className="field">Confirm new password<input name="passwordConfirmation" type="password" autoComplete="new-password" minLength={10} required /></label>
             <button className="button button-dark">Update password</button>
