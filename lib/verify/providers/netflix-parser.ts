@@ -6,6 +6,7 @@ function codeNearLabel(text: string) {
   const normalized = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   if (resetLanguage.test(normalized)) return null;
   return normalized.match(/(?:temporary|access|verification)\s+code\D{0,80}(\d{4})(?!\d)/i)?.[1]
+    || normalized.match(/sign(?:-|\s)?in\s+code\D{0,80}(\d{4})(?!\d)/i)?.[1]
     || normalized.match(/(?:your\s+code|code\s+is)\D{0,40}(\d{4})(?!\d)/i)?.[1]
     || null;
 }

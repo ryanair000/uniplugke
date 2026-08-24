@@ -1,0 +1,7 @@
+From: Netflix <info@account.netflix.com>
+To: member@example.test
+Subject: Your Netflix sign-in code
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body><h1>Your Netflix sign-in code</h1><p><strong>1946</strong></p><p>This code expires in 15 minutes.</p></body></html>
