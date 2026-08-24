@@ -4,6 +4,7 @@ import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEq
 import { ImapFlow } from "imapflow";
 import { decodedMimeText } from "@/lib/verify/mime";
 import { newestMailboxMessagesFirst } from "@/lib/verify/mailbox-order";
+import { verificationMailboxPath } from "@/lib/verify/mailbox-selection";
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
@@ -125,11 +126,13 @@ export async function findLatestCodeWithAppPassword({
   const client = gmailImapClient(mailboxEmail, encryptedAppPassword);
   try {
     await client.connect();
-    const lock = await client.getMailboxLock("INBOX", { readOnly: true });
+    const mailboxPath = verificationMailboxPath(await client.list());
+    const lock = await client.getMailboxLock(mailboxPath, { readOnly: true });
     try {
       const matches = await client.search({ gmraw: messageQuery }, { uid: true });
       const scan = {
         provider,
+        mailboxScope: mailboxPath === "INBOX" ? "inbox" : "all_mail",
         queryMatchCount: Array.isArray(matches) ? matches.length : 0,
         fetchedMessageCount: 0,
         inspectedMessageCount: 0,

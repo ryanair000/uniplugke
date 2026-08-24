@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { decodedMimeText } from "../lib/verify/mime.ts";
 import { newestMailboxMessagesFirst } from "../lib/verify/mailbox-order.ts";
+import { verificationMailboxPath } from "../lib/verify/mailbox-selection.ts";
 import { parseNetflixMessage } from "../lib/verify/providers/netflix-parser.ts";
 
 const fixtureUrl = (name) => new URL(`../tests/fixtures/verify/${name}`, import.meta.url);
@@ -37,5 +38,7 @@ const mailboxMessages = newestMailboxMessagesFirst([
   { uid: 902, receivedAt: new Date("2026-08-24T17:38:00.000Z"), value: "middle" }
 ]);
 assert.deepEqual(mailboxMessages.map(({ value }) => value), ["newest-by-date", "middle", "older-high-uid"]);
+assert.equal(verificationMailboxPath([{ path: "INBOX", specialUse: "\\Inbox" }, { path: "[Gmail]/All Mail", specialUse: "\\All" }]), "[Gmail]/All Mail");
+assert.equal(verificationMailboxPath([{ path: "INBOX", specialUse: "\\Inbox" }]), "INBOX");
 
-console.log("Verified 10 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, unrelated-OTP, and mailbox-order fixtures.");
+console.log("Verified 12 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, unrelated-OTP, mailbox-order, and mailbox-selection fixtures.");
