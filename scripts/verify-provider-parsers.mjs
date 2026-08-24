@@ -13,6 +13,8 @@ const parseFixture = async (name, resolveLink) => {
 assert.equal(await parseFixture("netflix-plain.eml"), "4821");
 assert.equal(await parseFixture("netflix-html.eml"), "5730");
 assert.equal(await parseFixture("netflix-quoted-printable.eml"), "6804");
+assert.equal(await parseFixture("netflix-sign-in-html.eml"), "1946");
+assert.equal(await parseFixture("netflix-sign-in-plain.eml"), "3058");
 
 let resolvedLink = "";
 assert.equal(
@@ -27,4 +29,4 @@ assert.match(resolvedLink, /^https:\/\/www\.netflix\.com\//);
 assert.equal(await parseFixture("netflix-password-reset.eml"), null);
 assert.equal(await parseFixture("unrelated-otp.eml"), null);
 
-console.log("Verified 6 sanitized VeriFy MIME, HTML, quoted-printable, link, reset, and unrelated-OTP fixtures.");
+console.log("Verified 8 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, and unrelated-OTP fixtures.");
