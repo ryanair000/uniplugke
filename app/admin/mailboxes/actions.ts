@@ -85,7 +85,7 @@ export async function rotateVerifyMailboxCredential(formData: FormData) {
   const viewer = await requireAdmin();
   const email = mailboxEmail(formData.get("mailboxEmail"));
   const appPassword = String(formData.get("appPassword") || "").replace(/\s/g, "");
-  if (!/^[a-z0-9]{12,64}$/i.test(appPassword)) redirect("/admin/mailboxes?view=accounts&error=invalid_app_password");
+  if (!/^[a-z0-9]{16}$/i.test(appPassword)) redirect("/admin/mailboxes?view=accounts&error=invalid_app_password");
   const admin = createAdminSupabaseClient();
   if (!admin) throw new Error("Supabase is not configured.");
 

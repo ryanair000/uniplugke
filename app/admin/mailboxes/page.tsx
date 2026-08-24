@@ -25,7 +25,7 @@ type MailboxCredential = {
 };
 
 type ManagedAccount = {
-  id: string;
+  id: string | null;
   account_mail: string | null;
   service_name: string | null;
   game: string | null;
@@ -142,10 +142,26 @@ export default async function AdminMailboxesPage({
   if (loadError) throw new Error(`VeriFy operations could not be loaded: ${loadError.message}`);
 
   const credentials = (credentialResult.data || []) as MailboxCredential[];
-  const accounts = ((accountResult.data || []) as ManagedAccount[]).filter((account) => account.account_mail);
+  const storedAccounts = ((accountResult.data || []) as ManagedAccount[]).filter((account) => account.account_mail);
   const slots = (slotResult.data || []) as Slot[];
   const allSubscriptions = (subscriptionResult.data || []) as unknown as Subscription[];
   const subscriptions = allSubscriptions.filter((subscription) => related(subscription.service)?.verify_enabled);
+  const accountByEmail = new Map(
+    storedAccounts.map((account) => [normalized(account.account_mail), account] as const)
+  );
+  for (const subscription of subscriptions) {
+    const email = normalized(subscription.account_reference);
+    if (!email || accountByEmail.has(email)) continue;
+    accountByEmail.set(email, {
+      id: null,
+      account_mail: subscription.account_reference?.trim() || email,
+      service_name: related(subscription.service)?.name || "Digital service",
+      game: null,
+      profile_name: null,
+      password_secret_id: null
+    });
+  }
+  const accounts = [...accountByEmail.values()];
   const clients = (clientResult.data || []) as Client[];
   const clientMap = new Map(clients.map((client) => [client.id, client]));
   const credentialMap = new Map(credentials.map((credential) => [normalized(credential.mailbox_email), credential]));
@@ -237,9 +253,9 @@ export default async function AdminMailboxesPage({
                       const serviceName = row.account.service_name || row.account.game || "Digital service";
                       const healthLabel = row.health === "missing_app" ? "Missing app password" : row.health === "connection_error" ? "Connection error" : row.health === "unassigned" ? "Unassigned" : "Healthy";
                       return (
-                        <tr key={row.account.id}>
+                        <tr key={row.account.id || normalized(row.account.account_mail)}>
                           <td><strong>{row.account.account_mail}</strong><small>{serviceName}{row.account.profile_name ? ` · ${row.account.profile_name}` : ""}</small></td>
-                          <td><AdminStatus value={row.account.password_secret_id ? "connected" : "attention"} label={row.account.password_secret_id ? "Vault stored" : "Legacy / update"} /></td>
+                          <td><AdminStatus value={row.account.password_secret_id ? "connected" : row.account.id ? "attention" : "linked"} label={row.account.password_secret_id ? "Vault stored" : row.account.id ? "Legacy / update" : "Subscription linked"} /></td>
                           <td><AdminStatus value={row.credential ? row.credential.last_error ? "degraded" : "connected" : "missing"} label={row.credential ? row.credential.last_error ? "Needs attention" : "Connected" : "Missing"} /></td>
                           <td><strong>{row.accountSlots.length}</strong><small>{row.accountSlots.filter((slot) => !["expired", "inactive", "blocked"].includes(normalized(slot.status))).length} operational</small></td>
                           <td><strong>{row.accountSubscriptions.length}</strong><small>{row.accountSubscriptions.slice(0, 2).map((subscription) => clientMap.get(subscription.client_id)?.display_name || related(subscription.service)?.name || "Member").join(" · ") || "No member"}</small></td>
@@ -247,7 +263,7 @@ export default async function AdminMailboxesPage({
                           <td>
                             <AdminDrawer triggerLabel="Manage" triggerClassName="button button-light small" title={row.account.account_mail || "Service account"} eyebrow={serviceName} description="Update account credentials, connect Gmail and see exactly who is assigned.">
                               <div className="admin-stack">
-                                <div className="admin-compact-card">
+                                {row.account.id ? <div className="admin-compact-card">
                                   <strong>Service account details</strong>
                                   <p>Enter a new login password only when it changes. Existing passwords are never printed here.</p>
                                   <form action={updateVerifyAccountCredentials} className="admin-form-clean" style={{ marginTop: 12 }}>
@@ -260,14 +276,14 @@ export default async function AdminMailboxesPage({
                                     </div>
                                     <button className="button button-dark small" type="submit">Save account</button>
                                   </form>
-                                </div>
+                                </div> : <div className="admin-compact-card"><strong>Subscription-tracked mailbox</strong><p>This mailbox comes from an active member subscription. Gmail verification can be managed here even though the legacy account row is absent.</p></div>}
 
                                 <div className="admin-compact-card">
                                   <strong>Gmail app password</strong>
                                   <p>{row.credential ? `Last tested ${formatTime(row.credential.last_checked_at)}${row.credential.last_error ? ` · ${row.credential.last_error}` : ""}` : "No app password is connected. Add one to make this mailbox usable by VeriFy."}</p>
                                   <form action={rotateVerifyMailboxCredential} className="admin-form-clean" style={{ marginTop: 12 }}>
                                     <input name="mailboxEmail" type="hidden" value={row.account.account_mail || ""} />
-                                    <label>{row.credential ? "Replace app password" : "Add app password"}<input name="appPassword" type="password" autoComplete="new-password" minLength={12} maxLength={64} required placeholder="16-character Gmail app password" /></label>
+                                    <label>{row.credential ? "Replace app password" : "Add app password"}<input name="appPassword" type="password" autoComplete="new-password" minLength={16} maxLength={19} required placeholder="16-character Gmail app password" /></label>
                                     <button className="button button-dark small" type="submit">Test & securely save</button>
                                   </form>
                                   {row.credential ? <div className="admin-page-actions" style={{ marginTop: 9, justifyContent: "flex-start" }}><form action={testVerifyMailbox}><input name="mailboxEmail" type="hidden" value={row.credential.mailbox_email} /><button className="button button-light small" type="submit">Safe test</button></form><form action={revokeVerifyMailboxCredential}><input name="mailboxEmail" type="hidden" value={row.credential.mailbox_email} /><ConfirmSubmitButton className="button button-light small" confirmation={`Revoke VeriFy access to ${row.credential.mailbox_email}?`}>Revoke</ConfirmSubmitButton></form></div> : null}

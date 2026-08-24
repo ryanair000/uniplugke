@@ -32,6 +32,8 @@ assert.match(registry, /listVerifyProviders/);
 const gatePosition = core.indexOf("getVerifyProviderAccess");
 const reservePosition = core.indexOf('"uniplug_reserve_verify_request"');
 const mailboxPosition = core.indexOf('"uniplug_mailbox_credentials"');
+assert.match(core, /getClientFamilyIds/);
+assert.match(core, /\.in\("client_id", familyIds\)/);
 assert.ok(gatePosition > 0 && gatePosition < reservePosition && reservePosition < mailboxPosition, "provider gate runs before rate reservation and mailbox access");
 assert.match(core, /provider_access_denied/);
 assert.match(core, /provider_unavailable/);

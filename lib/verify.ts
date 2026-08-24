@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac, randomUUID } from "node:crypto";
 import { classifyMailboxConnectionError } from "@/lib/gmail";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 import { getVerifyProvider, needsRecentAuthentication } from "@/lib/verify/provider-registry";
 import { getVerifyProviderAccess } from "@/lib/verify-rollout";
@@ -82,11 +83,24 @@ export async function retrieveVerifyCode({
     return { status: 404, body: { error: "No eligible service was found." } };
   }
 
+  let familyIds: string[];
+  try {
+    familyIds = (await getClientFamilyIds(admin, clientId)).familyIds;
+  } catch (error) {
+    console.error("VeriFy client family lookup failed", {
+      category: "configuration_missing",
+      clientId,
+      latencyMs: elapsedMs(startedAt),
+      error: error instanceof Error ? error.message : "unknown"
+    });
+    return { status: 503, body: { error: "Code retrieval is temporarily unavailable." } };
+  }
+
   const { data: subscription, error: subscriptionError } = await admin
     .from("client_subscriptions")
     .select("id,status,account_reference,service_identifier,verify_enabled,service:client_services!client_subscriptions_service_id_fkey(name,verify_enabled,verify_provider)")
     .eq("id", subscriptionId)
-    .eq("client_id", clientId)
+    .in("client_id", familyIds)
     .maybeSingle();
 
   if (subscriptionError) {
