@@ -367,22 +367,6 @@ export async function retrieveVerifyCode({
       messageFingerprint: selectedResult.messageFingerprint,
       idempotent: reused
     });
-    if (reused) {
-      console.info("VeriFy reused mailbox message suppressed", {
-        provider: provider.id,
-        subscriptionId,
-        latencyMs: elapsedMs(startedAt),
-        outcome: "waiting_for_new_message"
-      });
-      return {
-        status: 202,
-        retryAfter: 60,
-        body: {
-          status: "pending",
-          error: `Still waiting for a new ${provider.displayName} verification code.`
-        }
-      };
-    }
     return {
       status: 200,
       body: {
@@ -391,7 +375,7 @@ export async function retrieveVerifyCode({
         code: selectedResult.code,
         receivedAt: selectedResult.receivedAt,
         expiresAt: selectedResult.expiresAt,
-        reused: false
+        reused
       }
     };
   } catch (error) {
