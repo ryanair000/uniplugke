@@ -23,18 +23,15 @@ type AccessResult = {
   subscriptionId: string;
   expiresAt: string;
   maxUses: number;
-  requiresPasswordSetup: boolean;
 };
 
 export function AdminMemberAccess({
   userId,
   status,
-  mustChangePassword,
   subscriptions
 }: {
   userId: string;
   status: string;
-  mustChangePassword: boolean;
   subscriptions: SubscriptionOption[];
 }) {
   const [subscriptionId, setSubscriptionId] = useState(subscriptions[0]?.id || "");
@@ -95,9 +92,7 @@ export function AdminMemberAccess({
         <div className="admin-member-delivery-copy">
           <strong>Client access</strong>
           <span>{selected
-            ? mustChangePassword
-              ? `Password setup, then ${selected.name}`
-              : `Open ${selected.name} access`
+            ? `Open ${selected.name} access`
             : "Choose a service"}</span>
         </div>
         <div className="admin-member-delivery-controls">
@@ -136,9 +131,7 @@ export function AdminMemberAccess({
             <span className="admin-delivery-check" aria-hidden="true"><Check size={15} /></span>
             <div>
               <strong>Client links ready</strong>
-              <span>{result.requiresPasswordSetup
-                ? `Password setup first, then portal overview or ${result.serviceName} · Valid for 48 hours · up to ${result.maxUses} opens`
-                : `Portal overview + direct ${result.serviceName} access · Valid for 48 hours · up to ${result.maxUses} opens`}</span>
+              <span>{`Portal overview + direct ${result.serviceName} access · Valid for 48 hours · up to ${result.maxUses} opens`}</span>
             </div>
           </div>
           <div className="admin-delivery-choice">
@@ -161,7 +154,7 @@ export function AdminMemberAccess({
           <div className="admin-delivery-choice">
             <div className="admin-delivery-choice-heading">
               <strong>{result.serviceName}</strong>
-              <span>{result.requiresPasswordSetup ? "Opens after one-time password setup" : "Opens this exact service access page"}</span>
+              <span>Opens this exact service access page</span>
             </div>
             <div className="admin-delivery-actions">
               <button type="button" className="button button-dark small" onClick={() => copy(result.serviceMessage, "serviceMessage")}>

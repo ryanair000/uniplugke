@@ -67,15 +67,12 @@ export default async function AdminMembersPage({
   const portalRows = admin && profiles.length
     ? ((await admin
         .from("client_portal_accounts")
-        .select("user_id,client_id,must_change_password")
+        .select("user_id,client_id")
         .in("user_id", profiles.map((profile) => profile.user_id))).data || [])
     : [];
 
   const initialClientIdByUser = new Map<string, string>(
-    (portalRows as Array<{ user_id: string; client_id: string; must_change_password: boolean }>).map((row) => [row.user_id, row.client_id] as const)
-  );
-  const passwordSetupByUser = new Map<string, boolean>(
-    (portalRows as Array<{ user_id: string; client_id: string; must_change_password: boolean }>).map((row) => [row.user_id, Boolean(row.must_change_password)] as const)
+    (portalRows as Array<{ user_id: string; client_id: string }>).map((row) => [row.user_id, row.client_id] as const)
   );
   const initialClientIds = [...new Set(Array.from(initialClientIdByUser.values()))];
 
@@ -262,7 +259,7 @@ export default async function AdminMembersPage({
                                   ) : <p>This member is not linked to the shared LokiMax client identity yet.</p>}
                                 </div>
 
-                                <div className="admin-compact-card"><strong>Deliver portal access</strong><p>Create or copy the member&apos;s secure access link and login message.</p><div style={{ marginTop: 10 }}><AdminMemberAccess userId={profile.user_id} status={profile.status} mustChangePassword={passwordSetupByUser.get(profile.user_id) || false} subscriptions={deliverySubscriptions} /></div></div>
+                                <div className="admin-compact-card"><strong>Deliver portal access</strong><p>Create or copy the member&apos;s secure access link and login message.</p><div style={{ marginTop: 10 }}><AdminMemberAccess userId={profile.user_id} status={profile.status} subscriptions={deliverySubscriptions} /></div></div>
                                 <div className="admin-compact-card"><strong>Service visibility</strong><p>Control which tracked services are available in this member&apos;s portal.</p><div style={{ marginTop: 10 }}><AdminMemberServiceAccess subscriptions={deliverySubscriptions} /></div></div>
                                 <div className="admin-compact-card">
                                   <strong>Portal status</strong>

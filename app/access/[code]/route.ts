@@ -96,7 +96,7 @@ export async function GET(
     return loginError("vip_link_invalid");
   }
 
-  if (profile.status === "pending" || portal.must_change_password) {
+  if (profile.status === "pending") {
     const { error: onboardingError } = await supabase.rpc("uniplug_complete_onboarding");
     if (onboardingError) {
       await supabase.auth.signOut();
@@ -105,21 +105,23 @@ export async function GET(
   }
 
   const now = new Date().toISOString();
-  await admin
+  const { error: portalUpdateError } = await admin
     .from("client_portal_accounts")
-    .update({ last_login_at: now, updated_at: now })
+    .update({
+      last_login_at: now,
+      updated_at: now,
+      // A valid, admin-issued short link is the member's passwordless onboarding grant.
+      ...(portal.must_change_password ? { must_change_password: false } : {})
+    })
     .eq("user_id", userId);
+  if (portalUpdateError) {
+    await supabase.auth.signOut();
+    return loginError("onboarding_failed");
+  }
 
   const destination = new URL(request.url).searchParams.get("destination") === "services"
     ? "/dashboard/subscriptions"
     : `/dashboard/subscriptions/${subscription.id}`;
-
-  if (portal.must_change_password) {
-    const settingsUrl = new URL("/dashboard/settings", VIP_ORIGIN);
-    settingsUrl.searchParams.set("security", "required");
-    settingsUrl.searchParams.set("next", destination);
-    return redirectResponse(settingsUrl);
-  }
 
   return redirectResponse(new URL(destination, VIP_ORIGIN));
 }
