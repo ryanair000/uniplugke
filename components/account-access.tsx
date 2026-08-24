@@ -257,9 +257,12 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
         {canReplace ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div>
 
-      {isNetflix && verificationOpen ? <div className="household-assistant" aria-live="polite">
+      {isNetflix && verificationOpen ? <div className="household-assistant" aria-busy={busy === "code"} aria-live="polite">
         <div className="household-heading"><span aria-hidden="true">#</span><div><p className="wallet-kicker">Netflix verification</p><h3>Verification code</h3></div></div>
-        {!codeResult ? <p>{verificationTimedOut ? "The code is taking longer than expected." : (codeNote || "Checking Netflix for your verification code…")}</p> : null}
+        {!codeResult ? <div className="verification-progress">
+          {busy === "code" ? <span className="verification-loader" aria-hidden="true"><i /><i /><i /></span> : null}
+          <p>{verificationTimedOut ? "The code is taking longer than expected." : (busy === "code" ? "Checking Netflix for your verification code…" : (codeNote || "Waiting for a new Netflix verification code…"))}</p>
+        </div> : null}
         {codeResult ? <div className="temporary-code"><strong>{codeResult.code.split("").join(" ")}</strong></div> : null}
         <small>This should usually take less than 2 minutes. If it takes more than 5 minutes, click Account not working.</small>
         {verificationTimedOut && !codeResult ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
