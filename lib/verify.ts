@@ -119,8 +119,33 @@ export async function retrieveVerifyCode({
 
   const service = subscription ? relatedService(subscription.service as SubscriptionService) : null;
   const provider = getVerifyProvider(service?.verify_provider);
+
+  let hasTemporaryGrant = false;
+  if (subscription && !["active", "due_soon", "trial"].includes(subscription.status)) {
+    const { data: grant, error: grantError } = await admin
+      .from("uniplug_member_access_links")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("subscription_id", subscriptionId)
+      .not("last_used_at", "is", null)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (grantError) {
+      console.error("VeriFy member access grant lookup failed", {
+        category: "configuration_missing",
+        subscriptionId,
+        latencyMs: elapsedMs(startedAt),
+        error: grantError.message
+      });
+    }
+    hasTemporaryGrant = Boolean(grant);
+  }
+
   if (!subscription || !provider || !provider.isEligible({
-    status: subscription.status,
+    status: hasTemporaryGrant ? "active" : subscription.status,
     capabilityEnabled: Boolean(service?.verify_enabled && subscription.verify_enabled),
     hasAssignedAccount: Boolean(subscription.account_reference?.trim())
   })) {

@@ -44,10 +44,21 @@ export async function getLokimaxVipAccess(
     .in("status", ["active", "due_soon", "trial"])
     .limit(500);
 
-  const hasService = !error && (subscriptions || []).some((subscription) => {
+  let hasService = !error && (subscriptions || []).some((subscription) => {
     const metadata = metadataObject(subscription.metadata);
     return metadata.portal_hidden !== true && metadata.interest_only !== true;
   });
+
+  // A consumed admin link is an explicit, short-lived service grant. Keep the
+  // customer's billing status untouched, but allow the VIP session for the
+  // lifetime of that grant so the exact service destination can open.
+  if (!hasService) {
+    const { data: temporaryGrant, error: grantError } = await supabase.rpc(
+      "uniplug_has_member_access_grant",
+      { p_subscription_id: null }
+    );
+    hasService = !grantError && temporaryGrant === true;
+  }
 
   return {
     clientId: portal.client_id,
