@@ -1,45 +1,75 @@
 const resetLanguage = /(?:password\s+reset|reset\s+(?:your|the)\s+password|change\s+your\s+password|forgot\s+your\s+password)/i;
+const expiryLanguage = /(?:this\s+)?code\s+(?:will\s+)?expir(?:e|es)|expir(?:e|es)\s+in\s+\d+\s+minutes/i;
 
 type LinkResolver = (url: string) => Promise<string | null>;
-
-function codeNearLabel(text: string) {
-  const normalized = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  if (resetLanguage.test(normalized)) return null;
-  return normalized.match(/(?:temporary|access|verification)\s+code\D{0,80}(\d{4})(?!\d)/i)?.[1]
-    || normalized.match(/sign(?:-|\s)?in\s+code\D{0,80}(\d{4})(?!\d)/i)?.[1]
-    || normalized.match(/(?:your\s+code|code\s+is)\D{0,40}(\d{4})(?!\d)/i)?.[1]
-    || null;
-}
-
-function signInCodeClosestToLabel(text: string) {
-  const normalized = text
-    .replace(/[A-Za-z0-9+/]{40,}={0,2}/g, " ")
-    .replace(/https:\/\/\S+/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ");
-  const labels = [...normalized.matchAll(/sign(?:-|\s)?in\s+code/gi)];
-  if (!labels.length) return null;
-
-  const nearestByValue = new Map<string, number>();
-  for (const match of normalized.matchAll(/\d{4}/g)) {
-    const index = match.index ?? 0;
-    if (/\d/.test(normalized[index - 1] || "") || /\d/.test(normalized[index + 4] || "")) continue;
-    const distance = Math.min(...labels.map((label) => index - ((label.index ?? 0) + label[0].length)).filter((value) => value >= 0));
-    if (!Number.isFinite(distance) || distance > 2_000) continue;
-    const previous = nearestByValue.get(match[0]);
-    if (previous === undefined || distance < previous) nearestByValue.set(match[0], distance);
-  }
-
-  const candidates = [...nearestByValue.entries()].sort((left, right) => left[1] - right[1]);
-  return candidates[0]?.[0] || null;
-}
 
 function htmlDecode(value: string) {
   return value
     .replaceAll("&amp;", "&")
     .replaceAll("&#x3D;", "=")
     .replaceAll("=3D", "=")
-    .replaceAll("&quot;", '"');
+    .replaceAll("&quot;", '"')
+    .replace(/(?:&nbsp;|&#160;|&#xA0;)/gi, " ")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, decimal: string) => String.fromCodePoint(Number.parseInt(decimal, 10)));
+}
+
+function normalizedMessageText(text: string) {
+  return htmlDecode(text)
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(?:style|script)\b[^>]*>[\s\S]*?<\/(?:style|script)>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function codeFollowingLabel({
+  text,
+  label,
+  maxDistance,
+  requireExpiry = false
+}: {
+  text: string;
+  label: RegExp;
+  maxDistance: number;
+  requireExpiry?: boolean;
+}) {
+  for (const labelMatch of text.matchAll(label)) {
+    const labelEnd = (labelMatch.index ?? 0) + labelMatch[0].length;
+    const searchWindow = text.slice(labelEnd, labelEnd + maxDistance);
+    for (const codeMatch of searchWindow.matchAll(/(?<!\d)(\d(?:[\s\u00a0]*\d){3})(?!\d)/g)) {
+      const code = codeMatch[1].replace(/\D/g, "");
+      if (code.length !== 4) continue;
+      const codeEnd = labelEnd + (codeMatch.index ?? 0) + codeMatch[0].length;
+      if (requireExpiry && !expiryLanguage.test(text.slice(codeEnd, codeEnd + 500))) continue;
+      return code;
+    }
+  }
+  return null;
+}
+
+function codeNearLabel(text: string) {
+  const normalized = normalizedMessageText(text);
+  if (resetLanguage.test(normalized)) return null;
+
+  return codeFollowingLabel({
+    text: normalized,
+    label: /\b(?:temporary|access|verification)\s+code\b/gi,
+    maxDistance: 160
+  }) || codeFollowingLabel({
+    text: normalized,
+    label: /\b(?:your\s+code|code\s+is)\b/gi,
+    maxDistance: 120
+  }) || codeFollowingLabel({
+    text: normalized,
+    label: /\bsign(?:-|\s)?in\s+code\b/gi,
+    maxDistance: 400,
+    requireExpiry: true
+  }) || codeFollowingLabel({
+    text: normalized,
+    label: /\b(?:enter|use)(?:\s+(?:this|the|your|a))?(?:\s+secure)?\s+code(?:\s+below)?\s+to\s+(?:finish\s+)?sign(?:ing)?\s+in\b/gi,
+    maxDistance: 500,
+    requireExpiry: true
+  });
 }
 
 function netflixLinks(text: string) {
@@ -93,17 +123,15 @@ export async function resolveNetflixLink(link: string) {
 }
 
 export async function parseNetflixMessage(text: string, resolveLink: LinkResolver = resolveNetflixLink) {
-  if (resetLanguage.test(text)) return null;
+  const normalized = normalizedMessageText(text);
+  if (resetLanguage.test(normalized)) return null;
   const directCode = codeNearLabel(text);
   if (directCode) return directCode;
-  const signInCode = signInCodeClosestToLabel(text);
-  if (signInCode) return signInCode;
   const links = netflixLinks(text);
   for (const link of links.slice(0, 4)) {
     const code = await resolveLink(link);
     if (code) return code;
   }
-  const normalized = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   console.info("Netflix message parser rejected candidate", {
     hasSignInCodeLabel: /sign(?:-|\s)?in\s+code/i.test(normalized),
     hasCodeLabel: /\bcode\b/i.test(normalized),

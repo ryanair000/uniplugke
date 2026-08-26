@@ -1,0 +1,11 @@
+Delivered-To: member@example.test
+Received: by 2002:a05:example with SMTP id sanitized;
+        Wed, 26 Aug 2026 02:55:09 -0700 (PDT)
+Date: Wed, 26 Aug 2026 12:55:00 +0300
+From: Netflix <info@account.netflix.com>
+To: member@example.test
+Subject: Your Netflix sign-in code
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html><body><h1>Enter this code to sign in</h1><p>The code could not be included in this message.</p><footer>&copy; Netflix 2026</footer></body></html>

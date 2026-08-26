@@ -173,7 +173,7 @@ export async function findLatestCodeWithAppPassword({
           scan.expiredMessageCount += 1;
           continue;
         }
-        const code = await parseMessage(decodedMimeText(message.source!));
+        const code = await parseMessage(await decodedMimeText(message.source!));
         if (code) {
           console.info("VeriFy mailbox scan completed", { ...scan, outcome: "code_found" });
           const messageFingerprint = createHash("sha256")

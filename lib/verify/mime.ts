@@ -1,15 +1,15 @@
-export function decodedMimeText(source: Buffer) {
-  const raw = source.toString("utf8");
-  const quotedPrintable = raw
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-F]{2})/gi, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)));
-  const decodedBlocks = [...raw.matchAll(/(?:^|\r?\n)([A-Za-z0-9+/]{40,}(?:\r?\n[A-Za-z0-9+/]{20,})*={0,2})(?=\r?\n|$)/gm)]
-    .map((match) => {
-      try {
-        return Buffer.from(match[1].replace(/\s/g, ""), "base64").toString("utf8");
-      } catch {
-        return "";
-      }
-    });
-  return [raw, quotedPrintable, ...decodedBlocks].join("\n");
+import PostalMime from "postal-mime";
+
+export async function decodedMimeText(source: Buffer) {
+  const message = await PostalMime.parse(source, {
+    maxHeadersSize: 256 * 1024,
+    maxNestingDepth: 20,
+    maxRfc822NestingDepth: 3
+  });
+
+  // Deliberately exclude subject and all RFC headers. A header date such as
+  // 2026 must never become a verification-code candidate.
+  return [message.text, message.html]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .join("\n");
 }

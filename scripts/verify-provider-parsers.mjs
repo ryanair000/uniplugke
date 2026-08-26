@@ -9,7 +9,7 @@ import { parseNetflixMessage } from "../lib/verify/providers/netflix-parser.ts";
 const fixtureUrl = (name) => new URL(`../tests/fixtures/verify/${name}`, import.meta.url);
 const parseFixture = async (name, resolveLink) => {
   const source = await readFile(fileURLToPath(fixtureUrl(name)));
-  return parseNetflixMessage(decodedMimeText(source), resolveLink);
+  return parseNetflixMessage(await decodedMimeText(source), resolveLink);
 };
 
 assert.equal(await parseFixture("netflix-plain.eml"), "4821");
@@ -18,6 +18,8 @@ assert.equal(await parseFixture("netflix-quoted-printable.eml"), "6804");
 assert.equal(await parseFixture("netflix-sign-in-html.eml"), "1946");
 assert.equal(await parseFixture("netflix-sign-in-plain.eml"), "3058");
 assert.equal(await parseFixture("netflix-sign-in-long-html.eml"), "6417");
+assert.equal(await parseFixture("netflix-sign-in-realistic.eml"), "8969");
+assert.equal(await parseFixture("netflix-sign-in-missing-code.eml"), null);
 
 let resolvedLink = "";
 assert.equal(
@@ -41,4 +43,4 @@ assert.deepEqual(mailboxMessages.map(({ value }) => value), ["newest-by-date", "
 assert.equal(verificationMailboxPath([{ path: "INBOX", specialUse: "\\Inbox" }, { path: "[Gmail]/All Mail", specialUse: "\\All" }]), "[Gmail]/All Mail");
 assert.equal(verificationMailboxPath([{ path: "INBOX", specialUse: "\\Inbox" }]), "INBOX");
 
-console.log("Verified 12 sanitized VeriFy MIME, HTML, sign-in, quoted-printable, link, reset, unrelated-OTP, mailbox-order, and mailbox-selection fixtures.");
+console.log("Verified 14 sanitized VeriFy MIME, HTML, realistic sign-in, missing-code, quoted-printable, link, reset, unrelated-OTP, mailbox-order, and mailbox-selection fixtures.");
