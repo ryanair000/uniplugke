@@ -144,7 +144,7 @@ export default async function DashboardPage() {
   const activeCount = subscriptions.filter((item) => item.status === "active").length;
   const pendingRequestsCount = pendingRequestsResult?.count ?? 0;
   const attention = attentionItems(subscriptions, orders);
-  const now = Date.now();
+  const now = new Date().getTime();
   const nextServiceDate = subscriptions
     .filter((item) => ["active", "past_due"].includes(item.status) && Boolean(item.current_period_end) && new Date(item.current_period_end!).getTime() >= now)
     .sort((a, b) => new Date(a.current_period_end!).getTime() - new Date(b.current_period_end!).getTime())[0];

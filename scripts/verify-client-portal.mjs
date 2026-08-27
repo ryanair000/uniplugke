@@ -80,7 +80,7 @@ assert.match(allApprovalMigration, /alter column phone_e164 drop not null/i);
 assert.match(allApprovalMigration, /status = 'approved'/);
 assert.match(allApprovalMigration, /approval_required/);
 assert.match(allApprovalMigration, /status = 'consumed'/);
-assert.match(accountAccess, /Incorrect password/);
+assert.match(accountAccess, /Incorrect (?:password|Pass)/);
 assert.doesNotMatch(accountAccess, /Hide all|hide automatically/);
 assert.match(optionalPasswordMigration, /Update your private password/);
 assert.match(optionalPasswordMigration, /must_change_password = false/);

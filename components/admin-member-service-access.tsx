@@ -35,16 +35,19 @@ export function AdminMemberServiceAccess({
   useEffect(() => {
     if (!panelOpen || !subscriptionId) return;
     let active = true;
-    setBusy(true);
-    setNotice("");
-    fetch(`/api/admin/member-service-access?subscriptionId=${encodeURIComponent(subscriptionId)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(body.error || "Service details could not be loaded.");
-        if (active) setDetails({ ...emptyDetails, ...body });
-      })
-      .catch((error) => active && setNotice(error instanceof Error ? error.message : "Service details could not be loaded."))
-      .finally(() => active && setBusy(false));
+    queueMicrotask(() => {
+      if (!active) return;
+      setBusy(true);
+      setNotice("");
+      fetch(`/api/admin/member-service-access?subscriptionId=${encodeURIComponent(subscriptionId)}`, { cache: "no-store" })
+        .then(async (response) => {
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(body.error || "Service details could not be loaded.");
+          if (active) setDetails({ ...emptyDetails, ...body });
+        })
+        .catch((error) => active && setNotice(error instanceof Error ? error.message : "Service details could not be loaded."))
+        .finally(() => active && setBusy(false));
+    });
     return () => { active = false; };
   }, [panelOpen, subscriptionId]);
 

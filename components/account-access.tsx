@@ -46,11 +46,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   useEffect(() => {
     if (!verificationOpen || !verificationStartedAt || codeResult || verificationTimedOut) return;
     const remaining = 300_000 - (Date.now() - verificationStartedAt);
-    if (remaining <= 0) {
-      setVerificationTimedOut(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setVerificationTimedOut(true), remaining);
+    const timer = window.setTimeout(() => setVerificationTimedOut(true), Math.max(0, remaining));
     return () => window.clearTimeout(timer);
   }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut]);
 
@@ -61,6 +57,8 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       if (busy !== "code") void getLatestCode(true);
     }, 60_000);
     return () => window.clearInterval(timer);
+    // getLatestCode reads the current subscription and only updates local request state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verificationOpen, verificationStartedAt, codeResult, verificationTimedOut, busy]);
 
   async function reportIssue() {
