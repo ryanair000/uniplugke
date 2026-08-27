@@ -13,6 +13,7 @@ const publicPaths = new Set([
   "/register",
   "/set-password",
   "/auth/callback",
+  "/auth/member-link",
   "/api/auth/login",
   "/api/auth/register",
   "/api/payments/webhook",

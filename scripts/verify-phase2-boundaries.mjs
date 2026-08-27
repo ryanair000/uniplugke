@@ -23,7 +23,7 @@ const checks = [
   {
     name: "all non-auth storefront routes require an active invited client",
     source: read("lib/supabase/proxy.ts"),
-    tokens: ['const publicPaths = new Set([', "if (!data.user)", 'profile?.status !== "active"', 'loginUrl.pathname = "/login"']
+    tokens: ['const publicPaths = new Set([', '"/auth/member-link"', "if (!data.user)", 'profile?.status !== "active"', 'loginUrl.pathname = "/login"']
   },
   {
     name: "renewal checkout authenticates and reprices through the database",
