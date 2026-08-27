@@ -16,7 +16,7 @@ function VaultRow({ label, value }: { label: string; value: string }) {
 export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = false }: { subscriptionId: string; canReplace?: boolean; isNetflix?: boolean }) {
   const [details, setDetails] = useState<AccessDetails | null>(null);
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState<"reveal" | "replace" | "code" | null>("reveal");
+  const [busy, setBusy] = useState<"reveal" | "replace" | "code" | "household" | null>("reveal");
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [verificationStartedAt, setVerificationStartedAt] = useState<number | null>(null);
   const [verificationTimedOut, setVerificationTimedOut] = useState(false);
@@ -144,8 +144,25 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     setMessage("");
   }
 
+  async function approveHouseholdUpdate() {
+    setBusy("household");
+    setMessage("");
+    setVerificationOpen(false);
+    setVerificationStartedAt(null);
+    setVerificationTimedOut(false);
+    setCodeResult(null);
+    setCodeNote("");
+    try {
+      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-household`, { method: "POST", cache: "no-store" });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "No current Netflix Household update request was found.");
+      setMessage(body.reused ? "That Netflix Household request was already approved." : "Netflix Household update approved.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The Netflix Household update could not be approved."); }
+    finally { setBusy(null); }
+  }
+
   const issueActionLabel = replacementReason === "household_issue" ? "Replace slot" : "Alert admin";
-  const isSuccessMessage = /assigned|alerted|ready|completed|copied|approval/i.test(message);
+  const isSuccessMessage = /assigned|alerted|ready|completed|copied|approval|approved/i.test(message);
 
   return (
     <section className="wallet-card access-console">
@@ -154,6 +171,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
 
       <div className="access-console-actions">
         {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code"}>Need Verification Code</button> : null}
+        {isNetflix ? <button className="button household-button" type="button" onClick={approveHouseholdUpdate} disabled={Boolean(busy)}>{busy === "household" ? "Approving Household…" : "Approve Household update"}</button> : null}
         {canReplace ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div>
 

@@ -23,6 +23,12 @@ export type VerifyProviderResult = {
   messageFingerprint: string;
 };
 
+export type VerifyHouseholdResult = {
+  expiresAt: string;
+  receivedAt: string;
+  messageFingerprint: string;
+};
+
 export type VerifyProviderAdapter = {
   id: VerifyProviderId;
   displayName: string;
@@ -35,4 +41,5 @@ export type VerifyProviderAdapter = {
   isEligible(input: VerifyEligibility): boolean;
   parseMessage(text: string): Promise<string | null>;
   retrieveLatestCode(input: VerifyMailboxRequest): Promise<VerifyProviderResult | null>;
+  approveLatestHouseholdUpdate?(input: VerifyMailboxRequest): Promise<VerifyHouseholdResult | null>;
 };

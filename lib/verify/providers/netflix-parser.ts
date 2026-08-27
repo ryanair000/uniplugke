@@ -19,6 +19,10 @@ function htmlDecode(value: string) {
     .replaceAll("&quot;", '"');
 }
 
+function textContent(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function netflixLinks(text: string) {
   const matches = htmlDecode(text).match(/https:\/\/[^\s"'<>]+/gi) || [];
   return [...new Set(matches.map((link) => link.replace(/[)>.,]+$/, "")))].filter((link) => {
@@ -78,4 +82,56 @@ export async function parseNetflixMessage(text: string, resolveLink: LinkResolve
     if (code) return code;
   }
   return null;
+}
+
+export function parseNetflixHouseholdMessage(text: string) {
+  if (resetLanguage.test(text)) return null;
+  const decoded = htmlDecode(text);
+  const normalized = textContent(decoded);
+  if (!/netflix\s+household/i.test(normalized) || !/yes,?\s+this\s+was\s+me/i.test(normalized)) return null;
+
+  const anchors = decoded.matchAll(/<a\b[^>]*href=["'](https:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi);
+  for (const anchor of anchors) {
+    if (!/yes,?\s+this\s+was\s+me/i.test(textContent(anchor[2]))) continue;
+    const url = safeNetflixUrl(anchor[1]);
+    if (url) return url.toString();
+  }
+
+  for (const link of netflixLinks(decoded)) {
+    const at = decoded.indexOf(link);
+    const nearby = textContent(decoded.slice(Math.max(0, at - 180), at + link.length + 180));
+    if (/yes,?\s+this\s+was\s+me/i.test(nearby)) return link;
+  }
+  return null;
+}
+
+export async function confirmNetflixHouseholdLink(link: string) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    let current = safeNetflixUrl(link);
+    for (let redirect = 0; current && redirect <= 4; redirect += 1) {
+      if (/\/(?:login|signin)(?:\/|$)/i.test(current.pathname)) return false;
+      const response = await fetch(current, {
+        redirect: "manual",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: { "User-Agent": "UniPlug VeriFy household assistant" }
+      });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        current = location ? safeNetflixUrl(location, current.toString()) : null;
+        continue;
+      }
+      if (!response.ok) return false;
+      const body = (await response.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      if (/(?:link|request).{0,50}(?:expired|invalid)|something\s+went\s+wrong/i.test(body)) return false;
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }

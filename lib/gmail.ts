@@ -18,6 +18,10 @@ type MailboxCodeOptions = {
   parseMessage(text: string): Promise<string | null>;
 };
 
+type MailboxMessageOptions<T> = Omit<MailboxCodeOptions, "parseMessage"> & {
+  parseMessage(text: string): Promise<T | null> | T | null;
+};
+
 export type MailboxConnectionFailureCategory =
   | "mailbox_authentication_failed"
   | "mailbox_provider_error";
@@ -112,7 +116,7 @@ function senderIsAllowed(
   }));
 }
 
-export async function findLatestCodeWithAppPassword({
+export async function findLatestMailboxMessageWithAppPassword<T>({
   mailboxEmail,
   encryptedAppPassword,
   provider,
@@ -120,7 +124,7 @@ export async function findLatestCodeWithAppPassword({
   allowedSenderDomains,
   codeTtlMs,
   parseMessage
-}: MailboxCodeOptions) {
+}: MailboxMessageOptions<T>) {
   const client = gmailImapClient(mailboxEmail, encryptedAppPassword);
   try {
     await client.connect();
@@ -137,13 +141,13 @@ export async function findLatestCodeWithAppPassword({
         const receivedAt = message.internalDate ? new Date(message.internalDate) : new Date();
         const expiresAt = new Date(receivedAt.getTime() + codeTtlMs);
         if (expiresAt.getTime() <= Date.now()) continue;
-        const code = await parseMessage(decodedMimeText(message.source));
-        if (code) {
+        const value = await parseMessage(decodedMimeText(message.source));
+        if (value !== null) {
           const messageFingerprint = createHash("sha256")
             .update(`${provider}:${mailboxEmail.toLowerCase()}:${String(uid)}:${receivedAt.toISOString()}`)
             .digest("hex");
           return {
-            code,
+            value,
             messageFingerprint,
             expiresAt: expiresAt.toISOString(),
             receivedAt: receivedAt.toISOString()
@@ -157,6 +161,11 @@ export async function findLatestCodeWithAppPassword({
   } finally {
     await client.logout().catch(() => undefined);
   }
+}
+
+export async function findLatestCodeWithAppPassword(options: MailboxCodeOptions) {
+  const result = await findLatestMailboxMessageWithAppPassword(options);
+  return result ? { ...result, code: result.value } : null;
 }
 
 export function createGmailOAuthState(accountId: string, userId: string) {

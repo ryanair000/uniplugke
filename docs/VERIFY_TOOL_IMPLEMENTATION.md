@@ -2,7 +2,7 @@
 
 ## Product summary
 
-VeriFy is a private UniPlug member tool for retrieving short-lived access or sign-in codes for services assigned to the signed-in member. Phase 1 supports Netflix temporary viewing codes only. The product must never expose mailbox credentials, message bodies, password-reset links, or codes from unsupported senders.
+VeriFy is a private UniPlug member tool for retrieving short-lived access or sign-in codes and approving explicit Netflix Household update requests for services assigned to the signed-in member. The product must never expose mailbox credentials, message bodies, raw confirmation links, password-reset links, or codes from unsupported senders.
 
 The public entry URL is `https://uniplug.shop/tools/verify`. UniPlug currently separates its public key shop (`uniplug.shop`) from the Lokimax-backed member portal (`vip.uniplug.shop`), so the entry URL redirects to the protected canonical page at `https://vip.uniplug.shop/tools/verify`. Authentication returns the member to the requested tool.
 
@@ -31,6 +31,7 @@ Status: implemented in this release.
 - Remove the displayed code from client state when it expires.
 - Link empty and support states to the existing subscriptions and support pages.
 - Keep the existing Netflix Household helper on the subscription detail page, backed by the same hardened retrieval service.
+- Let eligible members approve the latest “Yes, This Was Me” Netflix Household email without exposing its one-time link.
 
 ### Application and API
 

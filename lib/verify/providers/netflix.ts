@@ -1,6 +1,6 @@
-import { findLatestCodeWithAppPassword } from "@/lib/gmail";
+import { findLatestCodeWithAppPassword, findLatestMailboxMessageWithAppPassword } from "@/lib/gmail";
 import type { VerifyProviderAdapter } from "@/lib/verify/provider-types";
-import { parseNetflixMessage } from "@/lib/verify/providers/netflix-parser";
+import { confirmNetflixHouseholdLink, parseNetflixHouseholdMessage, parseNetflixMessage } from "@/lib/verify/providers/netflix-parser";
 
 const codeTtlMs = 15 * 60_000;
 const eligibleStatuses = new Set(["active", "due_soon", "trial"]);
@@ -34,5 +34,22 @@ export const netflixVerifyProvider: VerifyProviderAdapter = {
       codeTtlMs: this.codeTtlMs,
       parseMessage: this.parseMessage
     });
+  },
+  async approveLatestHouseholdUpdate({ mailboxEmail, encryptedAppPassword }) {
+    const result = await findLatestMailboxMessageWithAppPassword({
+      mailboxEmail,
+      encryptedAppPassword,
+      provider: "netflix-household",
+      messageQuery: "from:(netflix.com) newer_than:2d",
+      allowedSenderDomains: this.allowedSenderDomains,
+      codeTtlMs,
+      parseMessage: parseNetflixHouseholdMessage
+    });
+    if (!result || !await confirmNetflixHouseholdLink(result.value)) return null;
+    return {
+      expiresAt: result.expiresAt,
+      receivedAt: result.receivedAt,
+      messageFingerprint: result.messageFingerprint
+    };
   }
 };

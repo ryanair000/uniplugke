@@ -27,7 +27,7 @@ function readableStatus(status: string) {
 }
 
 function VerifyCard({ subscription }: { subscription: VerifySubscription }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"code" | "household" | null>(null);
   const [message, setMessage] = useState("");
   const [supportUrl, setSupportUrl] = useState("");
   const [result, setResult] = useState<CodeResult | null>(null);
@@ -49,7 +49,7 @@ function VerifyCard({ subscription }: { subscription: VerifySubscription }) {
   }, [result, subscription.providerName]);
 
   async function getLatestCode() {
-    setBusy(true);
+    setBusy("code");
     setMessage("");
     setSupportUrl("");
     setResult(null);
@@ -69,7 +69,32 @@ function VerifyCard({ subscription }: { subscription: VerifySubscription }) {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : `No current ${subscription.providerName} code was found.`);
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  }
+
+  async function approveHouseholdUpdate() {
+    setBusy("household");
+    setMessage("");
+    setSupportUrl("");
+    setResult(null);
+    try {
+      const response = await fetch("/api/tools/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscriptionId: subscription.id, action: "household_update" }),
+        cache: "no-store"
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setSupportUrl(typeof body.supportUrl === "string" ? body.supportUrl : "");
+        throw new Error(body.error || "No current Netflix Household update request was found.");
+      }
+      setMessage(body.reused ? "That Netflix Household request was already approved." : "Netflix Household update approved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The Netflix Household update could not be approved.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -99,9 +124,16 @@ function VerifyCard({ subscription }: { subscription: VerifySubscription }) {
         ))}
       </ol>
 
-      <button className="button wallet-primary-button verify-action" type="button" onClick={getLatestCode} disabled={busy}>
-        {busy ? `Checking ${subscription.providerName} email...` : result ? "Check again" : "Get latest code"}
-      </button>
+      <div className="verify-actions">
+        <button className="button wallet-primary-button verify-action" type="button" onClick={getLatestCode} disabled={Boolean(busy)}>
+          {busy === "code" ? `Checking ${subscription.providerName} email...` : result ? "Check again" : "Get latest code"}
+        </button>
+        {subscription.provider === "netflix" ? (
+          <button className="button wallet-secondary-button verify-action" type="button" onClick={approveHouseholdUpdate} disabled={Boolean(busy)}>
+            {busy === "household" ? "Approving Household update..." : "Approve Household update"}
+          </button>
+        ) : null}
+      </div>
 
       {result ? (
         <div className="verify-code" aria-live="polite">
@@ -111,9 +143,9 @@ function VerifyCard({ subscription }: { subscription: VerifySubscription }) {
         </div>
       ) : null}
 
-      {message ? <p className={message === "Code copied." ? "form-success" : "form-error"} role="status">{message}</p> : null}
+      {message ? <p className={message === "Code copied." || /approved/i.test(message) ? "form-success" : "form-error"} role="status">{message}</p> : null}
       {supportUrl ? <Link className="button wallet-secondary-button verify-support-link" href={supportUrl}>Create a prefilled support ticket</Link> : null}
-      <small>Only codes for your assigned, active service are available. UniPlug never shows mailbox contents.</small>
+      <small>Only actions for your assigned, active service are available. UniPlug never shows mailbox contents or confirmation links.</small>
     </article>
   );
 }

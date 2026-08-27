@@ -12,6 +12,8 @@ type VerifyResult = {
   retryAfter?: number;
 };
 
+export type VerifyAction = "code" | "household_update";
+
 type SubscriptionService = {
   name?: string | null;
   verify_enabled?: boolean | null;
@@ -61,12 +63,14 @@ export function verifyRequestIpHash(request: Request) {
 }
 
 export async function retrieveVerifyCode({
+  action = "code",
   authenticatedAt,
   clientId,
   ipHash,
   subscriptionId,
   userId
 }: {
+  action?: VerifyAction;
   authenticatedAt?: string | null;
   clientId: string | null;
   ipHash?: string | null;
@@ -108,6 +112,9 @@ export async function retrieveVerifyCode({
   })) {
     return { status: 404, body: { error: "No eligible service was found." } };
   }
+  if (action === "household_update" && !provider.approveLatestHouseholdUpdate) {
+    return { status: 404, body: { error: "Household updates are not available for this service." } };
+  }
 
   const providerAccess = await getVerifyProviderAccess({
     admin,
@@ -133,7 +140,7 @@ export async function retrieveVerifyCode({
         status: "provider_unavailable",
         error: rolloutFailureCategory === "provider_pilot_restricted"
           ? "No eligible service was found."
-          : `${provider.displayName} code retrieval is temporarily paused.`,
+          : `${provider.displayName} VeriFy actions are temporarily paused.`,
         supportUrl: verifySupportUrl(provider.id, rolloutFailureCategory, service?.name)
       }
     };
@@ -274,6 +281,78 @@ export async function retrieveVerifyCode({
 
   const checkedAt = new Date().toISOString();
   try {
+    if (action === "household_update" && provider.approveLatestHouseholdUpdate) {
+      const result = await provider.approveLatestHouseholdUpdate({
+        mailboxEmail,
+        encryptedAppPassword: connection.encrypted_app_password
+      });
+      await admin
+        .from("uniplug_mailbox_credentials")
+        .update({ last_checked_at: checkedAt, last_error: null, updated_at: checkedAt })
+        .eq("mailbox_email", mailboxEmail);
+
+      if (!result) {
+        await audit({
+          eventType: "household_update_not_found",
+          outcome: "no_current_household_update",
+          failureCategory: "no_current_household_update"
+        });
+        return {
+          status: 404,
+          body: {
+            status: "not_found",
+            error: "No new Netflix Household update request was found. Request the email on your TV, then check again.",
+            supportUrl: verifySupportUrl(provider.id, "no_current_household_update", service?.name)
+          }
+        };
+      }
+
+      const { data: wasReused, error: receiptError } = await admin.rpc(
+        "uniplug_record_verify_message",
+        {
+          p_user_id: userId,
+          p_client_subscription_id: subscriptionId,
+          p_provider: provider.id,
+          p_message_fingerprint: result.messageFingerprint,
+          p_expires_at: result.expiresAt,
+          p_request_id: reservation.request_id
+        }
+      );
+      if (receiptError) {
+        console.error("VeriFy Household message receipt failed", {
+          category: "configuration_missing",
+          provider: provider.id,
+          requestId: reservation.request_id,
+          latencyMs: elapsedMs(startedAt),
+          error: receiptError.message
+        });
+        await audit({
+          eventType: "mailbox_check_failed",
+          outcome: "receipt_failed",
+          failureCategory: "configuration_missing"
+        });
+        return { status: 503, body: { error: "Household approval is temporarily unavailable." } };
+      }
+
+      const reused = Boolean(wasReused);
+      await audit({
+        eventType: reused ? "household_update_reused" : "household_update_approved",
+        outcome: provider.id,
+        messageFingerprint: result.messageFingerprint,
+        idempotent: reused
+      });
+      return {
+        status: 200,
+        body: {
+          status: "household_updated",
+          provider: provider.id,
+          approvedAt: checkedAt,
+          receivedAt: result.receivedAt,
+          reused
+        }
+      };
+    }
+
     const result = await provider.retrieveLatestCode({
       mailboxEmail,
       encryptedAppPassword: connection.encrypted_app_password

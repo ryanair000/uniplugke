@@ -1,0 +1,11 @@
+From: Netflix <info@mailer.netflix.com>
+To: member@example.com
+Subject: Important: How to update your Netflix Household
+Content-Type: text/html; charset=UTF-8
+
+<html><body>
+<p>Your Netflix Household is a collection of your Netflix devices that are associated with your internet.</p>
+<p>If this request was from you or someone who lives with you, continue updating your Netflix Household below.</p>
+<a href="https://www.netflix.com/account/update-primary-location?token=sanitized-household-token">Yes, This Was Me</a>
+<p>Link expires after 15 minutes.</p>
+</body></html>

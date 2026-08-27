@@ -1,0 +1,9 @@
+From: Example <security@example.com>
+To: member@example.com
+Subject: Your household
+Content-Type: text/html; charset=UTF-8
+
+<html><body>
+<p>Update your household.</p>
+<a href="https://example.com/confirm?token=decoy">Yes, This Was Me</a>
+</body></html>
