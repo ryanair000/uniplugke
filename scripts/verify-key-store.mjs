@@ -32,7 +32,7 @@ const checks = [
   [registration.includes("supabase.auth.signUp") && registration.includes('.from("uniplug_profiles").insert'), "Regular users must be able to create a shop account"],
   [proxy.includes('pathname === "/register"') && proxy.includes('pathname === "/api/auth/register"'), "The public shop must expose registration routes"],
   [proxy.includes('pathname.startsWith("/keys/")'), "Shareable software-key detail routes must remain public on the store hostname"],
-  [detailPage.includes("generateStaticParams") && productDetail.includes("Terms still requiring confirmation"), "Each software key must have a shareable, truth-safe detail page"],
+  [detailPage.includes("generateStaticParams") && productDetail.includes("Check these licence details"), "Each software key must have a shareable, truth-safe detail page"],
   [products.includes("pendingTerms") && products.includes("keyProductEndOfTermDisclosure"), "Unconfirmed material terms must be explicit in the shared product model"],
   [!products.includes("one supported device") && !products.includes("including professional productivity"), "Unconfirmed device and feature claims must not return"],
   [checkoutUi.includes("termsAcknowledged") && checkout.includes("body.termsAcknowledged !== true"), "Material licence terms must be acknowledged in both the UI and server checkout"],

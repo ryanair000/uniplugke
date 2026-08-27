@@ -47,15 +47,15 @@ export function PhysicalProductDetail({
           <h1>{product.name}</h1>
           <p className="store-product-category">{product.categoryLabel}{product.platform ? ` / ${product.platform}` : ""}</p>
           <strong className="store-product-price">KSh {money.format(product.priceKes)}</strong>
-          <p className="store-product-price-note">Live catalog price. Delivery is calculated at checkout.</p>
+          <p className="store-product-price-note">Current catalog price. Delivery is added at checkout.</p>
+          <StoreProductPurchase product={product} />
           <div className="store-product-description">
             {product.description.split(/\n+/).filter(Boolean).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           </div>
-          <StoreProductPurchase product={product} />
           <div className="store-product-promises">
             <span><CheckCircle2 aria-hidden="true" /><b>Stock checked</b><small>Validated again at checkout</small></span>
-            <span><ShieldCheck aria-hidden="true" /><b>Secure payment</b><small>M-Pesa or card via Paystack</small></span>
-            <span><Truck aria-hidden="true" /><b>Kenya delivery</b><small>Address collected securely</small></span>
+            <span><ShieldCheck aria-hidden="true" /><b>Payment</b><small>M-Pesa or card via Paystack</small></span>
+            <span><Truck aria-hidden="true" /><b>Kenya delivery</b><small>Address collected at checkout</small></span>
             <span><RotateCcw aria-hidden="true" /><b>Local support</b><small>Order help from UniPlug</small></span>
           </div>
         </div>

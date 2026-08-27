@@ -252,7 +252,7 @@ function mapAccessory(row: AccessoryRow): PhysicalCatalogProduct {
     external: false,
     stockLabel: stockLabel(row.stock_quantity, Boolean(row.unlimited_stock)),
     stockQuantity: row.unlimited_stock ? null : row.stock_quantity,
-    description: row.description || `${row.name} with secure local payment, UniPlug support and delivery across Kenya.`,
+    description: row.description || `${row.name}, sold in KSh with delivery across Kenya and order support from UniPlug.`,
     platform: row.platform,
     featured: Boolean(row.is_featured)
   };
