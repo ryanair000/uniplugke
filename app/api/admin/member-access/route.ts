@@ -17,6 +17,11 @@ function serviceName(value: unknown) {
   return (service as { name?: string } | null)?.name || "your service";
 }
 
+function serviceDetails(value: unknown) {
+  const service = Array.isArray(value) ? value[0] : value;
+  return service as { name?: string; verify_enabled?: boolean; verify_provider?: string | null } | null;
+}
+
 function createAccessCode() {
   return Array.from(
     { length: ACCESS_CODE_LENGTH },
@@ -66,7 +71,7 @@ export async function POST(request: Request) {
   const family = await getClientFamilyIds(admin, portal.client_id);
   const { data: subscription, error: subscriptionError } = await admin
     .from("client_subscriptions")
-    .select("id,client_id,status,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
+    .select("id,client_id,status,metadata,verify_enabled,account_reference,service:client_services!client_subscriptions_service_id_fkey(name,verify_enabled,verify_provider)")
     .eq("id", subscriptionId)
     .in("client_id", family.familyIds)
     .maybeSingle();
@@ -139,16 +144,38 @@ export async function POST(request: Request) {
     ? profile.display_name
     : `@${profile.username}`;
   const service = serviceName(subscription.service);
+  const relatedService = serviceDetails(subscription.service);
+  const hasAssignedAccount = Boolean(subscription.account_reference || metadata.assigned_account_id || metadata.assigned_slot_id);
+  const verificationAvailable = Boolean(
+    subscription.verify_enabled &&
+    relatedService?.verify_enabled &&
+    relatedService.verify_provider &&
+    hasAssignedAccount
+  );
   const portalMessage = [
     `Hi ${name} 👋`,
-    `Open your UniPlug services: ${portalLink}`,
-    `Private link · no time expiry · ${ACCESS_MAX_USES} opens maximum.`
+    "",
+    "Your UniPlug services are ready.",
+    `Open your private services page here: ${portalLink}`,
+    "",
+    "You can view all your active services there. If you need help, reply to this message."
   ].join("\n");
   const serviceMessage = [
     `Hi ${name} 👋`,
-    `Open ${service}: ${serviceLink}`,
-    `Private link · no time expiry · ${ACCESS_MAX_USES} opens maximum.`
+    "",
+    `Your ${service} access is ready.`,
+    `Open it securely here: ${serviceLink}`,
+    "",
+    "If you need help, reply to this message."
   ].join("\n");
+  const verificationMessage = verificationAvailable ? [
+    `Hi ${name} 👋`,
+    "",
+    `Need a verification code for ${service}?`,
+    `Open your secure ${service} link here: ${serviceLink}`,
+    "",
+    "Then tap “Need Verification Code” and follow the steps shown."
+  ].join("\n") : null;
 
   return NextResponse.json(
     {
@@ -160,6 +187,9 @@ export async function POST(request: Request) {
       serviceLink,
       serviceMessage,
       serviceName: service,
+      verificationAvailable,
+      verificationLink: verificationAvailable ? serviceLink : null,
+      verificationMessage,
       username: profile.username,
       phone: profile.phone,
       subscriptionId: subscription.id,

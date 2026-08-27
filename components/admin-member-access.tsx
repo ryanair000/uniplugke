@@ -7,6 +7,7 @@ type SubscriptionOption = {
   id: string;
   name: string;
   status: string;
+  verificationAvailable: boolean;
 };
 
 type AccessResult = {
@@ -22,6 +23,9 @@ type AccessResult = {
   phone: string | null;
   subscriptionId: string;
   maxUses: number;
+  verificationAvailable: boolean;
+  verificationLink: string | null;
+  verificationMessage: string | null;
 };
 
 export function AdminMemberAccess({
@@ -37,7 +41,7 @@ export function AdminMemberAccess({
   const [result, setResult] = useState<AccessResult | null>(null);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState<"portalMessage" | "portalLink" | "serviceMessage" | "serviceLink" | null>(null);
+  const [copied, setCopied] = useState<"portalMessage" | "portalLink" | "serviceMessage" | "serviceLink" | "verificationMessage" | null>(null);
   const selected = useMemo(
     () => subscriptions.find((subscription) => subscription.id === subscriptionId) || subscriptions[0],
     [subscriptionId, subscriptions]
@@ -69,7 +73,7 @@ export function AdminMemberAccess({
 
   async function copy(
     value: string,
-    target: "portalMessage" | "portalLink" | "serviceMessage" | "serviceLink"
+    target: "portalMessage" | "portalLink" | "serviceMessage" | "serviceLink" | "verificationMessage"
   ) {
     try {
       await navigator.clipboard.writeText(value);
@@ -89,7 +93,7 @@ export function AdminMemberAccess({
     <div className="admin-member-delivery">
       <div className="admin-member-delivery-toolbar">
         <div className="admin-member-delivery-copy">
-          <strong>Client access</strong>
+          <strong>Create a private client link</strong>
           <span>{selected
             ? `Open ${selected.name} access`
             : "Choose a service"}</span>
@@ -119,7 +123,7 @@ export function AdminMemberAccess({
             disabled={!canGenerate || busy}
             onClick={generateAccess}
           >
-            {busy ? "Creating…" : result ? "Refresh links" : "Create links"}
+            {busy ? "Creating…" : result ? "Create new link" : "Create client link"}
           </button>
         </div>
       </div>
@@ -129,45 +133,60 @@ export function AdminMemberAccess({
           <div className="admin-delivery-ready-header">
             <span className="admin-delivery-check" aria-hidden="true"><Check size={15} /></span>
             <div>
-              <strong>Client links ready</strong>
-              <span>{`Portal overview + direct ${result.serviceName} access · No time expiry · up to ${result.maxUses} opens`}</span>
+              <strong>Choose what to send</strong>
+              <span>Use the ready-made message, or copy only the private link.</span>
             </div>
           </div>
           <div className="admin-delivery-choice">
             <div className="admin-delivery-choice-heading">
-              <strong>All client services</strong>
-              <span>Opens the services overview</span>
+              <strong>All active services</strong>
+              <span>Best when the client needs their full UniPlug portal.</span>
             </div>
             <div className="admin-delivery-actions">
               <button type="button" className="button button-dark small" onClick={() => copy(result.portalMessage, "portalMessage")}>
                 {copied === "portalMessage" ? <Check size={15} /> : <MessageCircle size={15} />}
-                {copied === "portalMessage" ? "Message copied" : "Copy portal message"}
+                {copied === "portalMessage" ? "Message copied" : "Copy client message"}
               </button>
               <button type="button" className="button button-light small" onClick={() => copy(result.portalLink, "portalLink")}>
                 {copied === "portalLink" ? <Check size={15} /> : <Copy size={15} />}
-                {copied === "portalLink" ? "Link copied" : "Get portal link"}
+                {copied === "portalLink" ? "Link copied" : "Copy link only"}
               </button>
             </div>
             <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.portalLink}</span></div>
           </div>
           <div className="admin-delivery-choice">
             <div className="admin-delivery-choice-heading">
-              <strong>{result.serviceName}</strong>
-              <span>Opens this exact service access page</span>
+              <strong>Only {result.serviceName}</strong>
+              <span>Use when the client needs this service only.</span>
             </div>
             <div className="admin-delivery-actions">
               <button type="button" className="button button-dark small" onClick={() => copy(result.serviceMessage, "serviceMessage")}>
                 {copied === "serviceMessage" ? <Check size={15} /> : <MessageCircle size={15} />}
-                {copied === "serviceMessage" ? "Message copied" : "Copy service message"}
+                {copied === "serviceMessage" ? "Message copied" : "Copy client message"}
               </button>
               <button type="button" className="button button-light small" onClick={() => copy(result.serviceLink, "serviceLink")}>
                 {copied === "serviceLink" ? <Check size={15} /> : <Copy size={15} />}
-                {copied === "serviceLink" ? "Link copied" : "Get service link"}
+                {copied === "serviceLink" ? "Link copied" : "Copy link only"}
               </button>
             </div>
             <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.serviceLink}</span></div>
           </div>
-          <span className="admin-delivery-helper">The link stops after the third successful open. Both destinations share this private access grant.</span>
+          {selected?.verificationAvailable && result.verificationAvailable && result.verificationMessage ? (
+            <div className="admin-delivery-choice">
+              <div className="admin-delivery-choice-heading">
+                <strong>Verification code</strong>
+                <span>Sends the client straight to {result.serviceName} with instructions to tap “Need Verification Code”.</span>
+              </div>
+              <div className="admin-delivery-actions">
+                <button type="button" className="button button-dark small" onClick={() => copy(result.verificationMessage || "", "verificationMessage")}>
+                  {copied === "verificationMessage" ? <Check size={15} /> : <MessageCircle size={15} />}
+                  {copied === "verificationMessage" ? "Message copied" : "Copy verification message"}
+                </button>
+              </div>
+              {result.verificationLink ? <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.verificationLink}</span></div> : null}
+            </div>
+          ) : null}
+          <span className="admin-delivery-helper">Creating a new link for this service replaces its previous link.</span>
         </div>
       ) : null}
 

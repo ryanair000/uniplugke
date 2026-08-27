@@ -119,7 +119,7 @@ export default async function AdminMembersPage({
         familyIds.length
           ? admin
               .from("client_subscriptions")
-              .select("id,client_id,status,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
+              .select("id,client_id,status,metadata,verify_enabled,account_reference,service:client_services!client_subscriptions_service_id_fkey(name,verify_enabled,verify_provider)")
               .in("client_id", familyIds)
               .order("created_at", { ascending: false })
               .limit(2000)
@@ -136,13 +136,15 @@ export default async function AdminMembersPage({
   const clientById = new Map<string, PortalClientRow>(
     ((clientRows.data || []) as PortalClientRow[]).map((row) => [row.id, row] as const)
   );
-  const subscriptionsByClient = new Map<string, Array<{ id: string; name: string; status: string }>>();
+  const subscriptionsByClient = new Map<string, Array<{ id: string; name: string; status: string; verificationAvailable: boolean }>>();
   for (const row of (subscriptionRows.data || []) as unknown as Array<{
     id: string;
     client_id: string;
     status: string;
     metadata: Record<string, unknown> | null;
-    service: { name?: string } | Array<{ name?: string }> | null;
+    verify_enabled: boolean;
+    account_reference: string | null;
+    service: { name?: string; verify_enabled?: boolean; verify_provider?: string | null } | Array<{ name?: string; verify_enabled?: boolean; verify_provider?: string | null }> | null;
   }>) {
     if (
       row.metadata?.portal_hidden === true ||
@@ -152,7 +154,13 @@ export default async function AdminMembersPage({
     const relatedService = Array.isArray(row.service) ? row.service[0] : row.service;
     const canonicalClientId = familyIdToCanonical.get(row.client_id) || row.client_id;
     const current = subscriptionsByClient.get(canonicalClientId) || [];
-    current.push({ id: row.id, name: relatedService?.name || "Digital service", status: row.status });
+    const hasAssignedAccount = Boolean(row.account_reference || row.metadata?.assigned_account_id || row.metadata?.assigned_slot_id);
+    current.push({
+      id: row.id,
+      name: relatedService?.name || "Digital service",
+      status: row.status,
+      verificationAvailable: Boolean(row.verify_enabled && relatedService?.verify_enabled && relatedService.verify_provider && hasAssignedAccount)
+    });
     subscriptionsByClient.set(canonicalClientId, current);
   }
 
