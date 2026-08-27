@@ -16,7 +16,6 @@ type AccessResult = {
   username: string;
   phone: string | null;
   subscriptionId: string;
-  expiresAt: string;
   maxUses: number;
   usesRemaining: number;
 };
@@ -109,13 +108,13 @@ export function AdminMemberAccess({
         <div style={{ display: "grid", gap: 8 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span className="status-pill status-active">VIP access ready · {result.serviceName}</span>
-            <span className="status-pill subtle">48 hours · {result.maxUses} opens</span>
+            <span className="status-pill subtle">No time expiry · {result.maxUses} opens maximum</span>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" className="button button-light small" onClick={() => copy(result.link, "VIP link")}>Copy VIP link</button>
             <button type="button" className="button button-light small" onClick={() => copy(result.message, "Welcome + login details")}>Copy welcome + details</button>
           </div>
-          <small>Expires {new Date(result.expiresAt).toLocaleString()} · {result.usesRemaining} uses available</small>
+          <small>{result.usesRemaining} uses available. The link stops working after the third successful open.</small>
         </div>
       ) : null}
 

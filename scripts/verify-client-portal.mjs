@@ -31,6 +31,9 @@ const renewalPrecedenceMigration = read("supabase/migrations/20260814013734_pref
 const multiServiceRenewalMigration = read("supabase/migrations/20260814015248_sync_multi_service_renewal_dates.sql");
 const clientPortal = read("lib/client-portal.ts");
 const lokimaxServices = read("lib/lokimax-services.ts");
+const memberAccessRoute = read("app/api/admin/member-access/route.ts");
+const memberLinkRoute = read("app/auth/member-link/route.ts");
+const adminMemberAccess = read("components/admin-member-access.tsx");
 
 assert.match(migration, /revoke all on public\.accounts from anon/i);
 assert.match(migration, /Portal users read own subscriptions/);
@@ -106,6 +109,12 @@ assert.match(lokimaxServices, /return "Live Stream"/);
 assert.match(lokimaxServices, /key === "dstvcompact"/);
 assert.match(lokimaxServices, /key === "dstvpremium"/);
 assert.match(trackedViews, /Live channels and entertainment managed through your UniPlug account/);
+assert.match(memberAccessRoute, /ACCESS_LINK_MAX_USES = 3/);
+assert.match(memberAccessRoute, /9999-12-31T23:59:59\.999Z/);
+assert.doesNotMatch(memberAccessRoute, /48 hours|ACCESS_LINK_LIFETIME_MS/);
+assert.doesNotMatch(memberLinkRoute, /new Date\(accessLink\.expires_at\)/);
+assert.match(memberLinkRoute, /update\(\{ expires_at: ACCESS_LINK_NO_TIME_EXPIRY \}\)/);
+assert.match(adminMemberAccess, /No time expiry/);
 
-console.log("Verified 64 client portal, bundle renewal, renewal precedence, multi-service sync, private DStv labelling, optional password, notification, credential, Netflix Household, and replacement-approval invariants.");
+console.log("Verified 70 client portal, three-use non-expiring VIP links, bundle renewal, multi-service sync, credential, Netflix Household, and replacement invariants.");
 

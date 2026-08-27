@@ -5,13 +5,13 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/sup
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACCESS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+const ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59.999Z";
 
 type ConsumedAccessLink = {
   user_id: string;
   subscription_id: string;
   use_count: number;
   max_uses: number;
-  expires_at: string;
 };
 
 function hashToken(token: string) {
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
   if (token) {
     const { data: accessLink, error: accessLinkError } = await admin
       .from("uniplug_member_access_links")
-      .select("user_id,subscription_id,expires_at,max_uses,use_count,revoked_at")
+      .select("user_id,subscription_id,max_uses,use_count,revoked_at")
       .eq("token_hash", privateTokenHash)
       .eq("subscription_id", subscriptionId)
       .maybeSingle();
@@ -64,11 +64,18 @@ export async function GET(request: Request) {
       accessLinkError ||
       !accessLink ||
       accessLink.revoked_at ||
-      new Date(accessLink.expires_at).getTime() <= Date.now() ||
       accessLink.use_count >= accessLink.max_uses
     ) {
       return loginError("vip_link_expired");
     }
+    const { error: noExpiryError } = await admin
+      .from("uniplug_member_access_links")
+      .update({ expires_at: ACCESS_LINK_NO_TIME_EXPIRY })
+      .eq("token_hash", privateTokenHash)
+      .eq("subscription_id", subscriptionId)
+      .is("revoked_at", null)
+      .lt("use_count", accessLink.max_uses);
+    if (noExpiryError) return loginError("vip_link_invalid");
     userId = accessLink.user_id;
   } else {
     const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({

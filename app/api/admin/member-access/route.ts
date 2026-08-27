@@ -5,8 +5,8 @@ import { VIP_ORIGIN } from "@/lib/account-routing";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ACCESS_LINK_LIFETIME_MS = 48 * 60 * 60 * 1000;
 const ACCESS_LINK_MAX_USES = 3;
+const ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59.999Z";
 
 function serviceName(value: unknown) {
   const service = Array.isArray(value) ? value[0] : value;
@@ -70,7 +70,6 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + ACCESS_LINK_LIFETIME_MS).toISOString();
   const token = randomBytes(32).toString("base64url");
   const tokenHash = hashToken(token);
 
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
       user_id: userId,
       subscription_id: subscription.id,
       token_hash: tokenHash,
-      expires_at: expiresAt,
+      expires_at: ACCESS_LINK_NO_TIME_EXPIRY,
       max_uses: ACCESS_LINK_MAX_USES,
       use_count: 0,
       created_by: viewer.user.id
@@ -119,7 +118,7 @@ export async function POST(request: Request) {
     `Secure one-tap access: ${vipLink.toString()}`,
     "",
     `Tap the secure link above to sign in automatically and go straight to your ${service} subscription.`,
-    "The secure link works for 48 hours and can be opened up to 3 times. Please keep it private and do not forward it.",
+    "The secure link has no time expiry and can be opened up to 3 times. Please keep it private and do not forward it.",
     "For future visits, use your username or phone and your private password on the VIP Shop login page.",
     "",
     "Enjoy your subscription 💜",
@@ -135,7 +134,6 @@ export async function POST(request: Request) {
       username: profile.username,
       phone: profile.phone,
       subscriptionId: subscription.id,
-      expiresAt,
       maxUses: ACCESS_LINK_MAX_USES,
       usesRemaining: ACCESS_LINK_MAX_USES
     },
