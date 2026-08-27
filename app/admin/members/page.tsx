@@ -6,7 +6,7 @@ import { AdminMemberAccess } from "@/components/admin-member-access";
 import { AdminMemberServiceAccess } from "@/components/admin-member-service-access";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getPortalProvisioningCoverage } from "@/lib/portal-provisioning";
+import { getPortalProvisioningCoverage, PORTAL_ELIGIBLE_STATUSES } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +144,11 @@ export default async function AdminMembersPage({
     metadata: Record<string, unknown> | null;
     service: { name?: string } | Array<{ name?: string }> | null;
   }>) {
-    if (row.metadata?.portal_hidden === true || row.metadata?.interest_only === true) continue;
+    if (
+      row.metadata?.portal_hidden === true ||
+      row.metadata?.interest_only === true ||
+      !PORTAL_ELIGIBLE_STATUSES.includes(row.status as (typeof PORTAL_ELIGIBLE_STATUSES)[number])
+    ) continue;
     const relatedService = Array.isArray(row.service) ? row.service[0] : row.service;
     const canonicalClientId = familyIdToCanonical.get(row.client_id) || row.client_id;
     const current = subscriptionsByClient.get(canonicalClientId) || [];
@@ -224,7 +228,7 @@ export default async function AdminMembersPage({
             {filteredProfiles.length ? (
               <div className="admin-table-wrap">
                 <table className="admin-table">
-                  <thead><tr><th>Member</th><th>Contact</th><th>Services</th><th>Sync</th><th>Access</th><th>Manage</th></tr></thead>
+                  <thead><tr><th>Member</th><th>Contact</th><th>Active services</th><th>Sync</th><th>Access</th><th>Action</th></tr></thead>
                   <tbody>
                     {filteredProfiles.map((profile) => {
                       const clientId = clientIdByUser.get(profile.user_id);
@@ -239,8 +243,10 @@ export default async function AdminMembersPage({
                           <td><AdminStatus value={syncValue} /></td>
                           <td><AdminStatus value={profile.status} /></td>
                           <td>
-                            <AdminDrawer triggerLabel="Manage" triggerClassName="button button-light small" title={profile.display_name || `@${profile.username}`} eyebrow="Member" description={`@${profile.username} · ${deliverySubscriptions.length} tracked service${deliverySubscriptions.length === 1 ? "" : "s"}`}>
+                            <AdminDrawer triggerLabel={deliverySubscriptions.length ? "Get access" : "View"} triggerClassName={`button ${deliverySubscriptions.length ? "button-dark" : "button-light"} small`} title={profile.display_name || `@${profile.username}`} eyebrow="Member" description={`@${profile.username} · ${deliverySubscriptions.length} active service${deliverySubscriptions.length === 1 ? "" : "s"}`}>
                               <div className="admin-stack">
+                                <div className="admin-compact-card"><strong>Deliver portal access</strong><p>Create one private link to all active services, or a direct link to the selected service.</p><div style={{ marginTop: 10 }}><AdminMemberAccess userId={profile.user_id} status={profile.status} subscriptions={deliverySubscriptions} /></div></div>
+
                                 <dl className="admin-detail-grid">
                                   <div><dt>Email</dt><dd>{profile.email}</dd></div>
                                   <div><dt>Phone</dt><dd>{profile.phone || linkedClient?.phone_e164 || "Not saved"}</dd></div>
@@ -259,7 +265,6 @@ export default async function AdminMembersPage({
                                   ) : <p>This member is not linked to the shared LokiMax client identity yet.</p>}
                                 </div>
 
-                                <div className="admin-compact-card"><strong>Deliver portal access</strong><p>Create or copy the member&apos;s secure access link and login message.</p><div style={{ marginTop: 10 }}><AdminMemberAccess userId={profile.user_id} status={profile.status} subscriptions={deliverySubscriptions} /></div></div>
                                 <div className="admin-compact-card"><strong>Service visibility</strong><p>Control which tracked services are available in this member&apos;s portal.</p><div style={{ marginTop: 10 }}><AdminMemberServiceAccess subscriptions={deliverySubscriptions} /></div></div>
                                 <div className="admin-compact-card">
                                   <strong>Portal status</strong>

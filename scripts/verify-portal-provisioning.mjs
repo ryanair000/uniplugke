@@ -23,6 +23,8 @@ assert.match(cronRoute, /reconcileEligiblePortalAccounts/);
 assert.match(proxy, /\/api\/cron\/portal-reconcile/);
 assert.match(syncPage, /missingCount/);
 assert.match(membersPage, /missingCount/);
+assert.match(membersPage, /PORTAL_ELIGIBLE_STATUSES\.includes\(row\.status/);
+assert.match(membersPage, /triggerLabel=\{deliverySubscriptions\.length \? "Get access" : "View"\}/);
 assert.deepEqual(vercel.crons, [{ path: "/api/cron/portal-reconcile", schedule: "17 1 * * *" }]);
 
 console.log("Verified automatic, idempotent LokiMax portal provisioning and missing-account health invariants.");

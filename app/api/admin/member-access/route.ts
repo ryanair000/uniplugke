@@ -3,13 +3,14 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { VIP_ORIGIN } from "@/lib/account-routing";
 import { getClientFamilyIds } from "@/lib/client-identity";
+import { PORTAL_ELIGIBLE_STATUSES } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACCESS_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const ACCESS_CODE_LENGTH = 10;
-const ACCESS_TTL_HOURS = 48;
 const ACCESS_MAX_USES = 3;
+const ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59.999Z";
 
 function serviceName(value: unknown) {
   const service = Array.isArray(value) ? value[0] : value;
@@ -71,7 +72,13 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const metadata = (subscription?.metadata || {}) as Record<string, unknown>;
-  if (subscriptionError || !subscription || metadata.portal_hidden === true || metadata.interest_only === true) {
+  if (
+    subscriptionError ||
+    !subscription ||
+    !PORTAL_ELIGIBLE_STATUSES.includes(subscription.status as (typeof PORTAL_ELIGIBLE_STATUSES)[number]) ||
+    metadata.portal_hidden === true ||
+    metadata.interest_only === true
+  ) {
     return NextResponse.json({ error: "That subscription is not available for this member." }, { status: 404 });
   }
 
@@ -81,7 +88,6 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + ACCESS_TTL_HOURS * 60 * 60 * 1000).toISOString();
 
   const { error: revokeError } = await admin
     .from("uniplug_member_access_links")
@@ -105,7 +111,7 @@ export async function POST(request: Request) {
       subscription_id: subscription.id,
       token_hash: hashToken(token),
       created_by: viewer.user.id,
-      expires_at: expiresAt,
+      expires_at: ACCESS_LINK_NO_TIME_EXPIRY,
       max_uses: ACCESS_MAX_USES,
       use_count: 0
     });
@@ -136,12 +142,12 @@ export async function POST(request: Request) {
   const portalMessage = [
     `Hi ${name} 👋`,
     `Open your UniPlug services: ${portalLink}`,
-    `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
+    `Private link · no time expiry · ${ACCESS_MAX_USES} opens maximum.`
   ].join("\n");
   const serviceMessage = [
     `Hi ${name} 👋`,
     `Open ${service}: ${serviceLink}`,
-    `Private link · ${ACCESS_TTL_HOURS} hours · ${ACCESS_MAX_USES} opens.`
+    `Private link · no time expiry · ${ACCESS_MAX_USES} opens maximum.`
   ].join("\n");
 
   return NextResponse.json(
@@ -157,7 +163,6 @@ export async function POST(request: Request) {
       username: profile.username,
       phone: profile.phone,
       subscriptionId: subscription.id,
-      expiresAt,
       maxUses: ACCESS_MAX_USES,
       usesRemaining: ACCESS_MAX_USES
     },

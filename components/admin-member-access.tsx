@@ -21,7 +21,6 @@ type AccessResult = {
   username: string;
   phone: string | null;
   subscriptionId: string;
-  expiresAt: string;
   maxUses: number;
 };
 
@@ -131,7 +130,7 @@ export function AdminMemberAccess({
             <span className="admin-delivery-check" aria-hidden="true"><Check size={15} /></span>
             <div>
               <strong>Client links ready</strong>
-              <span>{`Portal overview + direct ${result.serviceName} access · Valid for 48 hours · up to ${result.maxUses} opens`}</span>
+              <span>{`Portal overview + direct ${result.serviceName} access · No time expiry · up to ${result.maxUses} opens`}</span>
             </div>
           </div>
           <div className="admin-delivery-choice">
@@ -168,9 +167,7 @@ export function AdminMemberAccess({
             </div>
             <div className="admin-delivery-link-preview"><Link2 size={14} /><span>{result.serviceLink}</span></div>
           </div>
-          <span className="admin-delivery-helper">
-            Expires {new Date(result.expiresAt).toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" })}. Both destinations share this private access grant.
-          </span>
+          <span className="admin-delivery-helper">The link stops after the third successful open. Both destinations share this private access grant.</span>
         </div>
       ) : null}
 

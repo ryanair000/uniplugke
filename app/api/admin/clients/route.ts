@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
+import { PORTAL_ELIGIBLE_STATUSES } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 function metadataObject(value: unknown) {
@@ -66,7 +67,9 @@ export async function GET(request: Request) {
     const tracked = (subscriptions || []).filter((subscription) => {
       const canonicalId = familyIdToCanonical.get(subscription.client_id) || subscription.client_id;
       const metadata = metadataObject(subscription.metadata);
-      return canonicalId === client.id && metadata.portal_hidden !== true && metadata.interest_only !== true;
+      return canonicalId === client.id &&
+        PORTAL_ELIGIBLE_STATUSES.includes(subscription.status as (typeof PORTAL_ELIGIBLE_STATUSES)[number]) &&
+        metadata.portal_hidden !== true && metadata.interest_only !== true;
     });
     const portal = (portals || []).find((item) => (familyIdToCanonical.get(item.client_id) || item.client_id) === client.id);
     const services = [...new Map(tracked.map((subscription) => {
