@@ -32,6 +32,7 @@ Status: implemented in this release.
 - Link empty and support states to the existing subscriptions and support pages.
 - Keep the existing Netflix Household helper on the subscription detail page, backed by the same hardened retrieval service.
 - Let eligible members approve the latest “Yes, This Was Me” Netflix Household email without exposing its one-time link.
+- Record Household approval outcomes as code-free audit outcomes on the existing `assistant_opened` event type, avoiding any production schema dependency.
 
 ### Application and API
 

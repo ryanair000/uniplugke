@@ -293,9 +293,8 @@ export async function retrieveVerifyCode({
 
       if (!result) {
         await audit({
-          eventType: "household_update_not_found",
-          outcome: "no_current_household_update",
-          failureCategory: "no_current_household_update"
+          eventType: "assistant_opened",
+          outcome: "household_update_not_found"
         });
         return {
           status: 404,
@@ -336,8 +335,8 @@ export async function retrieveVerifyCode({
 
       const reused = Boolean(wasReused);
       await audit({
-        eventType: reused ? "household_update_reused" : "household_update_approved",
-        outcome: provider.id,
+        eventType: "assistant_opened",
+        outcome: reused ? "household_update_reused" : "household_update_approved",
         messageFingerprint: result.messageFingerprint,
         idempotent: reused
       });
