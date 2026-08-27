@@ -22,7 +22,7 @@ const checks = [
   [products.includes('href: `/products/${row.slug}`') && !products.includes("chezahub.co.ke/gadgets"), "Physical products must stay on internal UniPlug product pages"],
   [products.includes("KEY_PRODUCTS") && products.includes('fulfillment: "digital"') && products.includes('fulfillment: "physical"'), "Unified catalog must distinguish digital and physical fulfillment"],
   [home.includes("Show more products") && home.includes("StoreAddButton") && home.includes("PAGE_SIZE"), "Large catalogs must use incremental rendering with quick-add controls"],
-  [header.includes("StoreCartIndicator") && header.includes("Free Nairobi delivery over KSh 10,000"), "Store header must expose the live physical cart and delivery offer"],
+  [header.includes("StoreCartIndicator") && header.includes("Free Nairobi delivery on orders of KSh 10,000+"), "Store header must expose the live physical cart and delivery offer"],
   [productPage.includes("getPhysicalProductBySlug") && productDetail.includes("StoreProductPurchase"), "Every physical item must have a local detail and purchase route"],
   [cart.includes('fetch("/api/store/checkout"') && cart.includes("Delivery details") && cart.includes("calculateStoreDeliveryFee"), "Physical cart must collect delivery details and use the store checkout"],
   [checkout.includes('.from("uniplug_products")') && checkout.includes('.from("catalog")') && !checkout.includes("priceKes: item"), "Checkout must recalculate product prices from the shared catalog"],

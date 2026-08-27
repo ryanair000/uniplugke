@@ -20,13 +20,14 @@ import {
   WalletCards,
   X
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StoreAddButton } from "@/components/store-cart";
 import { StoreProductImage } from "@/components/store-product-image";
 import type { PhysicalCatalogProduct, StorefrontCategory, StorefrontProduct } from "@/lib/storefront-products";
 
 const money = new Intl.NumberFormat("en-KE");
 const PAGE_SIZE = 24;
+type CatalogSort = "featured" | "price-asc" | "price-desc" | "name";
 
 const categories: Array<{
   id: StorefrontCategory;
@@ -92,8 +93,18 @@ export function StorefrontHome({
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [category, setCategory] = useState<"all" | StorefrontCategory>("all");
+  const [sort, setSort] = useState<CatalogSort>("featured");
   const [loading, setLoading] = useState(false);
   const [catalogError, setCatalogError] = useState(false);
+
+  const visibleProducts = useMemo(() => {
+    if (sort === "featured") return products;
+    return [...products].sort((left, right) => {
+      if (sort === "price-asc") return left.priceKes - right.priceKes;
+      if (sort === "price-desc") return right.priceKes - left.priceKes;
+      return left.name.localeCompare(right.name);
+    });
+  }, [products, sort]);
 
   const loadProducts = useCallback(async (
     nextCategory: "all" | StorefrontCategory,
@@ -174,16 +185,16 @@ export function StorefrontHome({
       <section className="commerce-hero">
         <div className="commerce-shell commerce-hero-layout">
           <div className="commerce-hero-copy">
-            <p className="commerce-eyebrow">Tech for work, study and play</p>
-            <h1>Everything your setup needs.</h1>
-            <p>Software, gaming, audio and everyday tech with secure local payment, nationwide delivery and support.</p>
+            <p className="commerce-eyebrow">Technology for work, study and play</p>
+            <h1>Software, devices and gaming gear.</h1>
+            <p>Choose from software keys, games, audio, storage and accessories. Physical orders can be delivered anywhere in Kenya.</p>
             <div className="commerce-hero-actions">
-              <a className="commerce-button commerce-button-primary" href="#popular">Shop all products</a>
-              <button className="commerce-button commerce-button-accent" onClick={() => selectCategory("software")} type="button">Explore software</button>
+              <a className="commerce-button commerce-button-primary" href="#popular">Browse products</a>
+              <button className="commerce-button commerce-button-accent" onClick={() => selectCategory("software")} type="button">View software</button>
             </div>
             <div className="commerce-hero-proof" aria-label="Store benefits">
-              <span><ShieldCheck aria-hidden="true" /> Genuine products</span>
-              <span><WalletCards aria-hidden="true" /> M-Pesa ready</span>
+              <span><WalletCards aria-hidden="true" /> Pay by M-Pesa or card</span>
+              <span><Truck aria-hidden="true" /> Delivery across Kenya</span>
             </div>
           </div>
           <div className="commerce-hero-visual" aria-label="Laptop, monitor and technology accessories">
@@ -223,21 +234,32 @@ export function StorefrontHome({
             <h2 id="popular-title">{category === "all" ? "All products" : categories.find((item) => item.id === category)?.label}</h2>
             <span className="commerce-result-count">Showing {products.length} of {money.format(total)} products</span>
           </div>
-          <form className="commerce-inline-search" onSubmit={(event) => { event.preventDefault(); searchProducts(); }} role="search">
-            <label htmlFor="commerce-search">Search products</label>
-            <div>
-              <Search aria-hidden="true" />
-              <input
-                id="commerce-search"
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search this selection"
-                type="search"
-                value={query}
-              />
-              {query ? <button aria-label="Clear search" className="commerce-search-clear" onClick={clearSearch} type="button"><X aria-hidden="true" /></button> : null}
-              <button aria-label="Search products" className="commerce-search-submit" type="submit"><Search aria-hidden="true" /></button>
-            </div>
-          </form>
+          <div className="commerce-catalog-tools">
+            <form className="commerce-inline-search" onSubmit={(event) => { event.preventDefault(); searchProducts(); }} role="search">
+              <label htmlFor="commerce-search">Search products</label>
+              <div>
+                <Search aria-hidden="true" />
+                <input
+                  id="commerce-search"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search products"
+                  type="search"
+                  value={query}
+                />
+                {query ? <button aria-label="Clear search" className="commerce-search-clear" onClick={clearSearch} type="button"><X aria-hidden="true" /></button> : null}
+                <button aria-label="Search products" className="commerce-search-submit" type="submit"><Search aria-hidden="true" /></button>
+              </div>
+            </form>
+            <label className="commerce-sort">
+              <span>Sort</span>
+              <select onChange={(event) => setSort(event.target.value as CatalogSort)} value={sort}>
+                <option value="featured">Featured</option>
+                <option value="price-asc">Price: low to high</option>
+                <option value="price-desc">Price: high to low</option>
+                <option value="name">Name: A to Z</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {activeQuery ? <div className="commerce-search-status" aria-live="polite">Results for <strong>“{activeQuery}”</strong></div> : null}
@@ -245,7 +267,7 @@ export function StorefrontHome({
         {products.length ? (
           <>
             <div className={`commerce-product-grid${loading ? " is-loading" : ""}`} aria-busy={loading}>
-              {products.map((product, index) => <StorefrontProductCard key={product.id} priority={index < 4} product={product} />)}
+              {visibleProducts.map((product, index) => <StorefrontProductCard key={product.id} priority={index < 4} product={product} />)}
             </div>
             {products.length < total ? (
               <div className="commerce-load-more">
@@ -267,10 +289,10 @@ export function StorefrontHome({
 
       <section className="commerce-trust" aria-label="Why shop with UniPlug">
         <div className="commerce-shell commerce-trust-list">
-          <div><ShieldCheck aria-hidden="true" /><span><strong>Genuine products</strong><small>Current catalog prices and stock</small></span></div>
-          <div><Smartphone aria-hidden="true" /><span><strong>M-Pesa payments</strong><small>Secure local checkout</small></span></div>
-          <div><Truck aria-hidden="true" /><span><strong>Nationwide delivery</strong><small>Physical products across Kenya</small></span></div>
-          <div><PackageCheck aria-hidden="true" /><span><strong>Local support</strong><small>Help before and after purchase</small></span></div>
+          <div><ShieldCheck aria-hidden="true" /><span><strong>Stock checked</strong><small>Confirmed again before payment</small></span></div>
+          <div><Smartphone aria-hidden="true" /><span><strong>Paystack checkout</strong><small>M-Pesa and card payments</small></span></div>
+          <div><Truck aria-hidden="true" /><span><strong>Delivery across Kenya</strong><small>Nairobi and nationwide options</small></span></div>
+          <div><PackageCheck aria-hidden="true" /><span><strong>Order support</strong><small>Help directly from UniPlug</small></span></div>
         </div>
       </section>
     </div>

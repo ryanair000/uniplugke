@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Check, Minus, Plus, ShieldCheck, ShoppingBag, ShoppingCart, Trash2, Truck } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   STORE_CART_EVENT,
   addStoreCartProduct,
@@ -70,11 +70,28 @@ export function StoreAddButton({ product, compact = false }: { product: Physical
 }
 
 export function StoreProductPurchase({ product }: { product: PhysicalCatalogProduct }) {
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const [showMobilePurchase, setShowMobilePurchase] = useState(false);
+
+  useEffect(() => {
+    const actions = actionsRef.current;
+    if (!actions) return;
+    const observer = new IntersectionObserver(([entry]) => setShowMobilePurchase(!entry.isIntersecting), { threshold: 0.2 });
+    observer.observe(actions);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="store-product-purchase">
-      <StoreAddButton product={product} />
-      <Link className="store-secondary-button" href="/cart">View cart</Link>
-    </div>
+    <>
+      <div className="store-product-purchase" ref={actionsRef}>
+        <StoreAddButton product={product} />
+        <Link className="store-secondary-button" href="/cart">View cart</Link>
+      </div>
+      <div className={`store-mobile-purchase${showMobilePurchase ? " is-visible" : ""}`} aria-label="Purchase controls">
+        <div><span>{product.stockLabel}</span><strong>KSh {money.format(product.priceKes)}</strong></div>
+        <StoreAddButton product={product} />
+      </div>
+    </>
   );
 }
 
@@ -153,10 +170,15 @@ export function StoreCartPage() {
 
   return (
     <section className="store-cart-page commerce-shell">
+      <ol className="store-checkout-steps" aria-label="Checkout progress">
+        <li className="is-complete"><span>1</span>Cart</li>
+        <li className="is-current"><span>2</span>Delivery</li>
+        <li><span>3</span>Payment</li>
+      </ol>
       <div className="store-page-heading">
-        <p className="commerce-eyebrow">Secure physical checkout</p>
+        <p className="commerce-eyebrow">Physical products</p>
         <h1>Your cart</h1>
-        <p>Prices and availability are checked again before Paystack opens.</p>
+        <p>Confirm your order and tell us where to deliver it.</p>
         <Link className="store-continue-shopping" href="/#popular">Continue shopping</Link>
       </div>
       <div className="store-cart-layout">
@@ -193,7 +215,7 @@ export function StoreCartPage() {
               <label className="store-form-wide">Delivery address<input autoComplete="street-address" onChange={(event) => updateDetail("address", event.target.value)} placeholder="Building, street or pickup point" required value={details.address} /></label>
               <label className="store-form-wide">Delivery notes <span>(optional)</span><textarea maxLength={500} onChange={(event) => updateDetail("deliveryNotes", event.target.value)} value={details.deliveryNotes} /></label>
             </div>
-            <button className="sr-only" type="submit">Continue to secure payment</button>
+            <button className="sr-only" type="submit">Continue to Paystack</button>
           </form>
         </div>
 
@@ -202,13 +224,13 @@ export function StoreCartPage() {
           <div><span>Subtotal</span><strong>KSh {money.format(subtotal)}</strong></div>
           <div><span>Delivery</span><strong>{deliveryFee ? `KSh ${money.format(deliveryFee)}` : "Free"}</strong></div>
           <div className="store-order-total"><span>Total</span><strong>KSh {money.format(total)}</strong></div>
-          <div className="store-delivery-policy"><Truck aria-hidden="true" /><span>Free Nairobi delivery over KSh 10,000. Nationwide delivery is KSh 500.</span></div>
-          <p><ShieldCheck aria-hidden="true" /> Product prices, stock and delivery are securely rechecked before payment.</p>
+          <div className="store-delivery-policy"><Truck aria-hidden="true" /><span>Free Nairobi delivery on orders of KSh 10,000+. Nationwide delivery is KSh 500.</span></div>
+          <p><ShieldCheck aria-hidden="true" /> Price, stock and delivery are confirmed before payment.</p>
           {error ? <p className="store-checkout-error" role="alert">{error}</p> : null}
           <button className="commerce-button commerce-button-accent" disabled={!canCheckout || busy} onClick={() => void checkout()} type="button">
-            {busy ? "Opening Paystack..." : "Pay securely"}
+            {busy ? "Opening Paystack..." : "Continue to Paystack"}
           </button>
-          <small>M-Pesa and cards are processed securely by Paystack.</small>
+          <small>Paystack accepts M-Pesa and cards.</small>
         </aside>
       </div>
     </section>

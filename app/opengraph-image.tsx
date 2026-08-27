@@ -26,8 +26,8 @@ export default function OpenGraphImage() {
           <img alt="" height={82} src={logoMark} width={82} />
           <div style={{ fontSize: 46, fontWeight: 900, letterSpacing: "0" }}>uniplug</div>
         </div>
-        <div style={{ display: "flex", fontSize: 70, fontWeight: 900, letterSpacing: "0", lineHeight: 1.04, maxWidth: 990 }}>Everything your setup needs.</div>
-        <div style={{ color: "#C5D0E3", display: "flex", fontSize: 28 }}>Software, gaming, audio and everyday tech across Kenya.</div>
+        <div style={{ display: "flex", fontSize: 70, fontWeight: 900, letterSpacing: "0", lineHeight: 1.04, maxWidth: 990 }}>Software, devices and gaming gear.</div>
+        <div style={{ color: "#C5D0E3", display: "flex", fontSize: 28 }}>Shop everyday tech with delivery across Kenya.</div>
         <div style={{ background: "#B8F500", display: "flex", height: 10, marginTop: 8, width: 210 }} />
       </div>
     </div>,

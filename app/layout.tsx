@@ -24,9 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
   if (isKeysStore) return {
     metadataBase: new URL("https://uniplug.shop"),
     title: { default: "UniPlug | Software, devices and accessories", template: "%s | UniPlug" },
-    description: "Shop software, devices and accessories in Kenya with secure local payment, nationwide delivery and local support.",
+    description: "Shop software keys, devices and accessories in KSh, with delivery across Kenya.",
     robots: { index: true, follow: true },
-    openGraph: { type: "website", siteName: "UniPlug", title: "Everything your setup needs", description: "Software, devices and accessories with secure local payment and support.", images: ["/opengraph-image"] }
+    openGraph: { type: "website", siteName: "UniPlug", title: "Software, devices and gaming gear", description: "Shop software keys and everyday tech with delivery across Kenya.", images: ["/opengraph-image"] }
   };
   return {
   metadataBase: new URL(process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"),

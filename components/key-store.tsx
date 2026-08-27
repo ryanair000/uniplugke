@@ -22,7 +22,7 @@ type CategoryFilter = "all" | KeyProduct["category"];
 
 const steps = [
   { number: "01", title: "Review the licence", copy: "Check the edition, term, compatibility, and conditions on the product page." },
-  { number: "02", title: "Pay securely", copy: "Enter your delivery details and complete one local Paystack checkout." },
+  { number: "02", title: "Pay with Paystack", copy: "Enter your order details, then choose M-Pesa or card." },
   { number: "03", title: "Receive and activate", copy: "Use the supplied instructions, with activation help available if needed." }
 ];
 
@@ -229,7 +229,7 @@ export function KeyStoreHome() {
 
       <section className="key-how" id="how-it-works" aria-labelledby="how-title">
         <div className="key-shell">
-          <div className="key-how-heading"><div><p className="key-kicker">Simple from start to finish</p><h2 id="how-title">From licence review to activation.</h2></div><p>Three focused steps, with the material product conditions reviewed before payment.</p></div>
+          <div className="key-how-heading"><div><p className="key-kicker">How ordering works</p><h2 id="how-title">From licence review to activation.</h2></div><p>Check the licence, choose M-Pesa or card, then follow the supplied activation instructions.</p></div>
           <div className="key-steps">
             {steps.map((step) => (
               <article key={step.number}>
@@ -287,7 +287,7 @@ export function KeyCheckout({ initialProduct }: { initialProduct: KeyProductSlug
       <Link className="key-back" href="/">← Back to software keys</Link>
       <div className="key-checkout-grid">
         <form className="key-checkout-form" onSubmit={pay}>
-          <p className="key-kicker">Secure checkout</p>
+          <p className="key-kicker">Checkout</p>
           <h1>Where should we send your key?</h1>
           <label>Software
             <select value={productSlug} onChange={(event) => setProductSlug(event.target.value as KeyProductSlug)}>
@@ -309,7 +309,7 @@ export function KeyCheckout({ initialProduct }: { initialProduct: KeyProductSlug
           </label>
           {error ? <p className="key-error" role="alert">{error}</p> : null}
           <button className="key-button key-button-lime" disabled={busy || !termsAcknowledged || phone.replace(/\D/g, "").length < 9} type="submit">
-            {busy ? "Opening secure payment…" : `Pay KSh ${money.format(product.priceKes)}`}
+            {busy ? "Opening Paystack…" : `Pay KSh ${money.format(product.priceKes)}`}
           </button>
         </form>
         <aside className="key-order-card">
@@ -329,12 +329,17 @@ export function KeyCheckout({ initialProduct }: { initialProduct: KeyProductSlug
 
 export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
   const [signingOut, setSigningOut] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (mobileSearchOpen) document.getElementById("key-global-search")?.focus();
+  }, [mobileSearchOpen]);
 
   return (
-    <header className="key-header">
+    <header className={`key-header${mobileSearchOpen ? " has-mobile-search" : ""}`}>
       <div className="key-delivery-bar">
         <span aria-hidden="true">●</span>
-        Free Nairobi delivery over KSh 10,000
+        Free Nairobi delivery on orders of KSh 10,000+
       </div>
       <div className="key-main-header key-shell">
         <Link aria-label="UniPlug home" className="key-brand" href="/">
@@ -349,10 +354,20 @@ export function KeyStoreHeader({ signedIn = false }: { signedIn?: boolean }) {
           <Link href="/?category=accessories#popular">Accessories</Link>
           <Link href="/help">Support</Link>
         </nav>
-        <form action="/" className="key-global-search" role="search">
+        <form
+          action="/"
+          className={`key-global-search${mobileSearchOpen ? " is-mobile-open" : ""}`}
+          onSubmit={(event) => {
+            if (window.matchMedia("(max-width: 430px)").matches && !mobileSearchOpen) {
+              event.preventDefault();
+              setMobileSearchOpen(true);
+            }
+          }}
+          role="search"
+        >
           <label className="sr-only" htmlFor="key-global-search">Search products</label>
           <input id="key-global-search" name="q" placeholder="Search products" type="search" />
-          <button aria-label="Search" type="submit"><Search aria-hidden="true" /></button>
+          <button aria-expanded={mobileSearchOpen} aria-label={mobileSearchOpen ? "Submit product search" : "Open product search"} type="submit"><Search aria-hidden="true" /></button>
         </form>
         <div className="key-header-tools">
           <Link aria-label={signedIn ? "Open account settings" : "Sign in"} href={signedIn ? "/settings" : "/login"}>
@@ -398,7 +413,7 @@ export function KeyStoreFooter() {
       <div className="key-shell key-footer-grid">
         <div className="key-footer-brand">
           <Link aria-label="UniPlug home" className="key-brand" href="/"><Image alt="UniPlug" className="uniplug-wordmark" height={37} src="/storefront/uniplug-logo-light.svg" width={142} /></Link>
-          <p>Software, devices and accessories with secure local payment and support.</p>
+          <p>Software keys, devices and accessories sold in KSh, with delivery across Kenya.</p>
           <a href="mailto:support@uniplug.shop">support@uniplug.shop</a>
         </div>
         <div><h2>Shop</h2><Link href="/#popular">All products</Link><Link href="/?category=software#popular">Software</Link><Link href="/?category=games#popular">Physical games</Link><Link href="/?category=gaming#popular">Gaming gear</Link></div>
