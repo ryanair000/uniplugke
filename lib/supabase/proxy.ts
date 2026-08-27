@@ -5,6 +5,7 @@ import { authCookieOptionsForHostname } from "@/lib/auth-cookie";
 import {
   getLokimaxVipAccess,
   storeAccountDestination,
+  VIP_ORIGIN,
   vipAccountDestination
 } from "@/lib/account-routing";
 
@@ -13,7 +14,6 @@ const publicPaths = new Set([
   "/register",
   "/set-password",
   "/auth/callback",
-  "/auth/member-link",
   "/api/auth/login",
   "/api/auth/register",
   "/api/payments/webhook",
@@ -22,6 +22,10 @@ const publicPaths = new Set([
 
 function isPublicCatalogPath(pathname: string) {
   return pathname === "/" || pathname === "/services" || pathname.startsWith("/services/");
+}
+
+function isMemberAccessPath(pathname: string) {
+  return pathname === "/auth/member-link" || pathname.startsWith("/access/");
 }
 
 function redirectWithCookies(response: NextResponse, destination: URL) {
@@ -43,6 +47,9 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
   if (isKeysHostname(host)) {
+    if (isMemberAccessPath(pathname)) {
+      return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, VIP_ORIGIN));
+    }
     if (pathname === "/tools/verify") {
       return NextResponse.redirect(new URL(`${pathname}${request.nextUrl.search}`, vipAccountDestination(false, pathname)));
     }
@@ -81,7 +88,7 @@ export async function updateSession(request: NextRequest) {
     if (storeProfile.role !== "admin" && !vipAccess.hasService && !vipAccess.mustChangePassword) return storeResponse;
     return redirectWithCookies(storeResponse, new URL(vipAccountDestination(vipAccess.mustChangePassword)));
   }
-  const isPublicPath = publicPaths.has(pathname);
+  const isPublicPath = publicPaths.has(pathname) || isMemberAccessPath(pathname);
   const isCatalogPath = isPublicCatalogPath(pathname);
 
   if (!url || !key) {
@@ -122,7 +129,7 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     profile = result.data;
 
-    if (profile?.status === "active" && profile.role !== "admin") {
+    if (!isMemberAccessPath(pathname) && profile?.status === "active" && profile.role !== "admin") {
       const vipAccess = await getLokimaxVipAccess(supabase, data.user.id);
       if (!vipAccess.hasService && !vipAccess.mustChangePassword) {
         return redirectWithCookies(response, new URL(storeAccountDestination("/")));

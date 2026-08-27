@@ -1,16 +1,26 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { VIP_ORIGIN } from "@/lib/account-routing";
+import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ACCESS_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ACCESS_CODE_LENGTH = 10;
 const ACCESS_LINK_MAX_USES = 3;
 const ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59.999Z";
 
 function serviceName(value: unknown) {
   const service = Array.isArray(value) ? value[0] : value;
   return (service as { name?: string } | null)?.name || "your service";
+}
+
+function createAccessCode() {
+  return Array.from(
+    { length: ACCESS_CODE_LENGTH },
+    () => ACCESS_ALPHABET[randomInt(0, ACCESS_ALPHABET.length)]
+  ).join("");
 }
 
 function hashToken(token: string) {
@@ -52,15 +62,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Activate this member before creating a VIP access link." }, { status: 409 });
   }
 
+  const family = await getClientFamilyIds(admin, portal.client_id);
   const { data: subscription, error: subscriptionError } = await admin
     .from("client_subscriptions")
     .select("id,client_id,status,metadata,service:client_services!client_subscriptions_service_id_fkey(name)")
     .eq("id", subscriptionId)
-    .eq("client_id", portal.client_id)
+    .in("client_id", family.familyIds)
     .maybeSingle();
 
   const metadata = (subscription?.metadata || {}) as Record<string, unknown>;
-  if (subscriptionError || !subscription || metadata.portal_hidden === true) {
+  if (subscriptionError || !subscription || metadata.portal_hidden === true || metadata.interest_only === true) {
     return NextResponse.json({ error: "That subscription is not available for this member." }, { status: 404 });
   }
 
@@ -70,9 +81,6 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const token = randomBytes(32).toString("base64url");
-  const tokenHash = hashToken(token);
-
   const { error: revokeError } = await admin
     .from("uniplug_member_access_links")
     .update({ revoked_at: now.toISOString() })
@@ -84,52 +92,65 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Existing VIP links could not be rotated safely." }, { status: 500 });
   }
 
-  const { error: insertError } = await admin
-    .from("uniplug_member_access_links")
-    .insert({
+  let code = "";
+  let createError: { code?: string; message?: string } | null = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    code = createAccessCode();
+    const token = randomBytes(32).toString("base64url");
+    const { error } = await admin.from("uniplug_member_access_links").insert({
+      code,
       user_id: userId,
       subscription_id: subscription.id,
-      token_hash: tokenHash,
+      token_hash: hashToken(token),
       expires_at: ACCESS_LINK_NO_TIME_EXPIRY,
       max_uses: ACCESS_LINK_MAX_USES,
       use_count: 0,
       created_by: viewer.user.id
     });
-
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message || "The secure VIP link could not be created." }, { status: 400 });
+    if (!error) {
+      createError = null;
+      break;
+    }
+    createError = error;
+    if (error.code !== "23505") break;
   }
 
-  const vipLink = new URL("/auth/member-link", VIP_ORIGIN);
-  vipLink.searchParams.set("token", token);
-  vipLink.searchParams.set("subscription", subscription.id);
+  if (createError || !code) {
+    return NextResponse.json(
+      { error: createError?.message || "The secure VIP link could not be created." },
+      { status: 500 }
+    );
+  }
 
+  const serviceLink = new URL(`/access/${code}`, VIP_ORIGIN).toString();
+  const portalLinkUrl = new URL(`/access/${code}`, VIP_ORIGIN);
+  portalLinkUrl.searchParams.set("destination", "services");
+  const portalLink = portalLinkUrl.toString();
   const loginUrl = new URL("/login", VIP_ORIGIN).toString();
-  const name = profile.display_name || `@${profile.username}`;
+  const name = profile.display_name && profile.display_name.toLowerCase() !== "n/a"
+    ? profile.display_name
+    : `@${profile.username}`;
   const service = serviceName(subscription.service);
-  const message = [
+  const portalMessage = [
     `Hi ${name} 👋`,
-    "",
-    `Welcome to UniPlug VIP Shop. Your ${service} subscription is ready.`,
-    "",
-    `VIP Shop: ${loginUrl}`,
-    `Username: @${profile.username}`,
-    ...(profile.phone ? [`Phone: ${profile.phone}`] : []),
-    `Secure one-tap access: ${vipLink.toString()}`,
-    "",
-    `Tap the secure link above to sign in automatically and go straight to your ${service} subscription.`,
-    "The secure link has no time expiry and can be opened up to 3 times. Please keep it private and do not forward it.",
-    "For future visits, use your username or phone and your private password on the VIP Shop login page.",
-    "",
-    "Enjoy your subscription 💜",
-    "— UniPlug"
+    `Open your UniPlug services: ${portalLink}`,
+    `Private link · no time expiry · ${ACCESS_LINK_MAX_USES} opens maximum.`
+  ].join("\n");
+  const serviceMessage = [
+    `Hi ${name} 👋`,
+    `Open ${service}: ${serviceLink}`,
+    `Private link · no time expiry · ${ACCESS_LINK_MAX_USES} opens maximum.`
   ].join("\n");
 
   return NextResponse.json(
     {
-      link: vipLink.toString(),
+      link: serviceLink,
       loginUrl,
-      message,
+      message: serviceMessage,
+      portalLink,
+      portalMessage,
+      serviceLink,
+      serviceMessage,
       serviceName: service,
       username: profile.username,
       phone: profile.phone,

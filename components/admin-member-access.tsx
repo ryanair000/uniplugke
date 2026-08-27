@@ -12,6 +12,10 @@ type AccessResult = {
   link: string;
   loginUrl: string;
   message: string;
+  portalLink: string;
+  portalMessage: string;
+  serviceLink: string;
+  serviceMessage: string;
   serviceName: string;
   username: string;
   phone: string | null;
@@ -53,7 +57,7 @@ export function AdminMemberAccess({
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "VIP access link could not be created.");
       setResult(body as AccessResult);
-      setNotice("Secure VIP access ready.");
+      setNotice("Portal and service links are ready.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "VIP access link could not be created.");
     } finally {
@@ -111,8 +115,10 @@ export function AdminMemberAccess({
             <span className="status-pill subtle">No time expiry · {result.maxUses} opens maximum</span>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="button button-light small" onClick={() => copy(result.link, "VIP link")}>Copy VIP link</button>
-            <button type="button" className="button button-light small" onClick={() => copy(result.message, "Welcome + login details")}>Copy welcome + details</button>
+            <button type="button" className="button button-light small" onClick={() => copy(result.portalMessage, "Services message")}>Copy services message</button>
+            <button type="button" className="button button-light small" onClick={() => copy(result.portalLink, "Services link")}>Copy services link</button>
+            <button type="button" className="button button-light small" onClick={() => copy(result.serviceMessage, `${result.serviceName} message`)}>Copy service message</button>
+            <button type="button" className="button button-light small" onClick={() => copy(result.serviceLink, `${result.serviceName} link`)}>Copy service link</button>
           </div>
           <small>{result.usesRemaining} uses available. The link stops working after the third successful open.</small>
         </div>
