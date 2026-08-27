@@ -2,6 +2,7 @@ import "server-only";
 
 import { getClientFamilyIds } from "@/lib/client-identity";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
+import { prepareSubscriptionList } from "@/lib/subscription-list";
 
 export type TrackedSubscription = {
   id: string;
@@ -9,6 +10,7 @@ export type TrackedSubscription = {
   startDate: string | null;
   endDate: string | null;
   nextRenewalDate: string | null;
+  createdAt: string | null;
   billingCycle: string;
   amount: number;
   currency: string;
@@ -49,11 +51,11 @@ export async function getTrackedSubscriptions(clientId: string) {
   if (!supabase) return [] as TrackedSubscription[];
   const { data, error } = await supabase
     .from("client_subscriptions")
-    .select("id,status,start_date,end_date,next_renewal_date,billing_cycle,amount,currency,auto_renew,service_identifier,account_reference,metadata,verify_enabled,service:client_services!client_subscriptions_service_id_fkey(id,name,category,description,verify_enabled,verify_provider)")
+    .select("id,status,start_date,end_date,next_renewal_date,created_at,billing_cycle,amount,currency,auto_renew,service_identifier,account_reference,metadata,verify_enabled,service:client_services!client_subscriptions_service_id_fkey(id,name,category,description,verify_enabled,verify_provider)")
     .in("client_id", family.familyIds)
-    .order("next_renewal_date", { ascending: true, nullsFirst: false });
+    .order("created_at", { ascending: false });
   if (error) throw new Error(`Tracked subscriptions could not be loaded: ${error.message}`);
-  return (data || []).flatMap((row) => {
+  const subscriptions = (data || []).flatMap((row) => {
     const metadata = (row.metadata || {}) as Record<string, unknown>;
     if (metadata.portal_hidden === true || metadata.interest_only === true) return [];
     const relatedService = (Array.isArray(row.service) ? row.service[0] : row.service) as {
@@ -72,6 +74,7 @@ export async function getTrackedSubscriptions(clientId: string) {
       startDate: row.start_date,
       endDate: row.end_date,
       nextRenewalDate: row.next_renewal_date,
+      createdAt: row.created_at,
       billingCycle: row.billing_cycle,
       amount: Number(row.amount),
       currency: String(row.currency).trim(),
@@ -90,6 +93,7 @@ export async function getTrackedSubscriptions(clientId: string) {
       } : null
     }];
   });
+  return prepareSubscriptionList(subscriptions);
 }
 
 export async function getTrackedSubscription(clientId: string, subscriptionId: string) {
