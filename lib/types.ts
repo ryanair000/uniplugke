@@ -32,6 +32,13 @@ export type CatalogService = {
   availabilityStatus: "available" | "limited" | "coming_soon";
   featured: boolean;
   startingPriceUsd?: number | null;
+  publicPlans: PublicPlan[];
+};
+
+export type PublicPlan = {
+  id: string;
+  planName: string;
+  offers: PlanDurationOffer[];
 };
 
 export type MemberPlan = {

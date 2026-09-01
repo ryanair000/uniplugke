@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { formatDualPrice, formatUsd, kesToUsd, usdToKes } from "@/lib/currency";
+import { formatDualPrice, formatUsd, kesToUsd } from "@/lib/currency";
+import { planDurationLabel } from "@/lib/plan-durations";
 import type { KeyProduct } from "@/lib/key-products";
-import type { CatalogService, MemberPlan } from "@/lib/types";
+import type { CatalogService } from "@/lib/types";
 
 export const categoryLabels: Record<string, string> = {
   all: "All services",
@@ -26,17 +27,16 @@ function availabilityLabel(status: CatalogService["availabilityStatus"]) {
 
 export function CatalogServiceCard({
   service,
-  plan,
-  isMember,
   managementHref
 }: {
   service: CatalogService;
-  plan?: MemberPlan;
-  isMember: boolean;
   managementHref?: string;
 }) {
   const href = managementHref || `/services/${service.slug}`;
   const action = managementHref ? "Manage" : "View service";
+  const startingOffer = service.publicPlans
+    .flatMap((candidate) => candidate.offers)
+    .sort((a, b) => a.priceKes - b.priceKes)[0];
 
   return (
     <article className={`catalog-card${managementHref ? " is-managed" : ""}`}>
@@ -67,15 +67,10 @@ export function CatalogServiceCard({
 
         <div className="catalog-card-footer">
           <div>
-            {isMember && (plan || service.startingPriceUsd) ? (
+            {startingOffer ? (
               <>
-                <strong>{formatDualPrice(plan?.priceKes ?? usdToKes(service.startingPriceUsd!))}</strong>
-                <small>per month</small>
-              </>
-            ) : service.startingPriceUsd ? (
-              <>
-                <strong>{formatUsd(service.startingPriceUsd)}</strong>
-                <small>starting price</small>
+                <strong>{formatDualPrice(startingOffer.priceKes)}</strong>
+                <small>per {planDurationLabel(startingOffer.durationMonths)}</small>
               </>
             ) : (
               <strong>Price unavailable</strong>

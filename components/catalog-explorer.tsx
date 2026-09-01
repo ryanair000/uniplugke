@@ -8,7 +8,7 @@ import {
   categoryLabels
 } from "@/components/service-card";
 import { KEY_PRODUCTS } from "@/lib/key-products";
-import type { CatalogService, MemberPlan } from "@/lib/types";
+import type { CatalogService } from "@/lib/types";
 
 export type ManagedCatalogService = {
   id: string;
@@ -44,13 +44,11 @@ function findManagedService(service: CatalogService, managedServices: ManagedCat
 
 export function CatalogExplorer({
   services,
-  plans,
   isMember,
   managedServices = [],
   variant = "default"
 }: {
   services: CatalogService[];
-  plans: MemberPlan[];
   isMember: boolean;
   managedServices?: ManagedCatalogService[];
   variant?: "default" | "homepage";
@@ -61,14 +59,6 @@ export function CatalogExplorer({
     () => isMember ? services : services.filter((service) => service.startingPriceUsd != null),
     [isMember, services]
   );
-  const planByService = useMemo(() => {
-    const map = new Map<string, MemberPlan>();
-    plans.forEach((plan) => {
-      if (!map.has(plan.serviceId)) map.set(plan.serviceId, plan);
-    });
-    return map;
-  }, [plans]);
-
   const categories = useMemo(() => {
     const available = Array.from(new Set(browsableServices.map((service) => service.category)));
     return ["all", ...available, "software"];
@@ -185,9 +175,7 @@ export function CatalogExplorer({
           const managed = findManagedService(entry.service, managedServices);
           return (
             <CatalogServiceCard
-              isMember={isMember}
               key={entry.service.id}
-              plan={planByService.get(entry.service.id)}
               service={entry.service}
               managementHref={managed ? `/dashboard/subscriptions/${managed.id}` : undefined}
             />

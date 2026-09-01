@@ -15,15 +15,13 @@ import {
 import { ServiceArtwork } from "@/components/service-artwork";
 import {
   PLAN_DURATIONS,
-  defaultPlanDurationOffer,
   isPlanDurationMonths,
   planDurationLabel,
-  planPriceForDuration,
   planSavingsForDuration,
   type PlanDurationMonths
 } from "@/lib/plan-durations";
-import { formatDualPrice, formatUsd } from "@/lib/currency";
-import type { CartItem, CatalogService, MemberPlan } from "@/lib/types";
+import { formatDualPrice } from "@/lib/currency";
+import type { CartItem, CatalogService, MemberPlan, PublicPlan } from "@/lib/types";
 
 const categoryLabels: Record<string, string> = {
   all: "All services",
@@ -399,14 +397,19 @@ function PlanOptionCard({
 }) {
   const { add, items } = useCart();
   const router = useRouter();
-  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(initialDuration);
-  const existingItem = items.find((item) => item.planId === plan.id);
   const activeOffers = plan.durationOffers.filter((offer) => offer.isActive);
-  const selectedOffer = activeOffers.find((offer) => offer.durationMonths === durationMonths)
-    ?? defaultPlanDurationOffer(durationMonths);
-  const totalPrice = planPriceForDuration(plan.priceKes, durationMonths, selectedOffer.discountPercent);
-  const compareAtPrice = plan.priceKes * durationMonths;
-  const savings = planSavingsForDuration(plan.priceKes, durationMonths, selectedOffer.discountPercent);
+  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(() =>
+    activeOffers.some((offer) => offer.durationMonths === initialDuration)
+      ? initialDuration
+      : (activeOffers[0]?.durationMonths ?? initialDuration)
+  );
+  const existingItem = items.find((item) => item.planId === plan.id);
+  const selectedOffer = activeOffers.find((offer) => offer.durationMonths === durationMonths) ?? activeOffers[0];
+  if (!selectedOffer) return null;
+  const totalPrice = selectedOffer.priceKes;
+  const oneMonthPrice = activeOffers.find((offer) => offer.durationMonths === 1)?.priceKes ?? null;
+  const compareAtPrice = oneMonthPrice ? oneMonthPrice * durationMonths : null;
+  const savings = planSavingsForDuration(oneMonthPrice, selectedOffer);
   const effectiveMonthlyPrice = totalPrice / durationMonths;
   const selectedIsInCart = existingItem?.durationMonths === durationMonths;
 
@@ -436,8 +439,8 @@ function PlanOptionCard({
       <div className="plan-duration-grid offer-duration-list" aria-label={`Duration for ${plan.planName}`}>
         {activeOffers.map((offer) => {
           const duration = PLAN_DURATIONS.find((candidate) => candidate.months === offer.durationMonths)!;
-          const offerTotal = planPriceForDuration(plan.priceKes, duration.months, offer.discountPercent);
-          const offerSavings = planSavingsForDuration(plan.priceKes, duration.months, offer.discountPercent);
+          const offerTotal = offer.priceKes;
+          const offerSavings = planSavingsForDuration(oneMonthPrice, offer);
           return (
           <button
             type="button"
@@ -455,7 +458,7 @@ function PlanOptionCard({
         <span>Pay today for {planDurationLabel(durationMonths)}</span>
         <strong>{formatDualPrice(totalPrice)}</strong>
         {savings > 0 ? <small>{formatDualPrice(effectiveMonthlyPrice)} per month · Save {formatDualPrice(savings)}</small> : <small>{formatDualPrice(effectiveMonthlyPrice)} per month</small>}
-        {savings > 0 ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
+        {savings > 0 && compareAtPrice ? <del>{formatDualPrice(compareAtPrice)}</del> : null}
       </div>
       <p className="plan-price-note">One prepaid payment · Manual renewal · No automatic charges</p>
       <button
@@ -502,26 +505,49 @@ export function PlanOptions({
 
 export function PublicPlanPreview({
   serviceSlug,
-  monthlyPriceUsd,
+  plans,
   initialDuration = 1
 }: {
   serviceSlug: string;
-  monthlyPriceUsd: number;
+  plans: PublicPlan[];
   initialDuration?: PlanDurationMonths;
 }) {
-  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(initialDuration);
-  const offer = defaultPlanDurationOffer(durationMonths);
-  const total = planPriceForDuration(monthlyPriceUsd, durationMonths, offer.discountPercent);
-  const savings = planSavingsForDuration(monthlyPriceUsd, durationMonths, offer.discountPercent);
-  const effectiveMonthly = total / durationMonths;
+  const [planId, setPlanId] = useState(plans[0]?.id ?? "");
+  const plan = plans.find((candidate) => candidate.id === planId) ?? plans[0];
+  const activeOffers = plan?.offers.filter((offer) => offer.isActive) ?? [];
+  const [durationMonths, setDurationMonths] = useState<PlanDurationMonths>(() =>
+    activeOffers.some((offer) => offer.durationMonths === initialDuration)
+      ? initialDuration
+      : (activeOffers[0]?.durationMonths ?? initialDuration)
+  );
+  const offer = activeOffers.find((candidate) => candidate.durationMonths === durationMonths) ?? activeOffers[0];
+  if (!plan || !offer) return null;
+  const total = offer.priceKes;
+  const effectiveMonthly = total / offer.durationMonths;
   const nextPath = `/services/${serviceSlug}?duration=${durationMonths}`;
+
+  function choosePlan(nextPlan: PublicPlan) {
+    setPlanId(nextPlan.id);
+    if (!nextPlan.offers.some((candidate) => candidate.durationMonths === durationMonths)) {
+      setDurationMonths(nextPlan.offers[0]?.durationMonths ?? 1);
+    }
+  }
 
   return (
     <div className="public-plan-preview">
+      {plans.length > 1 ? (
+        <div className="plan-duration-grid offer-duration-list" aria-label="Available packages">
+          {plans.map((candidate) => (
+            <button type="button" key={candidate.id} className={candidate.id === plan.id ? "active" : ""} onClick={() => choosePlan(candidate)}>
+              <span className="offer-duration-name">{candidate.planName}</span>
+              <span className="offer-duration-price"><strong>From {formatDualPrice(candidate.offers[0]?.priceKes ?? 0)}</strong></span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="plan-duration-grid offer-duration-list" aria-label="Available prepaid durations">
-        {PLAN_DURATIONS.map((duration) => {
-          const durationTotal = planPriceForDuration(monthlyPriceUsd, duration.months, duration.discountPercent);
-          const durationSavings = planSavingsForDuration(monthlyPriceUsd, duration.months, duration.discountPercent);
+        {activeOffers.map((candidate) => {
+          const duration = PLAN_DURATIONS.find((item) => item.months === candidate.durationMonths)!;
           return (
             <button
               type="button"
@@ -530,19 +556,19 @@ export function PublicPlanPreview({
               aria-pressed={durationMonths === duration.months}
               onClick={() => setDurationMonths(duration.months)}
             >
-              <span className="offer-duration-name">{duration.label}{duration.badge ? <small>{duration.badge}</small> : null}</span>
-              <span className="offer-duration-price"><strong>{formatUsd(durationTotal)}</strong>{durationSavings > 0 ? <small>Save {formatUsd(durationSavings)}</small> : <small>Pay monthly</small>}</span>
+              <span className="offer-duration-name">{duration.label}{candidate.badge ? <small>{candidate.badge}</small> : null}</span>
+              <span className="offer-duration-price"><strong>{formatDualPrice(candidate.priceKes)}</strong></span>
             </button>
           );
         })}
       </div>
       <div className="plan-selected-price" aria-live="polite">
         <span>Selected prepaid term</span>
-        <strong>{formatUsd(total)}</strong>
-        <small>{formatUsd(effectiveMonthly)} per month{savings > 0 ? ` · Save ${formatUsd(savings)}` : ""}</small>
+        <strong>{formatDualPrice(total)}</strong>
+        <small>{formatDualPrice(effectiveMonthly)} per month equivalent</small>
       </div>
       <p className="plan-price-note">One prepaid payment · Manual renewal · No automatic charges</p>
-      <p className="public-price-disclaimer">Public USD estimates use the advertised starting price. Your final KSh member total is confirmed after sign-in.</p>
+      <p className="public-price-disclaimer">The displayed KSh price is the exact catalogue price for this package and period.</p>
       <Link className="button button-dark" href={`/login?next=${encodeURIComponent(nextPath)}`}>
         Sign in to continue with {planDurationLabel(durationMonths)}
       </Link>

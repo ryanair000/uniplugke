@@ -37,19 +37,9 @@ const checks = [
     tokens: ["formatDualPrice(plan.priceKes)", "formatDualPrice(displayedTotal)", "final KSh amount"]
   },
   {
-    name: "the priced Lokimax catalog drives the UniPlug catalog",
-    source: read("lib/catalog.ts") + read("lib/lokimax-services.ts"),
-    tokens: [
-      '.from("catalog")',
-      '.eq("category", "entertainment")',
-      'selling_price_1_month',
-      "buildLokimaxCatalog",
-      "canonicalLokimaxCatalogKey",
-      "CUSTOMER_HIDDEN_SERVICE_SLUGS",
-      '"dstv-compact"',
-      '"dstv-premium"',
-      "customerVisibleCatalog(buildLokimaxCatalog"
-    ]
+    name: "Lokimax exact catalog offers drive the UniPlug catalog",
+    source: read("lib/catalog.ts") + read("supabase/migrations/20260902020000_sync_lokimax_catalog_exact_prices.sql"),
+    tokens: ['.from("uniplug_public_catalog_offers")', "uniplug_sync_catalog_product", "o.price_kes", "live-stream-sports"]
   },
   {
     name: "catalog pages support both visitors and members",
@@ -57,46 +47,9 @@ const checks = [
     tokens: ["await getViewer()", "isMember"]
   },
   {
-    name: "catalog cards split guest USD and signed-in KSh prices",
+    name: "guest catalog cards expose exact KSh prices and available terms",
     source: read("components/catalog-explorer.tsx") + read("components/service-card.tsx"),
-    tokens: [
-      "service.startingPriceUsd != null",
-      "formatUsd(service.startingPriceUsd)",
-      "usdToKes(service.startingPriceUsd!)",
-      "CatalogSoftwareCard",
-      "isMember={isMember}",
-      "isMember ? formatDualPrice(product.priceKes) : formatUsd(kesToUsd(product.priceKes))"
-    ]
-  },
-  {
-    name: "signed-in service details use KSh even without a private plan",
-    source: read("app/services/[slug]/page.tsx"),
-    tokens: [
-      "isMember && (primaryPlan || service.startingPriceUsd)",
-      "usdToKes(service.startingPriceUsd!)",
-      "formatUsd(service.startingPriceUsd)"
-    ]
-  },
-  {
-    name: "Lokimax prices become public USD prices without duplicate aliases",
-    source: read("lib/lokimax-services.ts"),
-    tokens: ["kesToUsd(monthlyPriceKes)", "seen.has(serviceSlug)", 'prime: "primevideo"']
-  },
-  {
-    name: "every visible priced Lokimax service receives a purchasable member plan",
-    source: read("supabase/migrations/20260814021112_make_all_priced_services_purchasable.sql"),
-    tokens: [
-      "catalog.selling_price_1_month > 0",
-      "row_number() over",
-      "source.slug || '-member'",
-      "source.monthly_price_kes",
-      "uniplug_plan_duration_offers",
-      "(1, 0::numeric",
-      "(3, 3::numeric",
-      "(6, 8::numeric",
-      "(12, 13::numeric",
-      "(24, 17::numeric"
-    ]
+    tokens: ["service.publicPlans", "startingOffer.priceKes", "planDurationLabel(startingOffer.durationMonths)"]
   }
 ];
 
@@ -135,5 +88,4 @@ if (/Member catalog|services with local support and member-managed access|Contac
   process.exit(1);
 }
 
-console.log(`Verified ${checks.length} public-USD, member-KSh, and Lokimax catalog source invariants.`);
-
+console.log(`Verified ${checks.length} exact-price, member-KSh, and Lokimax catalog source invariants.`);

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { RenewalCheckout } from "@/components/renewal-checkout";
 import { requireMember } from "@/lib/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { isPlanDurationMonths, planPriceForDuration } from "@/lib/plan-durations";
+import { isPlanDurationMonths } from "@/lib/plan-durations";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Renew subscription" };
@@ -16,7 +16,7 @@ export default async function RenewalPage({ params }: { params: Promise<{ id: st
 
   const { data: subscription } = await supabase
     .from("uniplug_member_subscriptions")
-    .select("id,status,duration_months,service:uniplug_catalog_services(name),plan:uniplug_member_plans(plan_name,price_kes,billing_cycle,availability_status,duration_offers:uniplug_plan_duration_offers(duration_months,discount_percent,is_active))")
+    .select("id,status,duration_months,service:uniplug_catalog_services(name),plan:uniplug_member_plans(plan_name,price_kes,billing_cycle,availability_status,duration_offers:uniplug_plan_duration_offers(duration_months,price_kes,is_active))")
     .eq("id", id)
     .eq("user_id", viewer.user.id)
     .maybeSingle();
@@ -28,13 +28,13 @@ export default async function RenewalPage({ params }: { params: Promise<{ id: st
     price_kes: number;
     billing_cycle: string;
     availability_status: string;
-    duration_offers: Array<{ duration_months: number; discount_percent: number; is_active: boolean }>;
+    duration_offers: Array<{ duration_months: number; price_kes: number; is_active: boolean }>;
   } | null;
   if (!service || !plan || plan.availability_status === "unavailable") notFound();
   const durationMonths = Number(subscription.duration_months);
   const durationOffer = plan.duration_offers?.find((offer) => offer.duration_months === durationMonths && offer.is_active);
   const priceKes = isPlanDurationMonths(durationMonths)
-    ? planPriceForDuration(Number(plan.price_kes), durationMonths, Number(durationOffer?.discount_percent || 0))
+    ? Number(durationOffer?.price_kes || plan.price_kes)
     : Number(plan.price_kes) * durationMonths;
 
   return (

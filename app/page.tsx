@@ -1,7 +1,7 @@
 import { CatalogExplorer } from "@/components/catalog-explorer";
 import { ProcessStrip } from "@/components/home-sections";
 import { getViewer } from "@/lib/auth";
-import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
+import { getPublicCatalog } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
 import { isKeysStoreRequest } from "@/lib/site-mode";
 import { StorefrontHome } from "@/components/storefront-home";
@@ -36,7 +36,6 @@ export default async function HomePage() {
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();
-  const plans = await getMemberPlans(services.map((service) => service.id));
   const subscriptions = isMember && viewer.profile?.clientId
     ? await getTrackedSubscriptions(viewer.profile.clientId)
     : [];
@@ -53,7 +52,6 @@ export default async function HomePage() {
       <div className="upgrade-shell storefront-catalog-shell">
         <CatalogExplorer
           services={services}
-          plans={plans}
           isMember={isMember}
           managedServices={managedServices}
           variant="homepage"

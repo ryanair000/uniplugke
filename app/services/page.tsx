@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
 import { CatalogExplorer } from "@/components/catalog-explorer";
 import { getViewer } from "@/lib/auth";
-import { getMemberPlans, getPublicCatalog } from "@/lib/catalog";
+import { getPublicCatalog } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Catalog",
-  description: "Explore UniPlug digital services and software with clear public USD pricing."
+  description: "Explore UniPlug digital services and software with exact public KSh catalogue pricing."
 };
 
 export default async function ServicesPage() {
   const viewer = await getViewer();
   const isMember = viewer.profile?.status === "active";
   const services = await getPublicCatalog();
-  const plans = await getMemberPlans(services.map((service) => service.id));
   const subscriptions = isMember && viewer.profile?.clientId
     ? await getTrackedSubscriptions(viewer.profile.clientId)
     : [];
@@ -37,7 +36,6 @@ export default async function ServicesPage() {
       <div className="upgrade-shell storefront-catalog-shell">
         <CatalogExplorer
           services={services}
-          plans={plans}
           isMember={isMember}
           managedServices={managedServices}
         />

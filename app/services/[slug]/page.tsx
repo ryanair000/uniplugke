@@ -6,8 +6,8 @@ import { ServiceArtwork } from "@/components/service-artwork";
 import { getViewer } from "@/lib/auth";
 import { getMemberPlans, getPublicCatalog, getPublicService } from "@/lib/catalog";
 import { getTrackedSubscriptions } from "@/lib/client-portal";
-import { formatDualPrice, formatUsd, usdToKes } from "@/lib/currency";
-import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
+import { formatDualPrice } from "@/lib/currency";
+import { isPlanDurationMonths, planDurationLabel, type PlanDurationMonths } from "@/lib/plan-durations";
 
 export const dynamic = "force-dynamic";
 
@@ -54,12 +54,15 @@ export default async function ServiceDetailPage({
   const activeSubscription = subscriptions.find((subscription) => {
     if (!["active", "due_soon", "trial"].includes(subscription.status)) return false;
     const trackedName = comparableName(subscription.service?.name || subscription.serviceIdentifier || "");
-    return trackedName === catalogName
+    return (service.slug === "live-stream-sports" && trackedName.startsWith("dstv"))
+      || trackedName === catalogName
       || trackedName.includes(catalogName)
       || catalogName.includes(trackedName)
       || trackedName.split(" ")[0] === catalogName.split(" ")[0];
   });
-  const primaryPlan = plans[0];
+  const startingOffer = service.publicPlans
+    .flatMap((plan) => plan.offers)
+    .sort((a, b) => a.priceKes - b.priceKes)[0];
   const relatedServices = services
     .filter((item) => item.id !== service.id)
     .sort((a, b) => {
@@ -96,15 +99,10 @@ export default async function ServiceDetailPage({
             <span>{service.fulfillmentLabel}</span>
           </div>
 
-          {isMember && (primaryPlan || service.startingPriceUsd) ? (
+          {startingOffer ? (
             <div className="product-starting-price">
               <span>From</span>
-              <strong>{formatDualPrice(primaryPlan?.priceKes ?? usdToKes(service.startingPriceUsd!))} <small>/ month</small></strong>
-            </div>
-          ) : service.startingPriceUsd ? (
-            <div className="product-starting-price">
-              <span>From</span>
-              <strong>{formatUsd(service.startingPriceUsd)} <small>/ month</small></strong>
+              <strong>{formatDualPrice(startingOffer.priceKes)} <small>/ {planDurationLabel(startingOffer.durationMonths)}</small></strong>
             </div>
           ) : null}
 
@@ -132,11 +130,11 @@ export default async function ServiceDetailPage({
             <div className="product-managed-state">
               <span className="managed-kicker">Prepaid member plan</span>
               <h2>Choose your duration</h2>
-              <p>Compare public USD offers now. Sign in only when you are ready to continue with secure member checkout.</p>
-              {service.startingPriceUsd ? (
+              <p>Compare exact KSh catalogue prices now. Sign in only when you are ready to continue with secure member checkout.</p>
+              {service.publicPlans.length ? (
                 <PublicPlanPreview
                   initialDuration={initialDuration}
-                  monthlyPriceUsd={service.startingPriceUsd}
+                  plans={service.publicPlans}
                   serviceSlug={service.slug}
                 />
               ) : (
