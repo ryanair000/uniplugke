@@ -134,7 +134,8 @@ export function buildLokimaxCatalog(sources: LokimaxCatalogSource[], curatedServ
       faqs: [{ question: "How do I receive access?", answer: "The current activation method and any required details are confirmed after your request is reviewed." }],
       availabilityStatus,
       featured: false,
-      startingPriceUsd
+      startingPriceUsd,
+      publicPlans: []
     };
     const curated = curatedBySlug.get(serviceSlug);
 
