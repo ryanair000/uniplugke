@@ -56,8 +56,8 @@ export function CatalogExplorer({
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const browsableServices = useMemo(
-    () => isMember ? services : services.filter((service) => service.startingPriceUsd != null),
-    [isMember, services]
+    () => services.filter((service) => service.publicPlans.length > 0),
+    [services]
   );
   const categories = useMemo(() => {
     const available = Array.from(new Set(browsableServices.map((service) => service.category)));
@@ -170,7 +170,7 @@ export function CatalogExplorer({
       <div className="catalog-card-grid">
         {displayedEntries.map((entry) => {
           if (entry.kind === "software") {
-            return <CatalogSoftwareCard isMember={isMember} key={`software-${entry.product.slug}`} product={entry.product} />;
+            return <CatalogSoftwareCard key={`software-${entry.product.slug}`} product={entry.product} />;
           }
           const managed = findManagedService(entry.service, managedServices);
           return (

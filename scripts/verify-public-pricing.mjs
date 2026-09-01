@@ -47,9 +47,9 @@ const checks = [
     tokens: ["await getViewer()", "isMember"]
   },
   {
-    name: "guest catalog cards expose exact KSh prices and available terms",
+    name: "every guest catalog card exposes exact KSh prices and available terms",
     source: read("components/catalog-explorer.tsx") + read("components/service-card.tsx"),
-    tokens: ["service.publicPlans", "startingOffer.priceKes", "planDurationLabel(startingOffer.durationMonths)"]
+    tokens: ["service.publicPlans", "startingOffer.priceKes", "planDurationLabel(startingOffer.durationMonths)", "formatDualPrice(product.priceKes)"]
   }
 ];
 

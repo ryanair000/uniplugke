@@ -1,3 +1,5 @@
+import { serviceArtworkSlugs } from "@/lib/service-artwork.generated";
+
 const serviceArtwork = [
   { match: "netflix", src: "/brands/netflix.svg" },
   { match: "spotify", src: "/brands/spotify.svg" },
@@ -12,5 +14,6 @@ const serviceArtwork = [
 export function getServiceArtwork(slug: string | null | undefined) {
   if (!slug) return null;
   const normalizedSlug = slug.trim().toLowerCase();
+  if (serviceArtworkSlugs.has(normalizedSlug)) return `/brands/catalog/${normalizedSlug}.svg`;
   return serviceArtwork.find((artwork) => normalizedSlug.includes(artwork.match))?.src ?? null;
 }

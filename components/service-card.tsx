@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ServiceArtwork } from "@/components/service-artwork";
-import { formatDualPrice, formatUsd, kesToUsd } from "@/lib/currency";
+import { formatDualPrice } from "@/lib/currency";
 import { planDurationLabel } from "@/lib/plan-durations";
 import type { KeyProduct } from "@/lib/key-products";
 import type { CatalogService } from "@/lib/types";
@@ -85,7 +85,7 @@ export function CatalogServiceCard({
   );
 }
 
-export function CatalogSoftwareCard({ product, isMember }: { product: KeyProduct; isMember: boolean }) {
+export function CatalogSoftwareCard({ product }: { product: KeyProduct }) {
   const href = `https://uniplug.shop/checkout?product=${product.slug}`;
 
   return (
@@ -116,7 +116,7 @@ export function CatalogSoftwareCard({ product, isMember }: { product: KeyProduct
 
         <div className="catalog-card-footer">
           <div>
-            <strong>{isMember ? formatDualPrice(product.priceKes) : formatUsd(kesToUsd(product.priceKes))}</strong>
+            <strong>{formatDualPrice(product.priceKes)}</strong>
             <small>per {product.term}</small>
           </div>
           <span className="catalog-card-action">
