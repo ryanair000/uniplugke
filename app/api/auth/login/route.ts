@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeKenyanPhone } from "@/lib/phone";
 import { findPortalUserForClient } from "@/lib/client-identity";
+import { isKeysHostname } from "@/lib/site-mode";
 import {
   getLokimaxVipAccess,
   storeAccountDestination,
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
   const password = String(body.password || "");
   if (!identifier || password.length < 8 || password.length > 256) return genericFailure();
 
+  const requestHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
+  const isVipHost = !isKeysHostname(requestHost);
   const admin = createAdminSupabaseClient();
 
   if (admin) {
@@ -196,7 +199,7 @@ export async function POST(request: Request) {
   const requestedPath = safeNext(body.next);
   const isAdmin = profile.role === "admin";
   const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
-  const destination = vipAccess.hasService || isAdmin
+  const destination = isVipHost || vipAccess.hasService || isAdmin
     ? vipAccountDestination(
         mustRotatePassword,
         firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
