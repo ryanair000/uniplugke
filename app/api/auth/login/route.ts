@@ -102,9 +102,6 @@ export async function POST(request: Request) {
         .maybeSingle();
       resolvedUserId = directPortal?.user_id || null;
 
-      // Older LokiMax rows can hold the member phone on an alias client while
-      // the portal account is attached to the canonical client. Resolve those
-      // candidate client rows through the shared identity graph before giving up.
       if (!resolvedUserId) {
         const localKenyan = phone.startsWith("+254") ? `0${phone.slice(4)}` : null;
         const digits = phone.replace(/\D/g, "");
@@ -198,13 +195,15 @@ export async function POST(request: Request) {
 
   const requestedPath = safeNext(body.next);
   const isAdmin = profile.role === "admin";
-  const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
-  const destination = isVipHost || vipAccess.hasService || isAdmin
-    ? vipAccountDestination(
-        mustRotatePassword,
-        firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
-      )
-    : storeAccountDestination(requestedPath);
+
+  // Normal client sign-in on vip.uniplug.shop always opens My Services.
+  // Ignore stale `next` values such as /dashboard/settings left by older login flows.
+  const destination = isVipHost && !isAdmin
+    ? vipAccountDestination(false, "/dashboard/subscriptions")
+    : vipAccess.hasService || isAdmin
+      ? vipAccountDestination(false, requestedPath)
+      : storeAccountDestination(requestedPath);
+
   return NextResponse.json(
     { next: destination },
     { headers: { "Cache-Control": "no-store" } }
