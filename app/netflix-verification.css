@@ -1,0 +1,98 @@
+/* Keep Netflix verification visibly active between mailbox scans. */
+.household-assistant .verification-progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  overflow: hidden;
+  padding: 8px 0 12px;
+}
+
+.household-assistant .verification-progress::before {
+  content: "";
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  border: 3px solid rgba(109, 40, 217, 0.14);
+  border-top-color: var(--wallet-purple, #6d28d9);
+  border-right-color: #8b5cf6;
+  border-radius: 999px;
+  box-shadow: 0 0 0 5px rgba(109, 40, 217, 0.06);
+  animation: netflix-code-spin 0.9s linear infinite;
+}
+
+.household-assistant .verification-progress::after {
+  content: "";
+  position: absolute;
+  left: 46px;
+  right: 0;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(109, 40, 217, 0.1) 0%,
+    rgba(109, 40, 217, 0.1) 32%,
+    rgba(139, 92, 246, 0.95) 48%,
+    rgba(109, 40, 217, 0.1) 64%,
+    rgba(109, 40, 217, 0.1) 100%
+  );
+  background-size: 220% 100%;
+  animation: netflix-code-sweep 1.65s ease-in-out infinite;
+}
+
+.household-assistant .verification-progress p {
+  margin: 0;
+  color: var(--wallet-ink, #17151d);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+/* The old three-dot loader only appeared while a request was in flight.
+   The new loader stays visible throughout the full waiting state. */
+.household-assistant .verification-loader {
+  display: none;
+}
+
+/* Once the flow times out and the replacement action is shown, stop motion. */
+.household-assistant:has(> .replace-button) .verification-progress::before,
+.household-assistant:has(> .replace-button) .verification-progress::after {
+  animation: none;
+  opacity: 0.35;
+}
+
+@keyframes netflix-code-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes netflix-code-sweep {
+  0% { background-position: 100% 0; opacity: 0.45; }
+  50% { opacity: 1; }
+  100% { background-position: -120% 0; opacity: 0.45; }
+}
+
+@media (max-width: 640px) {
+  .household-assistant .verification-progress {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+    min-height: 60px;
+  }
+
+  .household-assistant .verification-progress::before {
+    width: 24px;
+    height: 24px;
+  }
+
+  .household-assistant .verification-progress::after {
+    left: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .household-assistant .verification-progress::before,
+  .household-assistant .verification-progress::after {
+    animation: none;
+  }
+}
