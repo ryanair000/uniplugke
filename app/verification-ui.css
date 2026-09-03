@@ -1,0 +1,203 @@
+.verification-assistant {
+  overflow: hidden;
+}
+
+.verification-loader-shell {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  grid-template-columns: 54px minmax(0, 1fr);
+  border: 1px solid #e1d7f2;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .82);
+  padding: 14px;
+}
+
+.verification-orbit {
+  position: relative;
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f0e8ff;
+}
+
+.verification-orbit::before,
+.verification-orbit::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+}
+
+.verification-orbit::before {
+  inset: 5px;
+  border: 2px solid rgba(109, 40, 217, .16);
+  border-top-color: #6d28d9;
+  animation: verification-spin 1.05s linear infinite;
+}
+
+.verification-orbit::after {
+  inset: 16px;
+  background: #6d28d9;
+  box-shadow: 0 0 0 0 rgba(109, 40, 217, .28);
+  animation: verification-pulse 1.65s ease-out infinite;
+}
+
+.verification-orbit i,
+.verification-orbit b {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8b5cf6;
+}
+
+.verification-orbit i {
+  top: 3px;
+  left: 22px;
+  animation: verification-float-a 1.8s ease-in-out infinite;
+}
+
+.verification-orbit b {
+  right: 4px;
+  bottom: 11px;
+  opacity: .55;
+  animation: verification-float-b 1.8s .3s ease-in-out infinite;
+}
+
+.verification-loader-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.verification-loader-copy strong {
+  color: #211b2b;
+  font-size: .8rem;
+}
+
+.verification-loader-copy span {
+  color: #756c80;
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+.verification-stages {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.verification-stages span {
+  position: relative;
+  border-radius: 999px;
+  background: #e9e5ed;
+  padding: 7px 8px;
+  color: #8a8390;
+  font-size: .58rem;
+  font-weight: 800;
+  text-align: center;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.verification-stages span.is-active {
+  background: #ede3ff;
+  color: #6d28d9;
+  animation: verification-stage 1.45s ease-in-out infinite;
+}
+
+.verification-stages span.is-done {
+  background: #e8f7f1;
+  color: #087a58;
+}
+
+.verification-code-ready {
+  grid-template-columns: minmax(0, 1fr) auto;
+  animation: verification-code-in 280ms ease-out both;
+}
+
+.verification-code-ready > strong {
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  letter-spacing: .18em;
+}
+
+.verification-code-ready > button {
+  min-height: 38px;
+  border: 1px solid #d8c9f0;
+  border-radius: 10px;
+  background: #f8f4ff;
+  padding: 8px 11px;
+  color: #5d20bd;
+  font-weight: 850;
+}
+
+@keyframes verification-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes verification-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(109, 40, 217, .3); }
+  70%, 100% { box-shadow: 0 0 0 12px rgba(109, 40, 217, 0); }
+}
+
+@keyframes verification-float-a {
+  0%, 100% { transform: translateY(0); opacity: .35; }
+  50% { transform: translateY(4px); opacity: 1; }
+}
+
+@keyframes verification-float-b {
+  0%, 100% { transform: translate(-1px, 0); opacity: .35; }
+  50% { transform: translate(3px, -2px); opacity: .9; }
+}
+
+@keyframes verification-stage {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes verification-code-in {
+  from { opacity: 0; transform: translateY(7px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verification-orbit::before,
+  .verification-orbit::after,
+  .verification-orbit i,
+  .verification-orbit b,
+  .verification-stages span.is-active,
+  .verification-code-ready {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .verification-loader-shell {
+    grid-template-columns: 46px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .verification-orbit {
+    width: 44px;
+    height: 44px;
+  }
+
+  .verification-stages {
+    gap: 5px;
+  }
+
+  .verification-stages span {
+    padding-inline: 5px;
+    font-size: .52rem;
+  }
+
+  .verification-code-ready {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .verification-code-ready > button {
+    width: 100%;
+  }
+}
