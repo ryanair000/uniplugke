@@ -72,11 +72,12 @@ function absoluteUrl(origin: string, pathname: string) {
 }
 
 function vipPath(nextPath: string) {
+  if (nextPath === "/dashboard") return "/dashboard/subscriptions";
   if (nextPath === "/tools/verify" || nextPath.startsWith("/dashboard") || nextPath.startsWith("/admin")) return nextPath;
-  return "/dashboard";
+  return "/dashboard/subscriptions";
 }
 
-export function vipAccountDestination(mustChangePassword = false, nextPath = "/dashboard") {
+export function vipAccountDestination(mustChangePassword = false, nextPath = "/dashboard/subscriptions") {
   if (mustChangePassword) {
     return absoluteUrl(VIP_ORIGIN, "/dashboard/settings?security=required");
   }
