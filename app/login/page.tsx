@@ -37,14 +37,17 @@ export default async function LoginPage({
       else vipAccess = await getLokimaxVipAccess(supabase, viewer.user.id);
     }
     const isAdmin = viewer.profile.role === "admin";
-    const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
     if (!onboardingFailed) {
       const requestedPath = safeNext(query.next);
-      redirect(!isMainShop || isAdmin || vipAccess.hasService
-        ? vipAccountDestination(
-            mustRotatePassword,
-            firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
-          )
+
+      // A signed-in client who opens vip.uniplug.shop/login should always land
+      // on My Services. Do not reuse stale next paths from older password flows.
+      if (!isMainShop && !isAdmin) {
+        redirect(vipAccountDestination(false, "/dashboard/subscriptions"));
+      }
+
+      redirect(isAdmin || vipAccess.hasService
+        ? vipAccountDestination(false, requestedPath)
         : storeAccountDestination(requestedPath));
     }
   }
