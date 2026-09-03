@@ -39,12 +39,13 @@ export default async function LoginPage({
     const isAdmin = viewer.profile.role === "admin";
     const mustRotatePassword = !isAdmin && vipAccess.mustChangePassword;
     if (!onboardingFailed) {
-      redirect(isAdmin || vipAccess.hasService
+      const requestedPath = safeNext(query.next);
+      redirect(!isMainShop || isAdmin || vipAccess.hasService
         ? vipAccountDestination(
             mustRotatePassword,
-            firstLogin && !isAdmin ? "/dashboard/subscriptions" : safeNext(query.next)
+            firstLogin && !isAdmin ? "/dashboard/subscriptions" : requestedPath
           )
-        : storeAccountDestination(safeNext(query.next)));
+        : storeAccountDestination(requestedPath));
     }
   }
   const nextPath = safeNext(query.next);
@@ -62,7 +63,7 @@ export default async function LoginPage({
             ? "Sign in to your UniPlug shop account. If a managed service is linked to you, we’ll open the VIP portal automatically."
             : isServiceReturn
             ? "Sign in to return to this service and review member pricing."
-            : "Use the username or email and password from your invitation."}
+            : "Sign in to open your UniPlug services."}
         </p>
         {viewer.user && onboardingFailed ? (
           <div className="notice">
