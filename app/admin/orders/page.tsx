@@ -17,13 +17,17 @@ export default async function AdminOrdersPage({
   const search = String(query.search || "").trim().toLowerCase();
   const status = String(query.status || "all");
   const supabase = await createServerSupabaseClient();
-  const { data } = supabase
-    ? await supabase.from("uniplug_member_orders").select("id,order_number,customer_email,customer_phone,total_kes,payment_status,fulfillment_status,paid_at,created_at").order("created_at", { ascending: false }).limit(200)
-    : { data: [] };
-  const orders = (data || []) as Array<{ id: string; order_number: string; customer_email: string; customer_phone: string; total_kes: number; payment_status: string; fulfillment_status: string; paid_at: string | null; created_at: string }>;
   const admin = createAdminSupabaseClient();
-  const { data: keyOrderData } = admin ? await admin.from("uniplug_key_orders").select("id,product_name,licence_term,amount_kes,customer_email,customer_phone,payment_status,fulfillment_status,created_at").order("created_at", { ascending: false }).limit(200) : { data: [] };
-  const keyOrders = (keyOrderData || []) as Array<{ id: string; product_name: string; licence_term: string; amount_kes: number; customer_email: string; customer_phone: string; payment_status: string; fulfillment_status: string; created_at: string }>;
+  const [ordersResult, keyOrderResult] = await Promise.all([
+    supabase
+      ? supabase.from("uniplug_member_orders").select("id,order_number,customer_email,customer_phone,total_kes,payment_status,fulfillment_status,paid_at,created_at").order("created_at", { ascending: false }).limit(200)
+      : Promise.resolve({ data: [] }),
+    admin
+      ? admin.from("uniplug_key_orders").select("id,product_name,licence_term,amount_kes,customer_email,customer_phone,payment_status,fulfillment_status,created_at").order("created_at", { ascending: false }).limit(200)
+      : Promise.resolve({ data: [] })
+  ]);
+  const orders = (ordersResult.data || []) as Array<{ id: string; order_number: string; customer_email: string; customer_phone: string; total_kes: number; payment_status: string; fulfillment_status: string; paid_at: string | null; created_at: string }>;
+  const keyOrders = (keyOrderResult.data || []) as Array<{ id: string; product_name: string; licence_term: string; amount_kes: number; customer_email: string; customer_phone: string; payment_status: string; fulfillment_status: string; created_at: string }>;
   const ready = orders.filter((order) => order.payment_status === "paid" && !["active", "completed"].includes(order.fulfillment_status));
   const keysToDeliver = keyOrders.filter((order) => order.payment_status === "paid" && order.fulfillment_status !== "delivered");
 

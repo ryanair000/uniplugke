@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { AdminTabsTransition } from "@/components/admin-tabs-transition";
 import { AdminToolbarTransition } from "@/components/admin-toolbar-transition";
 
 export function AdminPageHeader({
@@ -50,16 +50,7 @@ export function AdminTabs({
   tabs: Array<{ label: string; href: string; count?: number }>;
   active: string;
 }) {
-  return (
-    <nav className="admin-tabs" aria-label="Page views">
-      {tabs.map((tab) => (
-        <Link className={active === tab.href ? "active" : undefined} href={tab.href} key={tab.href}>
-          <span>{tab.label}</span>
-          {typeof tab.count === "number" ? <b>{tab.count}</b> : null}
-        </Link>
-      ))}
-    </nav>
-  );
+  return <AdminTabsTransition tabs={tabs} active={active} />;
 }
 
 export function AdminToolbar({ children }: { children: ReactNode }) {
