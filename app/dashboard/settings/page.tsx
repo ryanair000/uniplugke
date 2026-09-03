@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { updateMemberPassword, updateMemberProfile } from "@/app/settings/actions";
 import { requireMember } from "@/lib/auth";
 
@@ -13,6 +14,12 @@ export default async function SettingsPage({
   const viewer = await requireMember();
   const query = await searchParams;
 
+  // Older VIP login flows may still have a bookmarked/cached security=required URL.
+  // Password changes are optional now, so those users must go straight to My Services.
+  if (query.security === "required") {
+    redirect("/dashboard/subscriptions");
+  }
+
   return (
     <section className="section shell page-top">
       <Link className="back-link" href="/dashboard">← Back to My UniPlug</Link>
@@ -24,7 +31,6 @@ export default async function SettingsPage({
 
       {query.success ? <p className="form-success page-notice">{query.success}</p> : null}
       {query.error ? <p className="form-error page-notice">{query.error}</p> : null}
-      {query.security === "required" ? <p className="admin-notice">Set your private password once. We will open your selected service immediately afterwards.</p> : null}
 
       <div className="settings-grid">
         <section className="panel">
