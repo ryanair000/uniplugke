@@ -21,6 +21,14 @@ function providerLabel(provider: string | null | undefined, fallback?: string) {
   return fallback || "Service";
 }
 
+function inferredVerifyProvider(details: AccessDetails | null, verificationProvider: string | null | undefined, isNetflix: boolean) {
+  if (verificationProvider) return verificationProvider;
+  if (isNetflix) return "netflix";
+  const service = details?.serviceName.trim().toLowerCase() || "";
+  if (service === "chatgpt plus" || service === "chatgpt") return "chatgpt";
+  return null;
+}
+
 function CredentialIcon({ kind }: { kind: CredentialKind }) {
   if (kind === "email") return <Mail size={17} strokeWidth={2.2} />;
   if (kind === "profile") return <UserRound size={17} strokeWidth={2.2} />;
@@ -89,13 +97,14 @@ export function AccountAccess({
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-  const verifyLabel = providerLabel(verificationProvider, details?.serviceName);
-  const canVerify = Boolean(verificationProvider);
+  const effectiveProvider = inferredVerifyProvider(details, verificationProvider, isNetflix);
+  const verifyLabel = providerLabel(effectiveProvider, details?.serviceName);
+  const canVerify = Boolean(effectiveProvider);
 
   const getLatestCode = useCallback(async (silent = false) => {
     setBusy("code");
     if (!silent) setMessage("");
-    setCodeNote(`Checking ${providerLabel(verificationProvider)} for your verification code…`);
+    setCodeNote(`Checking ${verifyLabel} for your verification code…`);
     try {
       const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/verification-code`, { method: "POST", cache: "no-store" });
       const body = await response.json();
@@ -108,7 +117,7 @@ export function AccountAccess({
       }
       if (body.status === "pending" || body.status === "not_found") {
         setNextCodeCheckAt(Date.now() + retryAfterSeconds * 1000);
-        setCodeNote(`Still waiting for the ${providerLabel(verificationProvider)} verification email…`);
+        setCodeNote(`Still waiting for the ${verifyLabel} verification email…`);
         return;
       }
       if (!response.ok) throw new Error(body.error || "The verification code could not be loaded.");
@@ -123,7 +132,7 @@ export function AccountAccess({
     } finally {
       setBusy(null);
     }
-  }, [subscriptionId, verificationProvider]);
+  }, [subscriptionId, verifyLabel]);
 
   useEffect(() => {
     let active = true;
