@@ -28,10 +28,6 @@ function isMemberAccessPath(pathname: string) {
   return pathname === "/auth/member-link" || pathname.startsWith("/access/");
 }
 
-function isPasswordRotationPath(pathname: string) {
-  return pathname === "/dashboard/settings" || pathname === "/settings";
-}
-
 function redirectWithCookies(response: NextResponse, destination: URL) {
   const redirect = NextResponse.redirect(destination);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
@@ -43,23 +39,6 @@ function securePrivateResponse(response: NextResponse) {
   response.headers.set("Pragma", "no-cache");
   response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   return response;
-}
-
-function passwordRotationRequiredResponse(request: NextRequest, response: NextResponse) {
-  if (request.nextUrl.pathname.startsWith("/api/")) {
-    const denied = NextResponse.json(
-      { error: "Change your temporary password before using private account features." },
-      { status: 403 }
-    );
-    response.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie));
-    return securePrivateResponse(denied);
-  }
-
-  const settingsUrl = request.nextUrl.clone();
-  settingsUrl.pathname = "/dashboard/settings";
-  settingsUrl.search = "";
-  settingsUrl.searchParams.set("security", "required");
-  return redirectWithCookies(response, settingsUrl);
 }
 
 export async function updateSession(request: NextRequest) {
@@ -106,8 +85,8 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     if (storeProfile?.status !== "active") return storeResponse;
     const vipAccess = await getLokimaxVipAccess(storeSupabase, storeUser.user.id);
-    if (storeProfile.role !== "admin" && !vipAccess.hasService && !vipAccess.mustChangePassword) return storeResponse;
-    return redirectWithCookies(storeResponse, new URL(vipAccountDestination(vipAccess.mustChangePassword)));
+    if (storeProfile.role !== "admin" && !vipAccess.clientId && !vipAccess.hasService) return storeResponse;
+    return redirectWithCookies(storeResponse, new URL(vipAccountDestination(false)));
   }
 
   const isPublicPath = publicPaths.has(pathname) || isMemberAccessPath(pathname);
@@ -143,7 +122,6 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
 
   let profile: { status: string; role: string } | null = null;
-  let mustChangePassword = false;
   if (data.user) {
     const result = await supabase
       .from("uniplug_profiles")
@@ -154,8 +132,10 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.status === "active" && profile.role !== "admin") {
       const vipAccess = await getLokimaxVipAccess(supabase, data.user.id);
-      mustChangePassword = vipAccess.mustChangePassword;
-      if (!vipAccess.hasService && !vipAccess.mustChangePassword) {
+      // A real VIP portal account must stay inside vip.uniplug.shop even when
+      // subscription sync is momentarily behind. Password rotation is optional
+      // and must never hijack navigation away from My Services.
+      if (!vipAccess.clientId && !vipAccess.hasService) {
         return redirectWithCookies(response, new URL(storeAccountDestination("/")));
       }
     }
@@ -178,10 +158,6 @@ export async function updateSession(request: NextRequest) {
     loginUrl.search = "";
     loginUrl.searchParams.set("error", "membership_required");
     return redirectWithCookies(response, loginUrl);
-  }
-
-  if (mustChangePassword && !isPasswordRotationPath(pathname)) {
-    return passwordRotationRequiredResponse(request, response);
   }
 
   return securePrivateResponse(response);
