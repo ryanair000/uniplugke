@@ -35,7 +35,7 @@ export async function recordVerifyAdminEvent({
   action,
   outcome,
   failureCategory = null,
-  provider = "netflix",
+  provider = null,
   mailboxEmail = null,
   subscriptionId = null,
   metadata = {}
@@ -114,24 +114,38 @@ export async function syncVerifyOperationalAlerts(admin: SupabaseClient) {
   }
 
   const candidates = new Map<string, AlertCandidate>();
+  const typedSubscriptions = (subscriptionRows || []) as VerifySubscriptionRow[];
   const credentialEmails = new Set((credentials || []).map((row) => String(row.mailbox_email).toLowerCase()));
+  const providersByMailbox = new Map<string, Set<string>>();
+  for (const subscription of typedSubscriptions) {
+    const service = relatedService(subscription);
+    const mailboxEmail = subscription.account_reference?.trim().toLowerCase() || null;
+    if (!mailboxEmail || !service?.verify_provider || !subscription.verify_enabled || !service.verify_enabled) continue;
+    const providers = providersByMailbox.get(mailboxEmail) || new Set<string>();
+    providers.add(service.verify_provider);
+    providersByMailbox.set(mailboxEmail, providers);
+  }
+
   for (const row of credentials || []) {
     if (!row.last_error) continue;
     const authenticationFailure = String(row.last_error).toLowerCase().includes("authentication");
     const mailboxEmail = String(row.mailbox_email).toLowerCase();
-    const alertKey = `${authenticationFailure ? "auth" : "provider"}:${mailboxEmail}`;
-    candidates.set(alertKey, {
-      alertKey,
-      category: authenticationFailure ? "authentication_failure" : "configuration",
-      severity: authenticationFailure ? "high" : "medium",
-      provider: "netflix",
-      mailboxEmail,
-      occurrenceCount: 1,
-      safeContext: {
-        failureCategory: authenticationFailure ? "mailbox_authentication_failed" : "mailbox_provider_error",
-        lastCheckedAt: row.last_checked_at || null
-      }
-    });
+    const providers = [...(providersByMailbox.get(mailboxEmail) || new Set(["netflix"]))];
+    for (const provider of providers) {
+      const alertKey = `${authenticationFailure ? "auth" : "provider"}:${provider}:${mailboxEmail}`;
+      candidates.set(alertKey, {
+        alertKey,
+        category: authenticationFailure ? "authentication_failure" : "configuration",
+        severity: authenticationFailure ? "high" : "medium",
+        provider,
+        mailboxEmail,
+        occurrenceCount: 1,
+        safeContext: {
+          failureCategory: authenticationFailure ? "mailbox_authentication_failed" : "mailbox_provider_error",
+          lastCheckedAt: row.last_checked_at || null
+        }
+      });
+    }
   }
 
   const events = (eventRows || []) as VerifyEvent[];
@@ -181,21 +195,26 @@ export async function syncVerifyOperationalAlerts(admin: SupabaseClient) {
     });
   }
 
-  const providerNoCodes = events.filter((event) => event.event_type === "code_not_found" && event.provider);
-  const affectedSubscriptions = new Set(providerNoCodes.map((event) => event.client_subscription_id).filter(Boolean));
-  if (providerNoCodes.length >= 5 && affectedSubscriptions.size >= 3) {
-    const alertKey = "provider-format:netflix";
+  const noCodesByProvider = new Map<string, VerifyEvent[]>();
+  for (const event of events) {
+    if (event.event_type !== "code_not_found" || !event.provider) continue;
+    noCodesByProvider.set(event.provider, [...(noCodesByProvider.get(event.provider) || []), event]);
+  }
+  for (const [provider, providerNoCodes] of noCodesByProvider) {
+    const affectedSubscriptions = new Set(providerNoCodes.map((event) => event.client_subscription_id).filter(Boolean));
+    if (providerNoCodes.length < 5 || affectedSubscriptions.size < 3) continue;
+    const alertKey = `provider-format:${provider}`;
     candidates.set(alertKey, {
       alertKey,
       category: "provider_format_change",
       severity: "high",
-      provider: "netflix",
+      provider,
       occurrenceCount: providerNoCodes.length,
       safeContext: { affectedSubscriptions: affectedSubscriptions.size, windowMinutes: 30 }
     });
   }
 
-  for (const subscription of (subscriptionRows || []) as VerifySubscriptionRow[]) {
+  for (const subscription of typedSubscriptions) {
     const service = relatedService(subscription);
     if (!subscription.verify_enabled || !service?.verify_enabled || !service.verify_provider) continue;
     const accountReference = subscription.account_reference?.trim().toLowerCase() || null;
