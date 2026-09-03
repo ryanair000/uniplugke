@@ -7,7 +7,7 @@ import {
 } from "@/lib/account-routing";
 
 function safeNext(value: string | null) {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
+  return value?.startsWith("/") && !value.startsWith("//") ? value : "/dashboard/subscriptions";
 }
 
 export async function GET(request: Request) {
