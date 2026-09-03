@@ -77,10 +77,9 @@ function vipPath(nextPath: string) {
   return "/dashboard/subscriptions";
 }
 
-export function vipAccountDestination(mustChangePassword = false, nextPath = "/dashboard/subscriptions") {
-  if (mustChangePassword) {
-    return absoluteUrl(VIP_ORIGIN, "/dashboard/settings?security=required");
-  }
+export function vipAccountDestination(_mustChangePassword = false, nextPath = "/dashboard/subscriptions") {
+  // VIP clients should enter their services immediately after sign-in. Password
+  // changes remain available from Settings, but are never forced during login.
   return absoluteUrl(VIP_ORIGIN, vipPath(nextPath));
 }
 
