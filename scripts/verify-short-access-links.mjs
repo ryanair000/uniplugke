@@ -23,7 +23,7 @@ assert.match(profileMigration, /subscription_service_items/);
 assert.match(profileMigration, /client_service_history/);
 assert.match(profileMigration, /account\.profile_pin/);
 assert.match(profileMigration, /v_base_pin/);
-assert.match(adminRoute, /ACCESS_MAX_USES = 3/);
+assert.match(adminRoute, /ACCESS_MAX_USES = 5/);
 assert.match(adminRoute, /ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59\.999Z"/);
 assert.match(adminRoute, /PORTAL_ELIGIBLE_STATUSES\.includes\(subscription\.status/);
 assert.match(adminRoute, /token_hash: hashToken\(token\)/);
@@ -68,4 +68,4 @@ assert.match(settingsActions, /if \(next\) redirect\(next\)/);
 assert.match(proxy, /pathname\.startsWith\("\/access\/"\)/);
 assert.match(proxy, /pathname === "\/auth\/member-link"/);
 
-console.log("Verified friendly non-expiring, 3-use UniPlug member access links with LokiMax profile metadata and guided client messages.");
+console.log("Verified friendly non-expiring, 5-use UniPlug member access links with LokiMax profile metadata and guided client messages.");
