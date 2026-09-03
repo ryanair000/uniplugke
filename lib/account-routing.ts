@@ -73,6 +73,9 @@ function absoluteUrl(origin: string, pathname: string) {
 
 function vipPath(nextPath: string) {
   if (nextPath === "/dashboard") return "/dashboard/subscriptions";
+  // Legacy first-login URLs used to force clients into Profile & security.
+  // Never preserve that forced route: successful VIP sign-in must open My Services.
+  if (nextPath.startsWith("/dashboard/settings?security=required")) return "/dashboard/subscriptions";
   if (nextPath === "/tools/verify" || nextPath.startsWith("/dashboard") || nextPath.startsWith("/admin")) return nextPath;
   return "/dashboard/subscriptions";
 }
