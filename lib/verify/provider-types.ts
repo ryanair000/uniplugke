@@ -1,4 +1,4 @@
-export type VerifyProviderId = "netflix";
+export type VerifyProviderId = "netflix" | "chatgpt";
 
 export type VerifyInstruction = {
   title: string;
