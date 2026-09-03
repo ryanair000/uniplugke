@@ -1,4 +1,4 @@
-/* Keep Netflix verification visibly active between mailbox scans. */
+/* Netflix verification loading state — visible between mailbox scans. */
 .household-assistant .verification-progress {
   position: relative;
   display: grid;
