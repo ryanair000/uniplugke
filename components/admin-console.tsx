@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AdminToolbarTransition } from "@/components/admin-toolbar-transition";
 
 export function AdminPageHeader({
   eyebrow,
@@ -62,7 +63,7 @@ export function AdminTabs({
 }
 
 export function AdminToolbar({ children }: { children: ReactNode }) {
-  return <div className="admin-toolbar">{children}</div>;
+  return <AdminToolbarTransition>{children}</AdminToolbarTransition>;
 }
 
 export function AdminSection({
