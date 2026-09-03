@@ -156,17 +156,32 @@ export async function POST(request: Request) {
     `Hi ${name} 👋`,
     "",
     "Your UniPlug services are ready.",
-    `Open your private services page here: ${portalLink}`,
     "",
-    "You can view all your active services there. If you need help, reply to this message."
+    "1. Open your private UniPlug services page:",
+    portalLink,
+    "2. Choose the service you want to use.",
+    "3. Open “Login details” and use the email, password, assigned profile and Profile PIN shown there.",
+    "",
+    "Keep this link private — it contains your account access details.",
+    "Something not working? Use “Account not working” on the service page or reply here."
   ].join("\n");
   const serviceMessage = [
     `Hi ${name} 👋`,
     "",
     `Your ${service} access is ready.`,
-    `Open it securely here: ${serviceLink}`,
     "",
-    "If you need help, reply to this message."
+    "Follow these steps:",
+    "1. Open your private access page:",
+    serviceLink,
+    "2. Tap “Copy all details” or copy the email and password shown.",
+    "3. Sign in to the service.",
+    "4. If a Profile / Profile PIN is shown, use exactly that assigned profile.",
+    ...(verificationAvailable
+      ? ["5. If you’re asked for a verification code, return to this page and tap “Need Verification Code”."]
+      : []),
+    "",
+    "Keep this link private — it contains your login details.",
+    "Something not working? Tap “Account not working” on the access page or reply here."
   ].join("\n");
   const verificationMessage = verificationAvailable ? [
     `Hi ${name} 👋`,
