@@ -9,7 +9,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase/server";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACCESS_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 const ACCESS_CODE_LENGTH = 10;
-const ACCESS_MAX_USES = 3;
+const ACCESS_MAX_USES = 5;
 const ACCESS_LINK_NO_TIME_EXPIRY = "9999-12-31T23:59:59.999Z";
 
 function serviceName(value: unknown) {
