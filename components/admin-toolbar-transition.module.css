@@ -1,0 +1,39 @@
+.toolbar {
+  position: relative;
+  overflow: hidden;
+}
+
+.pending::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #7c3aed 45%, transparent 100%);
+  content: "";
+  transform: translateX(-70%);
+  animation: toolbarProgress 850ms ease-in-out infinite;
+  pointer-events: none;
+}
+
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes toolbarProgress {
+  to { transform: translateX(70%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pending::after {
+    animation: none;
+    transform: none;
+    opacity: 0.55;
+  }
+}

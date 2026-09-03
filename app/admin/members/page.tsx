@@ -1,12 +1,15 @@
+import { Suspense } from "react";
 import { updateMemberStatus } from "@/app/admin/actions";
 import { AdminDrawer } from "@/components/admin-drawer";
-import { AdminEmptyState, AdminMetricStrip, AdminPageHeader, AdminSection, AdminStatus, AdminTabs, AdminToolbar } from "@/components/admin-console";
+import { AdminEmptyState, AdminPageHeader, AdminSection, AdminStatus, AdminTabs, AdminToolbar } from "@/components/admin-console";
 import { AdminInvitationForm } from "@/components/admin-invitations";
 import { AdminMemberAccess } from "@/components/admin-member-access";
+import { AdminMemberMetrics, AdminMemberMetricsFallback } from "@/components/admin-member-metrics";
 import { AdminMemberServiceAccess } from "@/components/admin-member-service-access";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { requireAdmin } from "@/lib/auth";
-import { getPortalProvisioningCoverage, PORTAL_ELIGIBLE_STATUSES } from "@/lib/portal-provisioning";
+import { getCachedAdminIdentityAliases } from "@/lib/admin-member-identity";
+import { PORTAL_ELIGIBLE_STATUSES } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -61,10 +64,7 @@ export default async function AdminMembersPage({
   }>;
 
   const admin = createAdminSupabaseClient();
-  const provisioningCoverage = admin
-    ? await getPortalProvisioningCoverage(admin)
-    : { eligibleCount: 0, missingCount: 0 };
-  const portalRows = admin && profiles.length
+  const portalRows = admin && view === "members" && profiles.length
     ? ((await admin
         .from("client_portal_accounts")
         .select("user_id,client_id")
@@ -76,14 +76,11 @@ export default async function AdminMembersPage({
   );
   const initialClientIds = [...new Set(Array.from(initialClientIdByUser.values()))];
 
-  const directAliases = admin && initialClientIds.length
-    ? ((await admin
-        .from("client_identity_aliases")
-        .select("alias_client_id,canonical_client_id")
-        .in("alias_client_id", initialClientIds)).data || [])
+  const aliasRows = admin && initialClientIds.length
+    ? await getCachedAdminIdentityAliases(admin)
     : [];
   const directAliasMap = new Map<string, string>(
-    (directAliases as Array<{ alias_client_id: string; canonical_client_id: string }>).map((row) => [row.alias_client_id, row.canonical_client_id] as const)
+    aliasRows.map((row) => [row.alias_client_id, row.canonical_client_id] as const)
   );
 
   const resolveLocal = (clientId: string) => {
@@ -101,20 +98,18 @@ export default async function AdminMembersPage({
     clientIdByUser.set(userId, resolveLocal(clientId));
   }
   const clientIds = [...new Set(Array.from(clientIdByUser.values()))];
+  const clientIdSet = new Set(clientIds);
 
-  const siblingAliases = admin && clientIds.length
-    ? ((await admin
-        .from("client_identity_aliases")
-        .select("alias_client_id,canonical_client_id")
-        .in("canonical_client_id", clientIds)).data || [])
-    : [];
   const familyIdToCanonical = new Map<string, string>(clientIds.map((id) => [id, id]));
-  for (const row of siblingAliases as Array<{ alias_client_id: string; canonical_client_id: string }>) {
-    familyIdToCanonical.set(row.alias_client_id, row.canonical_client_id);
+  for (const row of aliasRows) {
+    const canonicalClientId = resolveLocal(row.alias_client_id);
+    if (clientIdSet.has(canonicalClientId)) {
+      familyIdToCanonical.set(row.alias_client_id, canonicalClientId);
+    }
   }
   const familyIds = [...new Set(Array.from(familyIdToCanonical.keys()))];
 
-  const [subscriptionRows, clientRows] = admin
+  const [subscriptionRows, clientRows] = admin && view === "members"
     ? await Promise.all([
         familyIds.length
           ? admin
@@ -190,6 +185,10 @@ export default async function AdminMembersPage({
     const linkedClient = clientId ? clientById.get(clientId) : undefined;
     return linkedClient?.portal_access_status === "error" || Boolean(linkedClient?.portal_sync_error);
   });
+  const portalActive = profiles.filter((profile) => profile.status === "active").length;
+  const pendingInvites = invitations.filter((item) => item.status === "pending").length;
+  const metricLinked = view === "members" ? linkedProfiles.length : undefined;
+  const metricSyncIssues = view === "members" ? syncIssueProfiles.length : undefined;
 
   const inviteAction = (
     <AdminDrawer triggerLabel="Invite member" title="Invite existing client" eyebrow="Member access" description="Find a tracked client and generate their secure portal access without cluttering the directory.">
@@ -208,13 +207,9 @@ export default async function AdminMembersPage({
 
       {query.success ? <p className="admin-notice">Member access updated.</p> : null}
 
-      <AdminMetricStrip items={[
-        { label: "Portal active", value: profiles.filter((profile) => profile.status === "active").length, detail: "enabled member profiles", tone: "good" },
-        { label: "Eligible subscribers", value: provisioningCoverage.eligibleCount, detail: "active or due soon" },
-        { label: "Linked", value: linkedProfiles.length, detail: "mapped to LokiMax client" },
-        { label: "Sync issues", value: syncIssueProfiles.length + provisioningCoverage.missingCount, detail: provisioningCoverage.missingCount ? `${provisioningCoverage.missingCount} missing eligible accounts` : "needs review", tone: syncIssueProfiles.length + provisioningCoverage.missingCount ? "danger" : "good" },
-        { label: "Invites", value: invitations.filter((item) => item.status === "pending").length, detail: "active links" }
-      ]} />
+      <Suspense fallback={<AdminMemberMetricsFallback portalActive={portalActive} linked={metricLinked} syncIssues={metricSyncIssues} pendingInvites={pendingInvites} />}>
+        <AdminMemberMetrics portalActive={portalActive} linked={metricLinked} syncIssues={metricSyncIssues} pendingInvites={pendingInvites} />
+      </Suspense>
 
       <AdminTabs active={view === "invites" ? "/admin/members?view=invites" : "/admin/members"} tabs={[
         { label: "Members", href: "/admin/members", count: profiles.length },

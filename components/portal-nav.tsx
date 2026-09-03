@@ -3,7 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { SignOutButton } from "@/components/auth";
+import styles from "./portal-nav.module.css";
 
 export type PortalNavItem = {
   href: string;
@@ -32,6 +34,14 @@ function NavIcon({ name }: { name: string }) {
   return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>;
 }
 
+function isItemActive(item: PortalNavItem, path: string) {
+  const activePath = path === item.href || path.startsWith(`${item.href}/`);
+  const activeAlias = item.aliases?.some((alias) => path === alias || path.startsWith(`${alias}/`));
+  return item.href === "/dashboard" || item.href === "/admin"
+    ? path === item.href
+    : Boolean(activePath || activeAlias);
+}
+
 type PortalNavProps = {
   eyebrow: string;
   title: string;
@@ -48,6 +58,9 @@ export function PortalNav({
   tone = "member"
 }: PortalNavProps) {
   const pathname = usePathname();
+  const [pendingNavigation, setPendingNavigation] = useState<{ href: string; from: string } | null>(null);
+  const pendingHref = pendingNavigation?.from === pathname ? pendingNavigation.href : null;
+  const displayPath = pendingHref || pathname;
 
   return (
     <aside className={`portal-nav portal-nav-${tone}`}>
@@ -63,18 +76,21 @@ export function PortalNav({
 
       <nav aria-label={`${title} navigation`}>
         {items.map((item) => {
-          const activePath = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          const activeAlias = item.aliases?.some((alias) => pathname === alias || pathname.startsWith(`${alias}/`));
-          const active = item.href === "/dashboard" || item.href === "/admin"
-            ? pathname === item.href
-            : activePath || activeAlias;
+          const active = isItemActive(item, displayPath);
+          const pending = pendingHref === item.href;
 
           return (
             <Link
+              aria-busy={pending || undefined}
               aria-current={active ? "page" : undefined}
-              className={active ? "active" : undefined}
+              className={[styles.link, active ? "active" : "", pending ? styles.pending : ""].filter(Boolean).join(" ")}
               href={item.href}
               key={item.href}
+              prefetch
+              onClick={(event) => {
+                if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                if (pathname !== item.href) setPendingNavigation({ href: item.href, from: pathname });
+              }}
             >
               <span className="portal-nav-icon"><NavIcon name={item.icon || item.shortLabel} /></span>
               <span className="portal-nav-label">{item.label}</span>
