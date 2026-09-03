@@ -4,6 +4,7 @@ import "@/app/globals.css";
 import "@/app/phase2.css";
 import "@/app/upgrade.css";
 import "@/app/member-wallet.css";
+import "@/app/netflix-verification.css";
 import "@/app/key-store.css";
 import "@/app/storefront-header.css";
 import "@/app/store-commerce.css";
