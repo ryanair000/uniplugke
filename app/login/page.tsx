@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Member sign in" };
 
 function safeNext(value: string | undefined) {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/dashboard";
+  return value?.startsWith("/") && !value.startsWith("//") ? value : "/dashboard/subscriptions";
 }
 
 export default async function LoginPage({
