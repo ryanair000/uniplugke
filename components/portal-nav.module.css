@@ -26,8 +26,8 @@
 }
 
 @keyframes navPulse {
-  from { opacity: 0.28; transform: translateY(-50%) scale(0.8); }
-  to { opacity: 0.9; transform: translateY(-50%) scale(1); }
+  from { opacity: 0.28; }
+  to { opacity: 0.9; }
 }
 
 @media (max-width: 520px) {
