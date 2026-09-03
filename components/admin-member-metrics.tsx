@@ -55,25 +55,14 @@ export async function AdminMemberMetrics({
     return <AdminMemberMetricsFallback portalActive={portalActive} linked={linked} syncIssues={syncIssues} pendingInvites={pendingInvites} />;
   }
 
-  const [coverage, linkedResult, syncResult] = await Promise.all([
-    cachedCoverage(admin),
-    linked === undefined
-      ? admin.from("client_portal_accounts").select("user_id", { count: "exact", head: true })
-      : Promise.resolve(null),
-    syncIssues === undefined
-      ? admin.from("clients").select("id", { count: "exact", head: true }).or("portal_access_status.eq.error,portal_sync_error.not.is.null")
-      : Promise.resolve(null)
-  ]);
-
-  const resolvedLinked = linked ?? linkedResult?.count ?? 0;
-  const resolvedSyncIssues = syncIssues ?? syncResult?.count ?? 0;
-  const totalSyncIssues = resolvedSyncIssues + coverage.missingCount;
+  const coverage = await cachedCoverage(admin);
+  const totalSyncIssues = (syncIssues ?? 0) + coverage.missingCount;
 
   return (
     <AdminMetricStrip items={[
       { label: "Portal active", value: portalActive, detail: "enabled member profiles", tone: "good" },
       { label: "Eligible subscribers", value: coverage.eligibleCount, detail: "active or due soon" },
-      { label: "Linked", value: resolvedLinked, detail: "mapped to LokiMax client" },
+      { label: "Linked", value: linked ?? coverage.provisionedEligibleCount, detail: "mapped to LokiMax client" },
       { label: "Sync issues", value: totalSyncIssues, detail: coverage.missingCount ? `${coverage.missingCount} missing eligible accounts` : "needs review", tone: totalSyncIssues ? "danger" : "good" },
       { label: "Invites", value: pendingInvites, detail: "active links" }
     ]} />
