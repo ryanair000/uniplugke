@@ -10,8 +10,8 @@ import {
 } from "@/lib/account-routing";
 
 function safeNext(value: unknown) {
-  const path = String(value || "/dashboard");
-  return path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard";
+  const path = String(value || "/dashboard/subscriptions");
+  return path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard/subscriptions";
 }
 
 function cleanIdentifier(value: unknown) {
