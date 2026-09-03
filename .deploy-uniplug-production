@@ -6,3 +6,4 @@
 2026-09-03 admin responsiveness performance release
 2026-09-03 10:55 EAT VIP login direct-to-services without forced password change
 2026-09-03 11:02 EAT remove legacy forced password route after VIP login
+2026-09-03 ChatGPT verification provider + verification loading UI production release
