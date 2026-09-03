@@ -2,12 +2,30 @@ import { AdminMetricStrip } from "@/components/admin-console";
 import { getPortalProvisioningCoverage } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
 
+type AdminClient = NonNullable<ReturnType<typeof createAdminSupabaseClient>>;
+type Coverage = Awaited<ReturnType<typeof getPortalProvisioningCoverage>>;
+
 type AdminMemberMetricsProps = {
   portalActive: number;
-  linked: number;
-  syncIssues: number;
+  linked?: number;
+  syncIssues?: number;
   pendingInvites: number;
 };
+
+const COVERAGE_CACHE_MS = 15_000;
+let coverageCache: { expiresAt: number; promise: Promise<Coverage> } | null = null;
+
+function cachedCoverage(admin: AdminClient) {
+  const now = Date.now();
+  if (coverageCache && coverageCache.expiresAt > now) return coverageCache.promise;
+
+  const promise = getPortalProvisioningCoverage(admin).catch((error) => {
+    if (coverageCache?.promise === promise) coverageCache = null;
+    throw error;
+  });
+  coverageCache = { expiresAt: now + COVERAGE_CACHE_MS, promise };
+  return promise;
+}
 
 export function AdminMemberMetricsFallback({
   portalActive,
@@ -19,8 +37,8 @@ export function AdminMemberMetricsFallback({
     <AdminMetricStrip items={[
       { label: "Portal active", value: portalActive, detail: "enabled member profiles", tone: "good" },
       { label: "Eligible subscribers", value: "…", detail: "checking coverage" },
-      { label: "Linked", value: linked, detail: "mapped to LokiMax client" },
-      { label: "Sync issues", value: syncIssues || "…", detail: "checking account coverage", tone: syncIssues ? "danger" : "default" },
+      { label: "Linked", value: linked ?? "…", detail: "mapped to LokiMax client" },
+      { label: "Sync issues", value: syncIssues ?? "…", detail: "checking account coverage", tone: syncIssues ? "danger" : "default" },
       { label: "Invites", value: pendingInvites, detail: "active links" }
     ]} />
   );
@@ -33,16 +51,29 @@ export async function AdminMemberMetrics({
   pendingInvites
 }: AdminMemberMetricsProps) {
   const admin = createAdminSupabaseClient();
-  const coverage = admin
-    ? await getPortalProvisioningCoverage(admin)
-    : { eligibleCount: 0, missingCount: 0 };
-  const totalSyncIssues = syncIssues + coverage.missingCount;
+  if (!admin) {
+    return <AdminMemberMetricsFallback portalActive={portalActive} linked={linked} syncIssues={syncIssues} pendingInvites={pendingInvites} />;
+  }
+
+  const [coverage, linkedResult, syncResult] = await Promise.all([
+    cachedCoverage(admin),
+    linked === undefined
+      ? admin.from("client_portal_accounts").select("user_id", { count: "exact", head: true })
+      : Promise.resolve(null),
+    syncIssues === undefined
+      ? admin.from("clients").select("id", { count: "exact", head: true }).or("portal_access_status.eq.error,portal_sync_error.not.is.null")
+      : Promise.resolve(null)
+  ]);
+
+  const resolvedLinked = linked ?? linkedResult?.count ?? 0;
+  const resolvedSyncIssues = syncIssues ?? syncResult?.count ?? 0;
+  const totalSyncIssues = resolvedSyncIssues + coverage.missingCount;
 
   return (
     <AdminMetricStrip items={[
       { label: "Portal active", value: portalActive, detail: "enabled member profiles", tone: "good" },
       { label: "Eligible subscribers", value: coverage.eligibleCount, detail: "active or due soon" },
-      { label: "Linked", value: linked, detail: "mapped to LokiMax client" },
+      { label: "Linked", value: resolvedLinked, detail: "mapped to LokiMax client" },
       { label: "Sync issues", value: totalSyncIssues, detail: coverage.missingCount ? `${coverage.missingCount} missing eligible accounts` : "needs review", tone: totalSyncIssues ? "danger" : "good" },
       { label: "Invites", value: pendingInvites, detail: "active links" }
     ]} />
