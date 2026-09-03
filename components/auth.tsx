@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
+export function LoginForm({ nextPath = "/dashboard/subscriptions" }: { nextPath?: string }) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +24,7 @@ export function LoginForm({ nextPath = "/dashboard" }: { nextPath?: string }) {
       if (!response.ok) throw new Error(body.error || "Sign-in failed");
       // A hard navigation guarantees that the newly written auth cookies are
       // available to protected Server Components on the first destination render.
-      window.location.assign(body.next || "/dashboard");
+      window.location.assign(body.next || "/dashboard/subscriptions");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign-in failed");
       setBusy(false);
