@@ -1,10 +1,12 @@
 import "server-only";
 
+import { chatGptVerifyProvider } from "@/lib/verify/providers/chatgpt";
 import { netflixVerifyProvider } from "@/lib/verify/providers/netflix";
 import type { VerifyProviderAdapter, VerifyProviderId } from "@/lib/verify/provider-types";
 
 const providers = new Map<VerifyProviderId, VerifyProviderAdapter>([
-  [netflixVerifyProvider.id, netflixVerifyProvider]
+  [netflixVerifyProvider.id, netflixVerifyProvider],
+  [chatGptVerifyProvider.id, chatGptVerifyProvider]
 ]);
 
 export function getVerifyProvider(value: unknown) {
