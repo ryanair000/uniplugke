@@ -15,23 +15,27 @@ type CodeResult = { code: string };
 type IssueReason = "no_subscription" | "household_issue" | "incorrect_password" | "many_users_streaming" | "";
 type CredentialKind = "email" | "password" | "profile" | "pin";
 
+function providerLabel(provider: string | null | undefined, fallback?: string) {
+  if (provider === "chatgpt") return "ChatGPT";
+  if (provider === "netflix") return "Netflix";
+  return fallback || "Service";
+}
+
+function inferredVerifyProvider(details: AccessDetails | null, verificationProvider: string | null | undefined, isNetflix: boolean) {
+  if (verificationProvider) return verificationProvider;
+  if (isNetflix) return "netflix";
+  const service = details?.serviceName.trim().toLowerCase() || "";
+  if (service === "chatgpt plus" || service === "chatgpt") return "chatgpt";
+  return null;
+}
+
 function CredentialIcon({ kind }: { kind: CredentialKind }) {
   if (kind === "email") return <Mail size={17} strokeWidth={2.2} />;
   if (kind === "profile") return <UserRound size={17} strokeWidth={2.2} />;
   return <KeyRound size={17} strokeWidth={2.2} />;
 }
 
-function VaultRow({
-  label,
-  value,
-  kind,
-  sensitive = false
-}: {
-  label: string;
-  value: string;
-  kind: CredentialKind;
-  sensitive?: boolean;
-}) {
+function VaultRow({ label, value, kind, sensitive = false }: { label: string; value: string; kind: CredentialKind; sensitive?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(!sensitive);
 
@@ -70,7 +74,17 @@ function VaultRow({
   );
 }
 
-export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = false }: { subscriptionId: string; canReplace?: boolean; isNetflix?: boolean }) {
+export function AccountAccess({
+  subscriptionId,
+  canReplace = true,
+  isNetflix = false,
+  verificationProvider = null
+}: {
+  subscriptionId: string;
+  canReplace?: boolean;
+  isNetflix?: boolean;
+  verificationProvider?: string | null;
+}) {
   const [details, setDetails] = useState<AccessDetails | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"reveal" | "replace" | "code" | null>("reveal");
@@ -82,13 +96,17 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   const [replacementReason, setReplacementReason] = useState<IssueReason | null>(null);
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const effectiveProvider = inferredVerifyProvider(details, verificationProvider, isNetflix);
+  const verifyLabel = providerLabel(effectiveProvider, details?.serviceName);
+  const canVerify = Boolean(effectiveProvider);
 
   const getLatestCode = useCallback(async (silent = false) => {
     setBusy("code");
     if (!silent) setMessage("");
-    setCodeNote("Checking Netflix for your verification code…");
+    setCodeNote(`Checking ${verifyLabel} for your verification code…`);
     try {
-      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/netflix-code`, { method: "POST", cache: "no-store" });
+      const response = await fetch(`/api/portal/subscriptions/${subscriptionId}/verification-code`, { method: "POST", cache: "no-store" });
       const body = await response.json();
       const retryAfterSeconds = Math.max(1, Number(response.headers.get("Retry-After")) || 60);
       if (body.status === "cooldown" || body.status === "rate_limited") {
@@ -99,24 +117,22 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       }
       if (body.status === "pending" || body.status === "not_found") {
         setNextCodeCheckAt(Date.now() + retryAfterSeconds * 1000);
-        setCodeNote("Still waiting for the Netflix verification code…");
+        setCodeNote(`Still waiting for the ${verifyLabel} verification email…`);
         return;
       }
-      if (!response.ok) {
-        throw new Error(body.error || "The Netflix verification code could not be loaded.");
-      }
-      if (!body.code) throw new Error("The Netflix verification code could not be loaded.");
+      if (!response.ok) throw new Error(body.error || "The verification code could not be loaded.");
+      if (!body.code) throw new Error("The verification code could not be loaded.");
       setNextCodeCheckAt(null);
       setCodeResult({ code: String(body.code) });
       setCodeNote("");
     } catch (error) {
       setNextCodeCheckAt(null);
       setCodeNote("");
-      setMessage(error instanceof Error ? error.message : "The Netflix verification code could not be loaded.");
+      setMessage(error instanceof Error ? error.message : "The verification code could not be loaded.");
     } finally {
       setBusy(null);
     }
-  }, [subscriptionId]);
+  }, [subscriptionId, verifyLabel]);
 
   useEffect(() => {
     let active = true;
@@ -180,6 +196,17 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
     }
   }
 
+  async function copyVerificationCode() {
+    if (!codeResult) return;
+    try {
+      await navigator.clipboard.writeText(codeResult.code);
+      setCopiedCode(true);
+      window.setTimeout(() => setCopiedCode(false), 1800);
+    } catch {
+      setMessage("Copy failed. Please allow clipboard access and try again.");
+    }
+  }
+
   async function reportIssue() {
     if (!replacementReason) return;
     const reason = replacementReason;
@@ -193,13 +220,11 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Your account issue could not be submitted.");
-
       if (body.status === "admin_alerted") {
         setReplacementReason(null);
         setMessage(body.message || "Admin has been alerted and will review the account.");
         return;
       }
-
       if (body.details) setDetails(body.details);
       setReplacementReason(null);
       setVerificationOpen(false);
@@ -217,13 +242,13 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   }
 
   function openVerificationCode() {
-    const startedAt = Date.now();
     setVerificationOpen(true);
-    setVerificationStartedAt(startedAt);
+    setVerificationStartedAt(Date.now());
     setVerificationTimedOut(false);
     setReplacementReason(null);
     setCodeResult(null);
-    setCodeNote("Checking Netflix for your verification code…");
+    setCopiedCode(false);
+    setCodeNote(`Checking ${verifyLabel} for your verification code…`);
     setNextCodeCheckAt(null);
     setMessage("");
     void getLatestCode();
@@ -246,11 +271,7 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
   return (
     <section className="wallet-card access-console">
       <div className="wallet-card-heading access-console-heading">
-        <div>
-          <p className="wallet-kicker">Account access</p>
-          <h2>Login details</h2>
-          <p className="access-console-subtitle">Everything you need to sign in, in one place.</p>
-        </div>
+        <div><p className="wallet-kicker">Account access</p><h2>Login details</h2><p className="access-console-subtitle">Everything you need to sign in, in one place.</p></div>
         {details ? <span className="access-ready-pill"><ShieldCheck size={14} /> Access ready</span> : <span className="wallet-lock" aria-hidden="true">⌁</span>}
       </div>
 
@@ -267,26 +288,33 @@ export function AccountAccess({ subscriptionId, canReplace = true, isNetflix = f
           <div className="access-copy-all">
             <div><strong>{details.serviceName || "Service"} access</strong><span>Keep these details private and use them only for your assigned service.</span></div>
             <button type="button" className={`access-copy-all-button ${copiedAll ? "is-copied" : ""}`} onClick={copyAllDetails}>
-              {copiedAll ? <Check size={16} /> : <Copy size={16} />}
-              {copiedAll ? "Copied all" : "Copy all details"}
+              {copiedAll ? <Check size={16} /> : <Copy size={16} />}{copiedAll ? "Copied all" : "Copy all details"}
             </button>
           </div>
         </>
       )}
 
       <div className="access-console-actions">
-        {isNetflix ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code" || (verificationOpen && !verificationTimedOut && !codeResult)}>Need Verification Code</button> : null}
+        {canVerify ? <button className="button household-button" type="button" onClick={openVerificationCode} disabled={busy === "code" || (verificationOpen && !verificationTimedOut && !codeResult)}>Get verification code</button> : null}
         {canReplace ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div>
 
-      {isNetflix && verificationOpen ? <div className="household-assistant" aria-busy={busy === "code"} aria-live="polite">
-        <div className="household-heading"><span aria-hidden="true">#</span><div><p className="wallet-kicker">Netflix verification</p><h3>Verification code</h3></div></div>
-        {!codeResult ? <div className="verification-progress">
-          {busy === "code" ? <span className="verification-loader" aria-hidden="true"><i /><i /><i /></span> : null}
-          <p>{verificationTimedOut ? "The code is taking longer than expected." : (busy === "code" ? "Checking Netflix for your verification code…" : (codeNote || "Waiting for a new Netflix verification code…"))}</p>
+      {canVerify && verificationOpen ? <div className="household-assistant verification-assistant" aria-busy={busy === "code"} aria-live="polite">
+        <div className="household-heading"><span aria-hidden="true">#</span><div><p className="wallet-kicker">{verifyLabel} verification</p><h3>{codeResult ? "Code ready" : "Getting your code"}</h3></div></div>
+        {!codeResult ? <div className="verification-loader-shell">
+          <span className="verification-orbit" aria-hidden="true"><i /><b /></span>
+          <div className="verification-loader-copy">
+            <strong>{verificationTimedOut ? "Code not received yet" : (busy === "code" ? "Checking your inbox…" : "Watching for the verification email…")}</strong>
+            <span>{verificationTimedOut ? "Try again or report the account below." : (codeNote || `Waiting for a new ${verifyLabel} verification code…`)}</span>
+          </div>
         </div> : null}
-        {codeResult ? <div className="temporary-code"><strong>{codeResult.code.split("").join(" ")}</strong></div> : null}
-        <small>This should usually take less than 2 minutes. If it takes more than 5 minutes, click Account not working.</small>
+        <div className="verification-stages" aria-hidden="true">
+          <span className="is-done">Request received</span>
+          <span className={codeResult ? "is-done" : "is-active"}>Checking inbox</span>
+          <span className={codeResult ? "is-done" : ""}>Code ready</span>
+        </div>
+        {codeResult ? <div className="temporary-code verification-code-ready"><strong>{codeResult.code.split("").join(" ")}</strong><button type="button" onClick={copyVerificationCode}>{copiedCode ? "Copied ✓" : "Copy code"}</button></div> : null}
+        <small>Keep this page open. Codes usually arrive within 1–2 minutes and are never stored in your account history.</small>
         {verificationTimedOut && !codeResult ? <button className="button replace-button" type="button" onClick={() => openAccountIssue()}>Account not working</button> : null}
       </div> : null}
 
