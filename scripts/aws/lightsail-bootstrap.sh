@@ -6,6 +6,16 @@ export DEBIAN_FRONTEND=noninteractive
 
 APP_DIR=/srv/uniplug/app
 APP_REF=${UNIPLUG_REF:-codex/aws-lightsail}
+BUILD_HEAP_MB=${UNIPLUG_BUILD_HEAP_MB:-1536}
+
+# A credit-eligible 2 GB EC2 instance needs disk-backed headroom for next build.
+if ! swapon --noheadings --show=NAME | grep -qx /swapfile; then
+  fallocate -l 2G /swapfile
+  chmod 0600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  grep -q '^/swapfile ' /etc/fstab || printf '/swapfile none swap sw 0 0\n' >> /etc/fstab
+fi
 
 apt-get update
 apt-get install -y ca-certificates curl git nginx
@@ -26,7 +36,7 @@ chmod 0640 /etc/uniplug/runtime.env
 
 cd "$APP_DIR"
 runuser -u uniplug -- npm ci --no-audit --no-fund
-runuser -u uniplug -- env NODE_OPTIONS=--max-old-space-size=3072 npm run build
+runuser -u uniplug -- env NODE_OPTIONS="--max-old-space-size=$BUILD_HEAP_MB" npm run build
 
 cat > /etc/systemd/system/uniplug.service <<'UNIT'
 [Unit]

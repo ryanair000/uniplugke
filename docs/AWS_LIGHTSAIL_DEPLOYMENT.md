@@ -4,7 +4,7 @@ The one Next.js process serves `uniplug.shop`, `www.uniplug.shop`, and `vip.unip
 
 ## EC2 alternative and cost boundary
 
-The bootstrap script also works as Ubuntu 24.04 EC2 user data. Choose an instance with enough memory for `next build` (4 GB is the safe starting point); a micro instance is likely too small to build this application directly. An alternative is building off-instance and transferring a Next.js standalone artifact, which requires a separate packaging workflow. EC2 compute, EBS storage, public IPv4, and outbound transfer can consume AWS Free Tier credits or incur charges. Verify this account's Free plan and remaining credits before launching. The user has requested **no paid resources**, so this runbook does not authorize creating an instance or changing DNS.
+The bootstrap script also works as Ubuntu 24.04 EC2 user data. See [AWS_EC2_DEPLOYMENT.md](AWS_EC2_DEPLOYMENT.md) for the Free plan credit deployment. The user has authorized EC2 only if AWS confirms an active Free plan with remaining credits. This Lightsail runbook does not authorize creating a Lightsail instance.
 
 ## Instance
 
