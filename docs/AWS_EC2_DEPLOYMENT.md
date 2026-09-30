@@ -20,6 +20,12 @@ aws ec2 describe-instances --region us-east-2 \
   --output table
 ```
 
+`scripts/aws/ec2-launch.sh` repeats these guards and launches one `t3.small`
+in `us-east-2` only when all checks pass. It creates a dedicated web security
+group and a Systems Manager instance profile, with no inbound SSH port. Set
+`AWS_REGION=us-east-1` to use Virginia if Ohio lacks vCPU quota. Do not run the
+script twice to work around a quota or plan failure.
+
 Stop if the plan check does not meet every condition above. Check for an existing
 usable instance before creating another one.
 
