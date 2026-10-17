@@ -1,5 +1,11 @@
 # UniPlug Kenya
 
+The `uniplug.co.ke` migration is staged separately on AWS. Cloudflare delegation,
+public HTTPS and provider checks remain pending. See
+[migration status](docs/DOMAIN_MIGRATION_STATUS.md) and the
+[cutover runbook](docs/DOMAIN_MIGRATION.md). The live legacy deployment below
+remains available during transition.
+
 One deployment serving two deliberately separated UniPlug experiences:
 
 - `uniplug.shop`: public software, gaming, devices, and accessories store with physical delivery, digital fulfilment, registration, and sign-in.
