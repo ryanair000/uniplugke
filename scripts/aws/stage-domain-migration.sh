@@ -14,8 +14,11 @@ curl --fail --silent --show-error --location \
   "https://codeload.github.com/ryanair000/uniplugke/tar.gz/$APP_REV" \
   | tar -xz --strip-components=1 -C "$RELEASE_DIR"
 
-# Reuse the installed Linux dependencies only when their lockfile matches exactly.
-cmp -s "$CURRENT_APP/package-lock.json" "$RELEASE_DIR/package-lock.json"
+# Compare parsed lockfiles: the original deployment normalized line endings.
+python3 - "$CURRENT_APP/package-lock.json" "$RELEASE_DIR/package-lock.json" <<'PY'
+import json, pathlib, sys
+assert json.loads(pathlib.Path(sys.argv[1]).read_text()) == json.loads(pathlib.Path(sys.argv[2]).read_text()), 'Dependency lockfiles differ'
+PY
 ln -s "$CURRENT_APP/node_modules" "$RELEASE_DIR/node_modules"
 cp "$CURRENT_APP/.env.production" "$RELEASE_DIR/.env.production"
 python3 - "$RELEASE_DIR/.env.production" <<'PY'
