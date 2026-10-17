@@ -19,7 +19,6 @@ python3 - "$CURRENT_APP/package-lock.json" "$RELEASE_DIR/package-lock.json" <<'P
 import json, pathlib, sys
 assert json.loads(pathlib.Path(sys.argv[1]).read_text()) == json.loads(pathlib.Path(sys.argv[2]).read_text()), 'Dependency lockfiles differ'
 PY
-ln -s "$CURRENT_APP/node_modules" "$RELEASE_DIR/node_modules"
 cp "$CURRENT_APP/.env.production" "$RELEASE_DIR/.env.production"
 python3 - "$RELEASE_DIR/.env.production" <<'PY'
 import pathlib, sys
@@ -34,6 +33,7 @@ PY
 chown -Rh uniplug:uniplug "$RELEASE_DIR"
 chmod 0600 "$RELEASE_DIR/.env.production"
 cd "$RELEASE_DIR"
+runuser -u uniplug -- npm ci --no-audit --no-fund > "$RELEASE_DIR/install.log" 2>&1
 runuser -u uniplug -- node scripts/verify-domains.mjs
 runuser -u uniplug -- env NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=1024 \
   nice -n 10 npm run build > "$RELEASE_DIR/build.log" 2>&1
