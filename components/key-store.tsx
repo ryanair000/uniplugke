@@ -14,6 +14,7 @@ import {
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { RequestKeyForm } from "@/components/key-support";
 import { StoreCartIndicator } from "@/components/store-cart";
+import { VIP_SITE_ORIGIN } from "@/lib/domains";
 
 const money = new Intl.NumberFormat("en-KE");
 const products = Object.values(KEY_PRODUCTS);
@@ -418,7 +419,7 @@ export function KeyStoreFooter() {
         </div>
         <div><h2>Shop</h2><Link href="/#popular">All products</Link><Link href="/?category=software#popular">Software</Link><Link href="/?category=games#popular">Physical games</Link><Link href="/?category=gaming#popular">Gaming gear</Link></div>
         <div><h2>Help</h2><Link href="/help">Help centre</Link><Link href="/order-status">Software order status</Link><a href="mailto:support@uniplug.shop">Email support</a></div>
-        <div><h2>Accounts</h2><Link href="/register">Create account</Link><Link href="/login">Sign in</Link><a href="https://vip.uniplug.shop">VIP client portal</a></div>
+        <div><h2>Accounts</h2><Link href="/register">Create account</Link><Link href="/login">Sign in</Link><a href={VIP_SITE_ORIGIN}>VIP client portal</a></div>
       </div>
       <div className="key-shell key-footer-bottom"><p>© 2026 UniPlug Kenya. All rights reserved.</p><p>Prices shown in Kenyan shillings (KSh).</p></div>
     </footer>

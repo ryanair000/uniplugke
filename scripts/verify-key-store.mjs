@@ -26,7 +26,7 @@ const checks = [
   [!checkout.includes("body.price") && !checkout.includes("body.amount"), "Public checkout must never accept a browser-supplied price"],
   [proxy.includes('pathname === "/api/keys/checkout"'), "Key checkout must be explicitly scoped in hostname routing"],
   [migration.includes("enable row level security") && migration.includes("revoke all on table public.uniplug_key_orders from public, anon, authenticated"), "Key orders must remain inaccessible to public Data API roles"],
-  [authCookie.includes('domain: ".uniplug.shop"') && authCookie.includes("isUniPlugDomain"), "Auth cookies must be shared only across UniPlug subdomains"],
+  [authCookie.includes("uniPlugCookieDomain") && authCookie.includes("secure: Boolean(domain)"), "Auth cookies must be shared only across UniPlug subdomains"],
   [accountRouting.includes('.from("client_portal_accounts")') && accountRouting.includes('.from("client_subscriptions")'), "VIP access must require a Lokimax portal link and tracked service"],
   [login.includes("vipAccess.hasService || isAdmin") && login.includes("storeAccountDestination"), "Login must split VIP and regular-shop destinations"],
   [registration.includes("supabase.auth.signUp") && registration.includes('.from("uniplug_profiles").insert'), "Regular users must be able to create a shop account"],

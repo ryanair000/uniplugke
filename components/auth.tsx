@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { STORE_ORIGIN } from "@/lib/domains";
 
 export function LoginForm({ nextPath = "/dashboard/subscriptions" }: { nextPath?: string }) {
   const [identifier, setIdentifier] = useState("");
@@ -92,7 +93,7 @@ export function RegisterForm() {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Registration failed");
       if (body.signedIn) {
-        window.location.assign(body.next || "https://uniplug.shop");
+        window.location.assign(body.next || STORE_ORIGIN);
         return;
       }
       setSuccess(true);

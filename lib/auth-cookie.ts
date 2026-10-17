@@ -1,10 +1,11 @@
+import { uniPlugCookieDomain } from "@/lib/domains";
+
 export function authCookieOptionsForHostname(hostname: string) {
-  const normalized = hostname.split(":")[0].toLowerCase();
-  const isUniPlugDomain = normalized === "uniplug.shop" || normalized.endsWith(".uniplug.shop");
+  const domain = uniPlugCookieDomain(hostname);
   return {
     path: "/",
     sameSite: "lax" as const,
-    secure: isUniPlugDomain,
-    ...(isUniPlugDomain ? { domain: ".uniplug.shop" } : {})
+    secure: Boolean(domain),
+    ...(domain ? { domain } : {})
   };
 }

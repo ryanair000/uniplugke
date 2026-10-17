@@ -18,6 +18,7 @@ import { SiteFooter, SiteHeader } from "@/components/site";
 import { getViewer } from "@/lib/auth";
 import { KeyStoreFooter, KeyStoreHeader } from "@/components/key-store";
 import { isKeysStoreRequest } from "@/lib/site-mode";
+import { STORE_ORIGIN, VIP_SITE_ORIGIN } from "@/lib/domains";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -27,14 +28,14 @@ const geist = Geist({
 export async function generateMetadata(): Promise<Metadata> {
   const isKeysStore = await isKeysStoreRequest();
   if (isKeysStore) return {
-    metadataBase: new URL("https://uniplug.shop"),
+    metadataBase: new URL(STORE_ORIGIN),
     title: { default: "UniPlug | Software, devices and accessories", template: "%s | UniPlug" },
     description: "Shop software keys, devices and accessories in KSh, with delivery across Kenya.",
     robots: { index: true, follow: true },
     openGraph: { type: "website", siteName: "UniPlug", title: "Software, devices and gaming gear", description: "Shop software keys and everyday tech with delivery across Kenya.", images: ["/opengraph-image"] }
   };
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"),
+    metadataBase: new URL(VIP_SITE_ORIGIN),
     title: { default: "UniPlug | Digital services, simply managed", template: "%s | UniPlug" },
     description: "Discover and manage streaming, creative, productivity, cloud, security, and gaming services through one clean member portal.",
     robots: { index: false, follow: false, noarchive: true, nocache: true },

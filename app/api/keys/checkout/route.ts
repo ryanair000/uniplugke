@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { STORE_ORIGIN } from "@/lib/domains";
 import { NextResponse } from "next/server";
 import {
   KEY_TERMS_VERSION,
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   }).select("id").single();
   if (error || !order) return NextResponse.json({ error: "Order could not be created" }, { status: 500 });
 
-  const origin = new URL(request.url).origin;
+  const origin = STORE_ORIGIN;
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST", headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
     body: JSON.stringify({

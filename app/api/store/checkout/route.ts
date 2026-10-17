@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { STORE_ORIGIN } from "@/lib/domains";
 import { NextResponse } from "next/server";
 import { calculateStoreDeliveryFee } from "@/lib/store-shipping";
 import { PHYSICAL_PRODUCT_TYPES, storefrontCategoryLabel, type StorefrontCategory } from "@/lib/storefront-products";
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "The physical order items could not be saved" }, { status: 500 });
   }
 
-  const origin = new URL(request.url).origin;
+  const origin = STORE_ORIGIN;
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: { Authorization: `Bearer ${paystackSecret}`, "Content-Type": "application/json" },

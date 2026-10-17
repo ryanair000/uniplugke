@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { provisionPortalAccount } from "@/lib/portal-provisioning";
 import { createAdminSupabaseClient } from "@/lib/supabase/server";
+import { VIP_ORIGIN } from "@/lib/account-routing";
 
 export async function POST(request: Request) {
   const viewer = await requireAdmin();
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       recordInvitation: true,
       resetCredentials: true
     });
-    const loginUrl = `${process.env.NEXT_PUBLIC_VIP_SITE_URL || "https://vip.uniplug.shop"}/login`;
+    const loginUrl = `${VIP_ORIGIN}/login`;
     const message = [
       `Hello ${result.displayName}, your UniPlug client dashboard is ready.`,
       result.services.length ? `Services already linked: ${result.services.join(", ")}.` : "Your tracked services are linked to your account.",

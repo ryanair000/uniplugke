@@ -5,6 +5,7 @@ import { formatDualPrice } from "@/lib/currency";
 import { planDurationLabel } from "@/lib/plan-durations";
 import type { KeyProduct } from "@/lib/key-products";
 import type { CatalogService } from "@/lib/types";
+import { STORE_ORIGIN } from "@/lib/domains";
 
 export const categoryLabels: Record<string, string> = {
   all: "All services",
@@ -86,7 +87,7 @@ export function CatalogServiceCard({
 }
 
 export function CatalogSoftwareCard({ product }: { product: KeyProduct }) {
-  const href = `https://uniplug.shop/checkout?product=${product.slug}`;
+  const href = `${STORE_ORIGIN}/checkout?product=${product.slug}`;
 
   return (
     <article className="catalog-card is-software">

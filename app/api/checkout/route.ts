@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { VIP_ORIGIN } from "@/lib/account-routing";
 import { getViewer } from "@/lib/auth";
 import { isPlanDurationMonths, type PlanDurationMonths } from "@/lib/plan-durations";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/supabase/server";
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   const order = Array.isArray(data) ? data[0] : data;
   if (error || !order) return NextResponse.json({ error: error?.message || "Order could not be created" }, { status: 400 });
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://uniplug.shop"}/payment-return`;
+  const callbackUrl = `${VIP_ORIGIN}/payment-return`;
   const response = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: { Authorization: `Bearer ${paystackSecret}`, "Content-Type": "application/json" },

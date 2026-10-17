@@ -1,4 +1,5 @@
 import { CatalogExplorer } from "@/components/catalog-explorer";
+import type { Metadata } from "next";
 import { ProcessStrip } from "@/components/home-sections";
 import { getViewer } from "@/lib/auth";
 import { getPublicCatalog } from "@/lib/catalog";
@@ -8,6 +9,10 @@ import { StorefrontHome } from "@/components/storefront-home";
 import { getStorefrontProducts, type StorefrontCategory } from "@/lib/storefront-products";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return await isKeysStoreRequest() ? { alternates: { canonical: "/" } } : {};
+}
 
 export default async function HomePage() {
   if (await isKeysStoreRequest()) {
